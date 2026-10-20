@@ -60,6 +60,10 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     found: dict[str, set[str]] = {}
 
     def collect(label: str, values: set[str]) -> None:
+        # Untrusted TOML table keys become report labels; validate every
+        # optional/extra group before emitting it to JSON or terminals.
+        if label.startswith(("optional:", "group:")) and not _NAME.fullmatch(label.split(":", 1)[1]):
+            raise ValueError("pyproject.toml contains an invalid dependency group name")
         found.setdefault(label, set()).update(values)
 
     if 'project' in data:
