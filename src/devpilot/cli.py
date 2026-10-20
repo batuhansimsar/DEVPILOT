@@ -39,6 +39,9 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         cmd = sub.add_parser(name, help=description)
         _add_repo_flags(cmd)
+        if name == 'workspaces':
+            cmd.add_argument('--max-depth', type=int, default=5, help='Maximum directory depth (0-50; default 5)')
+            cmd.add_argument('--max-directories', type=int, default=5000, help='Maximum directories to scan (1-100000; default 5000)')
         if name == 'test':
             cmd.add_argument('--ecosystem', choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
@@ -172,7 +175,12 @@ def main(argv: list[str] | None = None) -> int:
             result = analyze_project(root)
             success = not result['problems']
         elif args.command == 'workspaces':
-            result = discover_workspaces(root)
+            if not 0 <= args.max_depth <= 50:
+                parser.error('--max-depth must be between 0 and 50')
+            if not 1 <= args.max_directories <= 100000:
+                parser.error('--max-directories must be between 1 and 100000')
+            result = discover_workspaces(root, max_depth=args.max_depth,
+                                         max_directories=args.max_directories)
             success = True
         elif args.command == 'audit':
             result = audit_tracked_files(root)
