@@ -135,10 +135,6 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
             elif group:
                 active_group = group
             continue
-        # An unsupported or malformed table ends the preceding dependency group.
-        if line.startswith('['):
-            active_group = ''
-            continue
         if active_group:
             match = _DEPENDENCY.match(line)
             if match:

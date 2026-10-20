@@ -105,5 +105,21 @@ another_ghost = "secret"
 '''
         self.assertEqual(parse_cargo_dependencies(content), {'dependencies': ['serde']})
 
+
+    def test_whitespace_around_toml_table_keys(self):
+        manifest = '''
+[ dependencies ]
+serde_json = "1"
+[dependencies . serde]
+version = "1"
+[target . 'cfg(unix)' . dev-dependencies]
+proptest = "1"
+'''
+        self.assertEqual(parse_cargo_dependencies(manifest), {
+            'dependencies': ['serde', 'serde_json'],
+            'dev-dependencies': ['proptest'],
+        })
+
+
 if __name__ == '__main__':
     unittest.main()
