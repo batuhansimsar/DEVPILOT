@@ -28,13 +28,13 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
         raise ValueError('URL must not contain whitespace or control characters')
-    # urllib's HTTP transport only accepts ASCII request targets; fail clearly
-    # instead of leaking a UnicodeEncodeError (including from IDN hostnames).
-    if not url.isascii():
-        raise ValueError('URL must be ASCII; percent-encode paths/queries and IDNA-encode hosts')
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
+    # urllib needs an ASCII authority; internationalized paths and queries
+    # can instead be encoded without changing the requested host.
+    if not parts.netloc.isascii():
+        raise ValueError('URL host must be ASCII (use IDNA for internationalized hostnames)')
     if any(char.isspace() for char in parts.hostname) or '\\' in parts.hostname:
         raise ValueError('URL host must not contain whitespace or backslashes')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
@@ -61,11 +61,11 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL port must be between 1 and 65535')
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
-    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')
+    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (quote(parts.path, safe="/%:@!    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')'()*+,;=-._~") or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
-    # HTTP request targets must be ASCII; encode Unicode path/query data as
-    # UTF-8 without double-encoding existing percent escapes.
+    # Encode Unicode path/query data as UTF-8 without double-encoding existing
+    # percent escapes. Keep only an ASCII, percent-encoded path in reports.
     request_url = urlunsplit((
         parts.scheme, parts.netloc,
         quote(parts.path, safe="/%:@!$&'()*+,;=-._~"),
