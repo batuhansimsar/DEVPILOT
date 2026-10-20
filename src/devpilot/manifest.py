@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import stat
@@ -37,6 +38,15 @@ def _reject_non_json_number(value: str) -> None:
     raise ValueError('Non-finite numbers are not valid JSON')
 
 
+def _safe_os_error(error: OSError) -> str:
+    """Report an actionable error code without disclosing paths or OS text.
+
+    OSError messages can contain filenames and attacker-controlled strerror
+    details, including terminal escapes. Only use the fixed errno vocabulary.
+    """
+    return errno.errorcode.get(error.errno, 'I/O error')
+
+
 def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
     """Read at most 256 KiB from a regular package.json without following links.
 
@@ -51,7 +61,7 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
     except FileNotFoundError:
         return None, None
     except OSError as exc:
-        return None, f'Cannot inspect package.json: {exc}'
+        return None, f'Cannot inspect package.json: {_safe_os_error(exc)}'
     if not stat.S_ISREG(metadata.st_mode):
         return None, None
     if metadata.st_size > MAX_MANIFEST_BYTES:
@@ -82,7 +92,9 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
         return None, 'Invalid package.json: must be UTF-8'
     except _DuplicateJSONKeyError:
         return None, 'Invalid package.json: duplicate JSON object keys'
-    except (OSError, json.JSONDecodeError) as exc:
+    except OSError as exc:
+        return None, f'Invalid package.json: {_safe_os_error(exc)}'
+    except json.JSONDecodeError as exc:
         return None, f'Invalid package.json: {exc}'
     except (RecursionError, ValueError):
         # A size-bounded JSON file can still exceed parser nesting or integer
