@@ -12,7 +12,10 @@ _CONTAINER_MANIFESTS = frozenset({
     'docker-compose.yml', 'docker-compose.yaml',
 })
 _BUILD_FILE_PREFIXES = ('Dockerfile.', 'Containerfile.')
-_NAMED_COMPOSE = re.compile(r'(?:docker-)?compose\.[A-Za-z0-9][A-Za-z0-9_.-]*\.ya?ml\Z')
+# Require non-empty name segments: compose.dev..yaml is not a valid layer.
+_NAMED_COMPOSE = re.compile(
+    r'(?:docker-)?compose\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.ya?ml\Z'
+)
 _IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save', '~', '.dockerignore')
 
 
