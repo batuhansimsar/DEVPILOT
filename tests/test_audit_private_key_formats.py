@@ -15,6 +15,7 @@ class PrivateKeyFormatAuditTests(unittest.TestCase):
         for path in (
             'keys/AuthKey_TEST123.p8', 'keys/PUTTY_KEY.ppk',
             'keys/signing.P8.bak', 'keys/login.PPK.old.orig',
+            'keys/service.JCEKS', 'keys/android.BKS.bak',
         ):
             with self.subTest(path=path):
                 self.assertTrue(_potential_secret(path))
@@ -24,6 +25,7 @@ class PrivateKeyFormatAuditTests(unittest.TestCase):
         for path in (
             'keys/AuthKey_TEST123.p8.example',
             'keys/login.ppk.sample',
+            'keys/service.jceks.example', 'keys/android.bks.sample',
             'docs/key-formats.md',
         ):
             with self.subTest(path=path):
@@ -35,20 +37,22 @@ class PrivateKeyFormatAuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
-            for filename in ('AuthKey_TEST.p8', 'deploy.ppk', 'deploy.ppk.sample',
-                             'untracked.p8'):
+            for filename in ('AuthKey_TEST.p8', 'deploy.ppk', 'server.jceks',
+                             'wallet.bks', 'deploy.ppk.sample', 'untracked.p8'):
                 (root / filename).write_text('SYNTHETIC-FIXTURE-DO-NOT-PRINT', encoding='utf-8')
             subprocess.run(['git', 'add', '--', 'AuthKey_TEST.p8',
-                            'deploy.ppk', 'deploy.ppk.sample'], cwd=root, check=True)
+                            'deploy.ppk', 'server.jceks', 'wallet.bks',
+                            'deploy.ppk.sample'], cwd=root, check=True)
             regular_report = audit_tracked_files(root)
             detailed_report = audit(root)
 
-        self.assertEqual(regular_report['tracked_files'], 3)
-        self.assertEqual(regular_report['candidates'], ['AuthKey_TEST.p8', 'deploy.ppk'])
-        self.assertEqual(detailed_report['tracked_files_checked'], 3)
+        self.assertEqual(regular_report['tracked_files'], 5)
+        self.assertEqual(regular_report['candidates'],
+                         ['AuthKey_TEST.p8', 'deploy.ppk', 'server.jceks', 'wallet.bks'])
+        self.assertEqual(detailed_report['tracked_files_checked'], 5)
         self.assertEqual(
             [item['path'] for item in detailed_report['findings']],
-            ['AuthKey_TEST.p8', 'deploy.ppk'],
+            ['AuthKey_TEST.p8', 'deploy.ppk', 'server.jceks', 'wallet.bks'],
         )
         self.assertNotIn('SYNTHETIC-FIXTURE-DO-NOT-PRINT', str(regular_report))
         self.assertNotIn('SYNTHETIC-FIXTURE-DO-NOT-PRINT', str(detailed_report))
