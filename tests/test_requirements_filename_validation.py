@@ -12,6 +12,7 @@ class RequirementsFilenameValidationTests(unittest.TestCase):
             "requirements_test.in", "requirements.local.txt",
             "dev-requirements.txt", "test-requirements.in",
             "dev_requirements.txt", "local.requirements.in",
+            "Requirements.txt", "DEV_REQUIREMENTS.IN",
         ):
             with self.subTest(name=name):
                 self.assertTrue(is_requirements_manifest(name))
@@ -22,7 +23,7 @@ class RequirementsFilenameValidationTests(unittest.TestCase):
             "requirements-.txt", "requirements_.in", "-requirements.txt",
             "requirements.md", "requirements.txt.bak", "unrelated.in",
             ".requirements.txt", "requirements../backup.txt", "myrequirements.txt",
-            "requirements-README", "Requirements.txt", "requirements\n.txt",
+            "requirements-README", "requirements\n.txt",
         ):
             with self.subTest(name=name):
                 self.assertFalse(is_requirements_manifest(name))
