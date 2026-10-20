@@ -8,10 +8,12 @@ _EMACS_NUMBERED_BACKUP = re.compile(r'\.~[0-9]+~\Z')
 # Vim starts at .swp and walks backward through .swo, .swn, ..., .swa
 # when earlier swap names already exist.
 _VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z')
+# JetBrains IDEs create these copies while safely replacing an edited file.
+_JETBRAINS_SAFE_WRITE_SUFFIXES = ('.___jb_tmp___', '.___jb_old___')
 
 
 def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, bool]:
-    """Remove nested backup suffixes and Emacs autosave/lock wrappers.
+    """Remove nested editor backup, autosave, and safe-write wrappers.
 
     The filename strictly shrinks on every pass. The returned flag preserves
     Vim's special leading-dot swap-file convention for callers.
@@ -24,7 +26,7 @@ def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, boo
                 break
             name = name[:numbered.start()]
             continue
-        suffix = next((suffix for suffix in suffixes
+        suffix = next((suffix for suffix in (*suffixes, *_JETBRAINS_SAFE_WRITE_SUFFIXES)
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None and len(name) > 4 and _VIM_SWAP_SUFFIX.search(name):
             suffix = name[-4:]
