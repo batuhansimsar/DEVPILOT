@@ -8,6 +8,7 @@ import re
 
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _SEPARATOR = re.compile(r"[-_.]+")
+_MAX_PACKAGE_NAME_LENGTH = 214
 
 
 def _reject_nonfinite(_value: str) -> None:
@@ -53,7 +54,8 @@ def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
             raise ValueError(f"Pipfile.lock {group} packages must be objects")
         # Never omit an invalid key: a partial dependency inventory is misleading.
         # The message must not reflect potentially secret-containing lockfile keys.
-        if any(not _PACKAGE_NAME.fullmatch(name) for name in entries):
+        if any(len(name) > _MAX_PACKAGE_NAME_LENGTH or not _PACKAGE_NAME.fullmatch(name)
+               for name in entries):
             raise ValueError(f"Pipfile.lock {group} contains invalid package names")
         normalized: set[str] = set()
         for raw_name in entries:
