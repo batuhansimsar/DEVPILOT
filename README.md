@@ -33,6 +33,8 @@ Examples:
 
 ## Supported detection
 
+If a Node.js project contains lockfiles for multiple package managers, `doctor` emits `node-lockfile-conflict` rather than silently treating the selected manager as unambiguous. Placeholder scripts such as `npm init`'s `no test specified` are not treated as usable tests.
+
 Manifest-driven detection of Go (`go.mod`), JavaScript/TypeScript (`package.json`), Python (`pyproject.toml`, `requirements.txt`, `pytest.ini`), Rust (`Cargo.toml`), and top-level C# (`*.csproj`). JS frameworks detected from `package.json` dependencies include React, Next.js, Vue, Angular, Express and Vite. Test commands are discovered for Go, Cargo, pytest (if configured), and JavaScript projects with a test script.
 
 `.env.example`, `.env.sample` and `.env.template` are compared with local `.env` on **variable names only**; values are never included in the report. Missing `.env` keys are informational because variables can be supplied outside the file.
