@@ -77,7 +77,7 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
 
 def _has_python_manifest(names: set[str]) -> bool:
     """Match the Python dependency manifests supported by dependency scanning."""
-    return bool(names & {'pyproject.toml', 'setup.py', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
+    return bool(names & {'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
         is_requirements_manifest(name)
         for name in names
     )
