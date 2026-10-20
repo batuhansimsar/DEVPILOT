@@ -25,6 +25,8 @@ _PRIVATE_NAMES = frozenset({
     '.pgpass', '.my.cnf', '.mylogin.cnf',
     # Storage clients can persist long-lived cloud API keys in these files.
     '.s3cfg', '.boto', 'rclone.conf',
+    # Legacy Docker registry config stores reusable registry authentication.
+    '.dockercfg',
     # Kubernetes client configs and Terraform plans may hold reusable secrets.
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
