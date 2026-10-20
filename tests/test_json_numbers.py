@@ -21,6 +21,15 @@ class FiniteJSONFloatTests(unittest.TestCase):
                             parse_float=parse_finite_json_float)
         self.assertEqual(result, {'a': 125.0, 'b': -0.5, 'c': 0.0})
 
+    def test_direct_invalid_input_does_not_expose_secret(self):
+        for value in ('private-token:supersecret', 'abc\\x00credential', ''):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, '^invalid JSON number$') as raised:
+                    parse_finite_json_float(value)
+                if value:
+                    self.assertNotIn(value, str(raised.exception))
+                self.assertNotIn('secret', str(raised.exception))
+
 
 if __name__ == '__main__':
     unittest.main()
