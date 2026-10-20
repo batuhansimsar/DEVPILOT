@@ -25,6 +25,11 @@ func TestIsCIConfig(t *testing.T) {
 		{"src/Jenkinsfile", false},
 		{"bitbucket-pipelines.yml.bak", false},
 		{".github/workflows/notes.txt", false},
+		// Archived or nested YAML files are not GitHub Actions entrypoints.
+		{".github/workflows/archived/old.yml", false},
+		{".github/workflows/archived/old.yaml", false},
+		{".github/workflows/", false},
+		{".github/workflows/old.yml.bak", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.path, func(t *testing.T) {
