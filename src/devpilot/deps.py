@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -24,11 +25,26 @@ CARGO_NAME = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=')
 
 
 def _read(path: Path) -> str:
-    if path.is_symlink() or not path.is_file():
+    """Read a bounded regular file, detecting symlink and file-swap races.
+
+    Descriptor checks also prevent reading a swapped-in FIFO or oversized file.
+    """
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode):
         raise ValueError("not a regular file")
-    if path.stat().st_size > MAX_BYTES:
+    if metadata.st_size > MAX_BYTES:
         raise ValueError("file larger than 512 KB")
-    return path.read_text(encoding="utf-8")
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    with os.fdopen(os.open(path, flags), "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError("not a regular file")
+        if (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
+            raise ValueError("file changed during inspection")
+        content = stream.read(MAX_BYTES + 1)
+    if len(content) > MAX_BYTES:
+        raise ValueError("file larger than 512 KB")
+    return content.decode("utf-8")
 
 
 def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
