@@ -33,6 +33,8 @@ EXACT_NAMES = frozenset({
 })
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
+PLAN_NAMES = frozenset({'tfplan'})
+PLAN_SUFFIXES = ('.tfplan',)
 VARIABLE_SUFFIXES = ('.tfvars', '.tfvars.json')
 TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~')
@@ -90,6 +92,8 @@ def classify(path: str) -> str | None:
         return 'potential private key or certificate'
     if name.endswith(STATE_SUFFIXES):
         return 'potential Terraform state containing secrets'
+    if name in PLAN_NAMES or name.endswith(PLAN_SUFFIXES):
+        return 'potential Terraform plan containing secrets'
     if name.endswith(('.tfvars', '.tfvars.json')):
         return 'potential Terraform variables containing secrets'
     if name.endswith(VARIABLE_SUFFIXES):
