@@ -25,6 +25,10 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
         raise ValueError('URL must not contain whitespace or control characters')
+    # urllib's HTTP transport only accepts ASCII request targets; fail clearly
+    # instead of leaking a UnicodeEncodeError (including from IDN hostnames).
+    if not url.isascii():
+        raise ValueError('URL must be ASCII; percent-encode paths/queries and IDNA-encode hosts')
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
