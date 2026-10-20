@@ -44,6 +44,7 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.azure', 'accesstokens.json'),
     ('.azure', 'msal_token_cache.json'),
     ('.azure', 'msal_token_cache.bin'),
+    ('.terraform.d', 'credentials.tfrc.json'),
 })
 # GitHub CLI stores OAuth tokens in this precise path.
 SENSITIVE_CLI_LOCATIONS = frozenset({
