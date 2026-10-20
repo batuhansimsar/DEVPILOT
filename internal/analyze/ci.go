@@ -6,8 +6,13 @@ import "strings"
 // interpreting potentially untrusted pipeline definitions. Paths are slash-
 // separated relative to the repository root.
 func isCIConfig(path string) bool {
-	if strings.HasPrefix(path, ".github/workflows/") {
-		return strings.HasSuffix(path, ".yml") || strings.HasSuffix(path, ".yaml")
+	const workflows = ".github/workflows/"
+	if strings.HasPrefix(path, workflows) {
+		// GitHub only discovers workflow files directly in this directory.
+		// Nested YAML files (for example, archived workflows) are not run.
+		filename := strings.TrimPrefix(path, workflows)
+		return filename != "" && !strings.Contains(filename, "/") &&
+			(strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml"))
 	}
 	switch path {
 	case ".gitlab-ci.yml", "azure-pipelines.yml", "Jenkinsfile",
