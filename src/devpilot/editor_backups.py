@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 
 _EMACS_NUMBERED_BACKUP = re.compile(r'\.~[0-9]+~\Z')
+# Vim starts at .swp and walks backward through .swo, .swn, ..., .swa
+# when earlier swap names already exist.
+_VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z')
 
 
 def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, bool]:
@@ -23,8 +26,10 @@ def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, boo
             continue
         suffix = next((suffix for suffix in suffixes
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
+        if suffix is None and len(name) > 4 and _VIM_SWAP_SUFFIX.search(name):
+            suffix = name[-4:]
         if suffix is not None:
-            if suffix in ('.swp', '.swo', '.swn'):
+            if _VIM_SWAP_SUFFIX.fullmatch(suffix):
                 saw_vim_swap = True
             name = name[:-len(suffix)]
             continue
