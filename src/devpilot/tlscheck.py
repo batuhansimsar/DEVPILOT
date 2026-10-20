@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import socket
 import ssl
+import time
 from typing import Any
 
 
@@ -20,6 +21,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         raise ValueError('port must be between 1 and 65535')
     if not 0.1 <= timeout <= 30:
         raise ValueError('timeout must be between 0.1 and 30 seconds')
+    start = time.monotonic()
     result: dict[str, Any] = {
         'host': host, 'port': port, 'reachable': False,
         'tcp_reachable': False, 'tls_valid': False,
@@ -28,6 +30,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         connection = socket.create_connection((host, port), timeout=timeout)
     except (OSError, TimeoutError) as exc:
         result['error'] = str(exc)
+        result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
         return result
 
     result['tcp_reachable'] = True
@@ -52,4 +55,5 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                     )
         except (ssl.SSLError, OSError, ValueError, OverflowError) as exc:
             result['error'] = str(exc)
+    result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
     return result
