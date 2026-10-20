@@ -3,10 +3,46 @@
 from __future__ import annotations
 
 import datetime
+import ipaddress
 import socket
 import ssl
 import time
 from typing import Any
+
+
+def _tls_dial_host(host: str) -> str:
+    """Validate a bare host, normalizing optional brackets around IPv6 literals.
+
+    Reject URL-like values and embedded ports before any DNS or TCP activity.
+    Keep the original input for reporting while dialing the normalized host.
+    """
+    if not isinstance(host, str) or not host or any(
+        char.isspace() or not char.isprintable() for char in host
+    ):
+        raise ValueError('host must be a hostname or IP address without whitespace or control characters')
+    if any(char in host for char in '/\\@?#'):
+        raise ValueError('host must be a hostname or IP address, not a URL')
+
+    dial_host = host
+    if '[' in host or ']' in host:
+        if not (host.startswith('[') and host.endswith(']')):
+            raise ValueError('host has malformed IPv6 brackets')
+        dial_host = host[1:-1]
+        try:
+            parsed = ipaddress.ip_address(dial_host)
+        except ValueError as exc:
+            raise ValueError('bracketed host must be a valid IPv6 address') from exc
+        if not isinstance(parsed, ipaddress.IPv6Address):
+            raise ValueError('bracketed host must be a valid IPv6 address')
+
+    if ':' in dial_host:
+        try:
+            parsed = ipaddress.ip_address(dial_host)
+        except ValueError as exc:
+            raise ValueError('host contains an invalid IPv6 address or embedded port') from exc
+        if not isinstance(parsed, ipaddress.IPv6Address):
+            raise ValueError('host contains an invalid IPv6 address or embedded port')
+    return dial_host
 
 
 def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
@@ -17,10 +53,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     ``tcp_latency_ms`` and ``tls_handshake_ms`` help locate a slow phase without
     changing the existing total ``latency_ms`` or certificate verification.
     """
-    if not isinstance(host, str) or not host or any(
-        char.isspace() or not char.isprintable() for char in host
-    ):
-        raise ValueError('host must be a hostname or IP address without whitespace or control characters')
+    dial_host = _tls_dial_host(host)
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
@@ -33,7 +66,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     }
     tcp_start = time.perf_counter()
     try:
-        connection = socket.create_connection((host, port), timeout=timeout)
+        connection = socket.create_connection((dial_host, port), timeout=timeout)
     except (OSError, TimeoutError) as exc:
         result['tcp_latency_ms'] = round((time.perf_counter() - tcp_start) * 1000, 1)
         result['error'] = str(exc)
@@ -56,7 +89,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
             connection.settimeout(remaining)
             handshake_start = time.perf_counter()
             try:
-                secured_connection = context.wrap_socket(connection, server_hostname=host)
+                secured_connection = context.wrap_socket(connection, server_hostname=dial_host)
             finally:
                 # A failed handshake is still useful timing information.
                 result['tls_handshake_ms'] = round((time.perf_counter() - handshake_start) * 1000, 1)
