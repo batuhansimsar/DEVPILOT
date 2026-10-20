@@ -24,10 +24,17 @@ GO_NAME = re.compile(r"^\s*([A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+)\s+v\S+")
 CARGO_NAME = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=')
 
 
-def _read(path: Path) -> str:
-    """Read a bounded regular file, detecting symlink and file-swap races.
+def _file_identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
+    """Identify file replacement and in-place writes during inspection."""
+    return (metadata.st_dev, metadata.st_ino, metadata.st_size,
+            metadata.st_mtime_ns, metadata.st_ctime_ns)
 
-    Descriptor checks also prevent reading a swapped-in FIFO or oversized file.
+
+def _read(path: Path) -> str:
+    """Read a bounded regular file, detecting symlink and concurrent write races.
+
+    Check the descriptor both before and after reading: a same-size rewrite
+    must not silently produce an inconsistent dependency report.
     """
     metadata = path.lstat()
     if not stat.S_ISREG(metadata.st_mode):
@@ -39,11 +46,15 @@ def _read(path: Path) -> str:
         opened = os.fstat(stream.fileno())
         if not stat.S_ISREG(opened.st_mode):
             raise ValueError("not a regular file")
-        if (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino):
+        if opened.st_size > MAX_BYTES:
+            raise ValueError("file larger than 512 KB")
+        if _file_identity(opened) != _file_identity(metadata):
             raise ValueError("file changed during inspection")
         content = stream.read(MAX_BYTES + 1)
-    if len(content) > MAX_BYTES:
-        raise ValueError("file larger than 512 KB")
+        if len(content) > MAX_BYTES:
+            raise ValueError("file larger than 512 KB")
+        if _file_identity(os.fstat(stream.fileno())) != _file_identity(opened):
+            raise ValueError("file changed during inspection")
     return content.decode("utf-8")
 
 

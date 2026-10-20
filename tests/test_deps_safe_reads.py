@@ -79,5 +79,40 @@ class SafeDependencyReads(unittest.TestCase):
             _read(self.path)
 
 
+    def test_in_place_rewrite_during_read_is_rejected(self):
+        """Even a same-size edit invalidates the manifest snapshot."""
+        self.path.write_text("pytest>=8\\n", encoding="utf-8")
+        original_fstat = os.fstat
+        calls = 0
+
+        def rewrite_before_post_read_stat(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                previous = self.path.stat()
+                self.path.write_text("pytest>=9\\n", encoding="utf-8")
+                # Ensure a detectable metadata change even on coarse filesystems.
+                os.utime(self.path, ns=(previous.st_atime_ns, previous.st_mtime_ns + 2_000_000_000))
+            return original_fstat(fd)
+
+        with patch("devpilot.deps.os.fstat", side_effect=rewrite_before_post_read_stat):
+            with self.assertRaisesRegex(ValueError, "changed during inspection"):
+                _read(self.path)
+
+    def test_pre_read_change_with_same_inode_is_rejected(self):
+        self.path.write_text("pytest>=8\\n", encoding="utf-8")
+        original_open = os.open
+
+        def rewrite_before_open(path, flags):
+            previous = self.path.stat()
+            self.path.write_text("pytest>=9\\n", encoding="utf-8")
+            os.utime(self.path, ns=(previous.st_atime_ns, previous.st_mtime_ns + 2_000_000_000))
+            return original_open(path, flags)
+
+        with patch("devpilot.deps.os.open", side_effect=rewrite_before_open):
+            with self.assertRaisesRegex(ValueError, "changed during inspection"):
+                _read(self.path)
+
+
 if __name__ == "__main__":
     unittest.main()
