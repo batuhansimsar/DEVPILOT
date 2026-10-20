@@ -57,3 +57,16 @@ python -m unittest discover -s tests -v
 Contributions are welcome. Please add regression tests for bug fixes. For security reports, do not publish credentials, exploit data, or private logs in public issues; reach out to the maintainers privately first.
 
 Licensed under the MIT License.
+
+
+## Share a diagnostic snapshot from the Go CLI
+
+A **portable Markdown report** is available from the Go-based CLI entrypoint without needing network access or running project scripts:
+
+~~~sh
+go run ./cmd/devpilot report /path/to/project > devpilot-diagnostics.md
+~~~
+
+The report summarizes detected languages, frameworks, package manager, test command (not executed), findings, and next steps. It intentionally omits absolute workspace paths, Git branch names, and environment-variable key names. It also escapes Markdown table separators.
+
+**Review the generated file before sharing it publicly.** Redaction is best-effort; project-specific error messages or filenames can still be sensitive. No files are written by DevPilot itself: shell redirection is shown explicitly in the example.
