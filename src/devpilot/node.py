@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,13 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
     declared = None
     if isinstance(declaration, str):
         candidate, separator, version = declaration.partition('@')
-        if separator and version and candidate in SUPPORTED:
+        # Metadata comes from a repository: reject malformed/visually hidden
+        # version strings before allowing them to override lockfile detection.
+        valid_version = (
+            0 < len(version) <= 128
+            and not any(ch.isspace() or unicodedata.category(ch).startswith('C') for ch in version)
+        )
+        if separator and candidate in SUPPORTED and valid_version:
             declared = candidate
     families = {LOCKFILES[name] for name in locks}
     workspace = root / 'pnpm-workspace.yaml'
