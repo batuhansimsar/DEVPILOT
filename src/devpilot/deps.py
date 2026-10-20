@@ -32,6 +32,11 @@ PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
 
 
+def _is_requirements_manifest(name: str) -> bool:
+    """Recognize pip-tools input files and existing pinned requirements lists."""
+    return name.startswith("requirements") and name.endswith((".txt", ".in"))
+
+
 
 def _unique_node_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     """Reject ambiguous nested package.json mappings without logging key values."""
@@ -100,7 +105,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
             if obj:
                 groups[key] = sorted(k for k in obj if isinstance(k, str))
         return "Node.js", groups
-    if name.startswith("requirements") and name.endswith(".txt"):
+    if _is_requirements_manifest(name):
         matches = set()
         for line in content.splitlines():
             if line.lstrip().startswith(("#", "-", "git+", "https:", "http:")):
@@ -159,7 +164,7 @@ def scan(path: str | Path) -> dict:
             subdirs[:] = traversable
         for filename in sorted(filenames):
             if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock")
-                    or filename.startswith("requirements") and filename.endswith(".txt")
+                    or _is_requirements_manifest(filename)
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
             filepath = folder / filename
