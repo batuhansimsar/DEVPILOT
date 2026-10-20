@@ -10,13 +10,17 @@ from typing import Any
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa', 'credentials.json',
     'service-account.json', 'service_account.json', 'google-credentials.json',
+    'application_default_credentials.json',
     'secrets.json', '.netrc', '.envrc',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
 _SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
+    ('.azure', 'accesstokens.json'), ('.azure', 'msal_token_cache.json'),
+    ('.azure', 'msal_token_cache.bin'),
 })
+_SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 _TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup')
@@ -47,7 +51,8 @@ def _potential_secret(path: str) -> bool:
     if name.endswith(_TERRAFORM_SENSITIVE_SUFFIXES):
         return True
     return (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
-            or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS)
+            or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
+            or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS)
 
 def audit_tracked_files(root: Path) -> dict[str, Any]:
     """Check Git's index only; never open candidate files or print secret values."""
