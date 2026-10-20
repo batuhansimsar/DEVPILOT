@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import re
 
-# Require a separator before and a non-empty component after a requirements
-# variant (requirements-dev.txt, requirements_test.in, etc.). Prefixes such as
-# dev-requirements.txt, test_requirements.in, and local.requirements.in are
-# also common. An arbitrary name like requirementsnotes.txt is not a manifest.
+# Require a separator around each non-empty qualifier component. Projects may
+# combine prefix and suffix conventions, e.g. dev-requirements-test.txt, as
+# well as using either convention alone. Arbitrary lookalikes such as
+# requirementsnotes.txt must not be discovered as pip manifests.
 _REQUIREMENTS_MANIFEST = re.compile(
-    r'(?:requirements(?:[._-][A-Za-z0-9]+)*|'
-    r'[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*[._-]requirements)\.(?:txt|in)\Z',
+    r'(?:[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*[._-])?'
+    r'requirements(?:[._-][A-Za-z0-9]+)*\.(?:txt|in)\Z',
     # Delimiter-separated components avoid exponential regex backtracking on
     # filenames such as requirements-a-a-a-...!.txt.
     # Fold ASCII case only; Unicode casefold would accept long-s and Kelvin
@@ -28,9 +28,9 @@ _DOUBLE_EXTENSION = ('.txt.txt', '.txt.in', '.in.txt', '.in.in')
 def is_requirements_manifest(name: str) -> bool:
     """Accept pip and pip-tools filenames without matching unrelated files.
 
-    Supports base manifests, separated variants, and prefixed requirements
-    files with hyphen, underscore, or period separators regardless of ASCII
-    letter case; rejects empty variants, backups, and Unicode lookalikes.
+    Supports base manifests, prefix/suffix qualifiers (including both together)
+    with hyphen, underscore, or period separators regardless of ASCII letter
+    case; rejects empty variants, backups, and Unicode lookalikes.
     """
     if not isinstance(name, str):
         return False
