@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .core import SKIP_DIRS
+from .walk import walk_project
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
@@ -50,7 +51,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
     workspaces: list[dict[str, Any]] = []
     visited = 0
     truncated = False
-    for directory, folders, files in os.walk(root, followlinks=False):
+    problems: list[str] = []
+    for directory, folders, files in walk_project(root, problems):
         current = Path(directory)
         relative = current.relative_to(root)
         depth = len(relative.parts)
@@ -93,5 +95,6 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
         'workspaces': workspaces,
         'workspace_count': len(workspaces),
         'directories_scanned': min(visited, max_directories),
-        'truncated': truncated,
+        'truncated': truncated or bool(problems),
+        'problems': problems,
     }
