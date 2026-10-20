@@ -15,9 +15,11 @@ _FIREBASE_ADMIN_SDK_KEY = re.compile(
 # Google client configuration files that do not contain private keys.
 _SERVICE_ACCOUNT_NAMES = frozenset({
     'serviceaccountkey.json', 'service-account-key.json', 'service_account_key.json',
+    'serviceaccount.json',
     'firebase-service-account.json', 'firebase_service_account.json',
     'firebaseserviceaccount.json', 'firebase-service-account-key.json',
     'firebase_service_account_key.json', 'firebaseserviceaccountkey.json',
+    'firebase-credentials.json', 'firebase_credentials.json', 'firebasecredentials.json',
 })
 
 
