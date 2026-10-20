@@ -11,6 +11,7 @@ from typing import Any
 
 from .audit import audit_tracked_files
 from .httpcheck import http_check
+from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, select_test_commands
@@ -28,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, description in (
         ('doctor', 'Check required developer tools and project configuration'),
         ('analyze', 'Inspect languages, manifests and project structure'),
+        ('deps', 'Inventory dependency manifests without executing project code'),
         ('workspaces', 'Discover nested projects in a monorepo'),
         ('git', 'Inspect local Git changes (read-only)'),
         ('audit', 'Find potentially sensitive filenames already tracked by Git'),
@@ -53,6 +55,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _human(command: str, output: dict[str, Any]) -> str:
+    if command == 'deps':
+        lines = [f"Dependency inventory: {output['root']}"]
+        for item in output['manifests']:
+            lines.append(f"  {item['ecosystem']}: {item['path']} ({item['count']} dependencies)")
+            for group, names in item['groups'].items():
+                lines.append(f"    {group}: {', '.join(names) or '(none)'}")
+        lines.extend(f"  Warning: {warning}" for warning in output['warnings'])
+        return '\n'.join(lines)
     if command == 'analyze':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}",
                  f"Files scanned: {output['file_count']}{' (limit reached)' if output['truncated'] else ''}"]
@@ -146,6 +156,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == 'doctor':
             result = doctor_report(root)
             success = result['ok']
+        elif args.command == 'deps':
+            result = dependency_scan(root)
+            success = not result['warnings']
         elif args.command == 'analyze':
             result = analyze_project(root)
             success = not result['problems']
