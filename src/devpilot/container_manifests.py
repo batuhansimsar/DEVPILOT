@@ -23,13 +23,19 @@ _NAMED_COMPOSE = re.compile(
 _IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save', '~', '.dockerignore')
 
 
+# Vim may rotate through .swp, .swo, ..., .swa when previous swaps exist.
+# Such editor state files must not be interpreted as named build recipes.
+_VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z', re.IGNORECASE)
+
+
+
 def is_container_manifest(filename: str) -> bool:
     """Recognize build files and named Compose manifests without backup files.
 
     Match exact case, as project discovery also runs on case-sensitive systems.
     The caller is responsible for accepting only regular, non-symlinked files.
     """
-    if filename.casefold().endswith(_IGNORED_SUFFIXES):
+    if filename.casefold().endswith(_IGNORED_SUFFIXES) or _VIM_SWAP_SUFFIX.search(filename):
         return False
     return (filename in _CONTAINER_MANIFESTS
             or _NAMED_COMPOSE.fullmatch(filename) is not None
