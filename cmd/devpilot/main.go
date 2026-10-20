@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/share"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot report [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 }
 
@@ -73,6 +75,44 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		if report.HasWarnings() {
 			return 1
+		}
+		return 0
+	case "report":
+		flags := flag.NewFlagSet("report", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "report accepts at most one path")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		report, err := doctor.Inspect(path)
+		if err != nil {
+			fmt.Fprintln(stderr, "report:", err)
+			return 2
+		}
+		snapshot := share.Snapshot{
+			Workspace: report.Path,
+			Languages: report.Languages,
+			Frameworks: report.Frameworks,
+			PackageManager: report.PackageManager,
+		}
+		if report.Tests != nil {
+			snapshot.TestCommand = report.Tests.Executable + " " + strings.Join(report.Tests.Arguments, " ")
+		}
+		for _, f := range report.Findings {
+			snapshot.Findings = append(snapshot.Findings, share.Finding{
+				Level: f.Level, Code: f.Code, Message: f.Message, Remedy: f.Remedy,
+			})
+		}
+		if err := share.Markdown(stdout, snapshot); err != nil {
+			fmt.Fprintln(stderr, "report:", err)
+			return 2
 		}
 		return 0
 	case "test":
