@@ -25,7 +25,12 @@ def execute_test_commands(
         item.pop('skipped_reason', None)
     passed = True
     for index, item in enumerate(commands):
-        result = runner(item['argv'], root, timeout)
+        try:
+            result = runner(item['argv'], root, timeout)
+        except OSError:
+            # OS errors may reveal absolute paths or private test arguments.
+            # Keep the failure in the report without echoing exception text.
+            result = {'exit_code': None, 'error': 'Test command could not be executed (OS error)'}
         item['result'] = result
         exit_code = result.get('exit_code')
         if type(exit_code) is not int or exit_code != 0:
