@@ -191,15 +191,11 @@ func Inspect(root string) (Report, error) {
 						framework(name)
 					}
 				}
-				manager, executable := "npm", "npm"
-				// Lockfiles are authoritative where available. Avoid guessing from a package name.
-				for _, spec := range []struct{ file, name, exe string }{{"pnpm-lock.yaml", "pnpm", "pnpm"}, {"yarn.lock", "yarn", "yarn"}, {"bun.lock", "bun", "bun"}, {"bun.lockb", "bun", "bun"}, {"package-lock.json", "npm", "npm"}} {
-					if hasMarker(abs, spec.file) {
-						manager, executable = spec.name, spec.exe
-						break
-					}
-				}
+				manager, executable, lockfiles := detectJSLockfiles(abs)
 				r.PackageManager = manager
+				if len(lockfiles) > 1 {
+					add("warning", "js-lockfiles-conflict", "Multiple JavaScript lockfiles detected: "+strings.Join(lockfiles, ", "), "Keep only the lockfile for the selected package manager after confirming which one is authoritative.")
+				}
 				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
 					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
 					r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
@@ -208,16 +204,23 @@ func Inspect(root string) (Report, error) {
 			}
 		}
 	}
-	matches, err := filepath.Glob(filepath.Join(abs, "*.csproj"))
-	if err == nil {
-		for _, match := range matches {
-			if hasMarker(abs, filepath.Base(match)) {
-				language("C#")
-				break
-			}
+	dotnet, err := discoverDotnet(abs)
+	if err != nil {
+		add("warning", "dotnet-discovery-failed", "Cannot inspect .NET project entries: "+err.Error(), "Check directory access.")
+	} else if dotnet.Found {
+		for _, name := range dotnet.Languages {
+			language(name)
+		}
+		framework(".NET")
+		tool("dotnet", ".NET SDK")
+		if r.Tests == nil && dotnet.TestTarget != "" {
+			r.Tests = &TestCommand{Executable: "dotnet", Arguments: []string{"test", dotnet.TestTarget}}
+		}
+		if dotnet.Ambiguous {
+			add("info", "dotnet-ambiguous-target", "Multiple .NET project or solution files found; cannot choose a test target safely", "Run dotnet test with an explicit project or solution path.")
 		}
 	}
-	if len(r.Languages) == 0 {
+	if len(r.Languages) == 0 && len(r.Frameworks) == 0 {
 		add("info", "unknown-project", "No supported project manifest was found at the project root", "Open the directory containing a go.mod, package.json, Cargo.toml or similar manifest.")
 	}
 	if r.Tests == nil {
