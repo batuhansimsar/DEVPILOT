@@ -42,6 +42,9 @@ def build_parser() -> argparse.ArgumentParser:
         if name == 'workspaces':
             cmd.add_argument('--max-depth', type=int, default=5, help='Maximum directory depth (0-50; default 5)')
             cmd.add_argument('--max-directories', type=int, default=5000, help='Maximum directories to scan (1-100000; default 5000)')
+        if name == 'git':
+            cmd.add_argument('--fail-on-dirty', action='store_true',
+                             help='Return exit code 1 when the working tree has changes')
         if name == 'test':
             cmd.add_argument('--ecosystem', choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
@@ -187,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             success = not result.get('error') and not result['candidates']
         elif args.command == 'git':
             result = git_status(root)
-            success = result['exit_code'] == 0
+            success = result['exit_code'] == 0 and (not args.fail_on_dirty or result['dirty'] is False)
         elif args.command == 'docker':
             result = docker_status(root)
             success = result['exit_code'] == 0
