@@ -49,6 +49,8 @@ DevPilot is designed to **inspect before acting**. Analysis skips symlinked file
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
+The Python `doctor` command also compares variable **names only** from root-level `.env.example`, `.env.sample`, or `.env.template` against `.env` (when present). No values are printed; missing local keys are informational because variables may be provided externally. Symlinked or oversized environment files are not inspected (256 KiB limit).
+
 ## Development
 
 ```bash
