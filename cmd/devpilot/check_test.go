@@ -25,12 +25,13 @@ func TestCheckCLIJSON(t *testing.T) {
 	var result struct {
 		Host      string `json:"host"`
 		Port      int    `json:"port"`
-		Reachable bool   `json:"reachable"`
+		Reachable bool     `json:"reachable"`
+		LatencyMS *float64 `json:"latency_ms"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.Host != "127.0.0.1" || result.Port != port || !result.Reachable {
+	if result.Host != "127.0.0.1" || result.Port != port || !result.Reachable || result.LatencyMS == nil || *result.LatencyMS < 0 {
 		t.Fatalf("unexpected result: %+v", result)
 	}
 }
@@ -60,7 +61,7 @@ func TestCheckCLIUnreachable(t *testing.T) {
 	listener.Close()
 	var stdout, stderr bytes.Buffer
 	code := run(context.Background(), []string{"check", "--timeout=1s", "127.0.0.1", strconv.Itoa(port)}, &stdout, &stderr)
-	if code != 1 || !strings.Contains(stdout.String(), "unreachable") {
+	if code != 1 || !strings.Contains(stdout.String(), "unreachable") || !strings.Contains(stdout.String(), " ms)") {
 		t.Fatalf("exit=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 	}
 }
