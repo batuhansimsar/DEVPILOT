@@ -1,4 +1,5 @@
 import sys
+import time
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +45,18 @@ class BoundedProcessTests(unittest.TestCase):
         result = self.call_python('import time; time.sleep(10)', timeout=0.05)
         self.assertIsNone(result['exit_code'])
         self.assertIn('Timed out', result['error'])
+
+    def test_inherited_pipe_does_not_block_completion(self):
+        # A grandchild inherits stdout/stderr after its parent exits.
+        start = time.monotonic()
+        result = self.call_python(
+            "import subprocess, sys; "
+            "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(3)']); "
+            "print('parent done')", timeout=1,
+        )
+        self.assertEqual(result['exit_code'], 0)
+        self.assertIn('parent done', result['stdout'])
+        self.assertLess(time.monotonic() - start, 2.5)
 
     def test_missing_executable_is_reported(self):
         result = run_bounded(['devpilot-missing-executable-123456'], self.root)
