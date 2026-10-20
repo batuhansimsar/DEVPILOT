@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 # Treat image build files and Compose manifests as project markers without
 # opening or executing anything in the inspected repository.
 _CONTAINER_MANIFESTS = frozenset({
@@ -10,18 +12,19 @@ _CONTAINER_MANIFESTS = frozenset({
     'docker-compose.yml', 'docker-compose.yaml',
 })
 _BUILD_FILE_PREFIXES = ('Dockerfile.', 'Containerfile.')
+_NAMED_COMPOSE = re.compile(r'(?:docker-)?compose\.[A-Za-z0-9][A-Za-z0-9_.-]*\.ya?ml\Z')
 _IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save', '~', '.dockerignore')
 
 
 def is_container_manifest(filename: str) -> bool:
-    """Recognize root-level container manifests, including named build files.
+    """Recognize build files and named Compose manifests without backup files.
 
     Match exact case, as project discovery also runs on case-sensitive systems.
     The caller is responsible for accepting only regular, non-symlinked files.
     """
     if filename.casefold().endswith(_IGNORED_SUFFIXES):
         return False
-    return filename in _CONTAINER_MANIFESTS or any(
-        filename.startswith(prefix) and len(filename) > len(prefix)
-        for prefix in _BUILD_FILE_PREFIXES
-    )
+    return (filename in _CONTAINER_MANIFESTS
+            or _NAMED_COMPOSE.fullmatch(filename) is not None
+            or any(filename.startswith(prefix) and len(filename) > len(prefix)
+                   for prefix in _BUILD_FILE_PREFIXES))
