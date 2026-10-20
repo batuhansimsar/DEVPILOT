@@ -17,6 +17,7 @@ from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, select_test_commands
+from .test_execution import execute_test_commands
 
 
 def _add_repo_flags(parser: argparse.ArgumentParser) -> None:
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
         if name == 'test':
             cmd.add_argument('--ecosystem', choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
+            cmd.add_argument('--fail-fast', action='store_true', help='Stop executing after the first failed test command')
             cmd.add_argument('--timeout', type=int, default=120, help='Per-command timeout in seconds (1-3600)')
     health = sub.add_parser('check', help='Check TCP reachability of a host and port')
     health.add_argument('host', help='Hostname or IP address to check')
@@ -110,6 +112,8 @@ def _human(command: str, output: dict[str, Any]) -> str:
         lines = [f"Tests: {'executed' if output['executed'] else 'dry run'}"]
         for item in output['commands']:
             lines.append(f"  {item['ecosystem']}: {shlex.join(item['argv'])} ({item['reason']})")
+            if 'skipped_reason' in item:
+                lines.append('    Skipped: ' + item['skipped_reason'])
             if 'result' in item:
                 result = item['result']
                 lines.append(f"    Exit: {result['exit_code']}")
@@ -217,10 +221,8 @@ def main(argv: list[str] | None = None) -> int:
             result = {'path': str(root), 'executed': args.yes, 'commands': commands}
             success = bool(commands)
             if args.yes:
-                for item in commands:
-                    item['result'] = command_result(item['argv'], root, args.timeout)
-                    if item['result']['exit_code'] != 0:
-                        success = False
+                success = execute_test_commands(commands, root, args.timeout, command_result,
+                                                fail_fast=args.fail_fast)
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
