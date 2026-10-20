@@ -46,6 +46,12 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('.streamlit', 'secrets.toml'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
+# Helm stores chart repository passwords and OCI registry auth under ~/.config/helm.
+# Restrict detection to conventional config paths; generic chart YAML is safe.
+_HELM_CREDENTIAL_LOCATIONS = (
+    ('.config', 'helm', 'repositories.yaml'),
+    ('.config', 'helm', 'registry', 'config.json'),
+)
 # Limit age identity detection to conventional private-key config paths.
 _AGE_IDENTITY_LOCATIONS = (
     ('.config', 'sops', 'age', 'keys.txt'),
@@ -100,6 +106,7 @@ def _potential_secret(path: str) -> bool:
             or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
             or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
+            or any(parts[-len(location):] == location for location in _HELM_CREDENTIAL_LOCATIONS)
             or any(parts[-len(location):] == location for location in _AGE_IDENTITY_LOCATIONS)
             or (len(parts) >= 4 and parts[-4:-1] in _CLOUD_TOKEN_CACHE_DIRS
                 and name.endswith('.json')))

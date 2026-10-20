@@ -82,6 +82,13 @@ SENSITIVE_CLI_LOCATIONS = frozenset({
     ('.config', 'glab-cli', 'config.yaml'),
 })
 
+# Helm stores chart repository passwords and OCI registry auth under ~/.config/helm.
+# Restrict detection to conventional config paths; generic chart YAML is safe.
+HELM_CREDENTIAL_LOCATIONS = (
+    ('.config', 'helm', 'repositories.yaml'),
+    ('.config', 'helm', 'registry', 'config.json'),
+)
+
 # Age identity files contain private encryption keys, but keys.txt is only
 # sensitive in these conventional configuration locations.
 AGE_IDENTITY_LOCATIONS = (
@@ -131,6 +138,8 @@ def classify(path: str) -> str | None:
     if len(parts) >= 2 and parts[-2:] in SENSITIVE_LOCATIONS:
         return 'potential credential configuration'
     if len(parts) >= 3 and parts[-3:] in SENSITIVE_CLI_LOCATIONS:
+        return 'potential credential configuration'
+    if any(parts[-len(location):] == location for location in HELM_CREDENTIAL_LOCATIONS):
         return 'potential credential configuration'
     if is_firebase_service_account_key(name):
         return 'potential Firebase service account key'
