@@ -25,5 +25,5 @@ def select_test_commands(commands: list[dict[str, Any]], ecosystem: str | None) 
     """
     if ecosystem is None:
         return deepcopy(commands)
-    label = ECOSYSTEMS[ecosystem]
+    label = ECOSYSTEMS[ecosystem.casefold()]
     return [deepcopy(command) for command in commands if command['ecosystem'] == label]
