@@ -42,6 +42,27 @@ Dev_Test = []
         with self.assertRaisesRegex(ValueError, 'depth|too deep'):
             parse_pyproject_dependencies('\n'.join(lines))
 
+    def test_include_depth_limit_is_order_independent(self):
+        def lockfile(depth: int, reverse: bool) -> str:
+            indices = list(range(depth + 1))
+            if reverse:
+                indices.reverse()
+            lines = ['[dependency-groups]']
+            for number in indices:
+                if number == depth:
+                    lines.append(f'g{number} = ["pytest"]')
+                else:
+                    lines.append(f'g{number} = [{{include-group = "g{number + 1}"}}]')
+            return '\n'.join(lines)
+
+        for reverse in (False, True):
+            with self.subTest(reverse=reverse, depth=64):
+                groups = parse_pyproject_dependencies(lockfile(64, reverse))
+                self.assertEqual(groups['group:g0'], ['pytest'])
+            with self.subTest(reverse=reverse, depth=65):
+                with self.assertRaisesRegex(ValueError, 'depth'):
+                    parse_pyproject_dependencies(lockfile(65, reverse))
+
     def test_invalid_group_names_are_not_echoed(self):
         with self.assertRaises(ValueError) as context:
             parse_pyproject_dependencies('[dependency-groups]\n"bad secret name" = ["pytest"]\n')
