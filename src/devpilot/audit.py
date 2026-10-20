@@ -8,6 +8,7 @@ from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
 from .secret_audit import _tracked_paths
+from .editor_backups import strip_editor_backups
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
@@ -66,17 +67,7 @@ def _potential_secret(path: str) -> bool:
     if not parts:
         return False
     name = parts[-1]
-    # Consume every backup suffix: 4+ nested copies must not hide a secret.
-    # Each iteration removes characters, so even hostile names terminate.
-    saw_vim_swap = False
-    while True:
-        suffix = next((suffix for suffix in _BACKUP_SUFFIXES
-                       if name.endswith(suffix) and len(name) > len(suffix)), None)
-        if suffix is None:
-            break
-        if suffix in ('.swp', '.swo', '.swn'):
-            saw_vim_swap = True
-        name = name[:-len(suffix)]
+    name, saw_vim_swap = strip_editor_backups(name, _BACKUP_SUFFIXES)
     parts = (*parts[:-1], name)
     if name in _ENV_EXAMPLES or (
         (name.startswith('.env.') or '.env.' in name)

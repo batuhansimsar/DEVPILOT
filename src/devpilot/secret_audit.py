@@ -15,6 +15,7 @@ from threading import Thread
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
+from .editor_backups import strip_editor_backups
 
 MAX_OUTPUT = 8 * 1024 * 1024
 MAX_PATHS = 100_000
@@ -103,17 +104,7 @@ def classify(path: str) -> str | None:
     if not parts:
         return None
     name = parts[-1]
-    # Consume all nested backup suffixes so deeper copies cannot evade audit.
-    # The name strictly shrinks on every iteration, guaranteeing termination.
-    saw_vim_swap = False
-    while True:
-        suffix = next((suffix for suffix in BACKUP_SUFFIXES
-                       if name.endswith(suffix) and len(name) > len(suffix)), None)
-        if suffix is None:
-            break
-        if suffix in ('.swp', '.swo', '.swn'):
-            saw_vim_swap = True
-        name = name[:-len(suffix)]
+    name, saw_vim_swap = strip_editor_backups(name, BACKUP_SUFFIXES)
     parts = (*parts[:-1], name)
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
