@@ -2,12 +2,25 @@ package analyze
 
 import "strings"
 
-// dockerManifestKind recognizes Docker and Docker Compose configurations by
-// filename only. It never invokes Docker or project-controlled scripts.
+// dockerManifestKind recognizes Docker, Containerfile, and Compose manifests by
+// filename only. Temporary and backup files must not appear as manifests.
 func dockerManifestKind(name string) (string, bool) {
 	lower := strings.ToLower(name)
-	if lower == "dockerfile" || strings.HasPrefix(lower, "dockerfile.") {
+	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~"} {
+		if strings.HasSuffix(lower, suffix) {
+			return "", false
+		}
+	}
+	isRecipe := func(base string) bool {
+		return lower == base ||
+			(strings.HasPrefix(lower, base+".") && len(lower) > len(base)+1) ||
+			(strings.HasSuffix(lower, "."+base) && len(lower) > len(base)+1)
+	}
+	if isRecipe("dockerfile") {
 		return "Docker", true
+	}
+	if isRecipe("containerfile") {
+		return "Containerfile", true
 	}
 	for _, prefix := range []string{"compose", "docker-compose"} {
 		if lower == prefix+".yml" || lower == prefix+".yaml" ||
