@@ -264,8 +264,16 @@ def docker_status(root: Path) -> dict[str, Any]:
 
 
 def tcp_check(host: str, port: int, timeout: float) -> dict[str, Any]:
-    if not 1 <= port <= 65535:
+    """Probe a TCP endpoint after validating its explicit host and socket limits."""
+    if not isinstance(host, str) or not host or any(
+        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host
+    ):
+        raise ValueError('host must be a hostname or IP address without whitespace')
+    if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not 0.1 <= timeout <= 30):
+        raise ValueError('timeout must be between 0.1 and 30 seconds')
     try:
         with socket.create_connection((host, port), timeout=timeout):
             return {'host': host, 'port': port, 'reachable': True}
