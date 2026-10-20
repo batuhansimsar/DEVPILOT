@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
+from .node import LOCKFILES, package_manager
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -47,25 +48,15 @@ def _root_files(root: Path) -> set[str]:
 
 
 def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
-    """Select the package script runner without executing project-controlled code."""
-    declared = package.get('packageManager')
-    if isinstance(declared, str):
-        manager, separator, version = declared.partition('@')
-        if separator and version and manager in {'npm', 'pnpm', 'yarn', 'bun'}:
-            return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
+    """Select a safe package script runner without executing any project code.
 
-    names = _root_files(root)
-    for filename, manager in (
-        ('pnpm-lock.yaml', 'pnpm'),
-        ('yarn.lock', 'yarn'),
-        ('bun.lock', 'bun'),
-        ('bun.lockb', 'bun'),
-        ('npm-shrinkwrap.json', 'npm'),
-        ('package-lock.json', 'npm'),
-    ):
-        if filename in names:
-            return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
-    return ['npm', 'test']
+    Ambiguous lockfiles without an explicit packageManager must be resolved
+    by the developer before tests can be executed.
+    """
+    manager, lockfiles, declared = package_manager(root, package)
+    if not declared and len({LOCKFILES[name] for name in lockfiles}) > 1:
+        return []
+    return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
 
 
 def detect_projects(root: Path) -> list[str]:
@@ -144,7 +135,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         if isinstance(scripts, dict) and isinstance(scripts.get('test'), str):
             if scripts['test'].strip():
                 # npm scripts execute project code. CLI requires explicit --yes.
-                commands.append({'ecosystem': 'Node.js', 'argv': _node_test_argv(root, package), 'reason': 'package.json test script'})
+                argv = _node_test_argv(root, package)
+                if argv:
+                    commands.append({'ecosystem': 'Node.js', 'argv': argv, 'reason': 'package.json test script'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
@@ -184,6 +177,16 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
+    if 'Node.js' in found:
+        package, _ = _read_package_json(root)
+        if package is not None:
+            manager, lockfiles, declared = package_manager(root, package)
+            families = {LOCKFILES[name] for name in lockfiles}
+            if len(families) > 1:
+                issues.append('Conflicting JavaScript lockfiles: ' + ', '.join(lockfiles))
+            if declared and families and declared not in families:
+                issues.append(f'packageManager specifies {declared} but lockfile(s) indicate {", ".join(sorted(families))}')
+            tools.append({'name': manager, 'available': bool(shutil.which(manager)), 'required_by': ['Node.js']})
     missing = [t['name'] for t in tools if t['required_by'] and not t['available']]
     return {'path': str(root), 'project_types': found, 'tools': tools,
             'warnings': issues + [f'Missing {name} required by detected project' for name in missing],
