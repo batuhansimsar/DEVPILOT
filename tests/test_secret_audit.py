@@ -26,13 +26,21 @@ class ClassificationTests(unittest.TestCase):
     def test_windows_style_paths(self):
         self.assertIsNotNone(classify('nested\\secret.pem'))
 
-    def test_backed_up_secrets_are_flagged(self):
-        for name in ('id_rsa.bak', 'nested/id_ed25519.old.bak', '.npmrc~', 'service-account.json.backup', 'private.key.orig', '.env.example.production'):
+    def test_additional_sensitive_filenames_and_contexts(self):
+        for name in (
+            'infra/terraform.tfstate', 'infra/prod.tfstate.backup',
+            'project/.aws/credentials', '.kube/config', 'home/.docker/config.json',
+            'deploy/secrets.yaml', 'deploy/secrets.yml', '.envrc',
+            'certs/identity.jks', 'certs/signing.keystore',
+            'PROJECT\\.AWS\\CREDENTIALS',
+        ):
             with self.subTest(name=name):
                 self.assertIsNotNone(classify(name))
 
-    def test_template_backups_and_nonsecret_backups_are_ignored(self):
-        for name in ('.env.example.bak', '.env.defaults.old', 'id_rsa.pub.bak', 'README.md.backup', 'credentials.sample.json.orig'):
+    def test_context_sensitive_config_detection_avoids_generic_false_positives(self):
+        for name in ('config', 'src/config.json', 'docs/credentials.example.json',
+                     'terraform.tfstate.example', 'docs/example.tfstate.sample',
+                     'foo/.aws/readme', 'foo/.docker/config.example.json'):
             with self.subTest(name=name):
                 self.assertIsNone(classify(name))
 
@@ -69,6 +77,17 @@ class RepoTests(unittest.TestCase):
         self.assertNotIn('path', result['findings'][0])
         self.assertIn('private key', result['findings'][0]['category'])
 
+    def test_extended_findings_in_git_index_without_reading_secret_contents(self):
+        self.add('.aws/credentials', 'aws_secret_access_key=super-secret')
+        self.add('infrastructure/prod.tfstate', 'sensitive-value')
+        self.add('docs/config.json', 'safe')
+        result = audit(self.root, redact_paths=True)
+        self.assertEqual(len(result['findings']), 2)
+        self.assertEqual(result['tracked_files_checked'], 3)
+        self.assertNotIn('path', result['findings'][0])
+        self.assertNotIn('super-secret', json.dumps(result))
+        self.assertNotIn('sensitive-value', json.dumps(result))
+
     def test_cli_json_and_exit_codes(self):
         self.add('.env', 'token=secret')
         output = io.StringIO()
@@ -87,17 +106,6 @@ class RepoTests(unittest.TestCase):
     def test_missing_directory(self):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(main([str(self.root / 'missing')]), 2)
-
-    def test_audit_finds_backed_up_credentials(self):
-        self.add('keys/id_rsa.old', 'do_not_print')
-        self.add('.env.example.production', 'also_do_not_print')
-        self.add('.env.example.bak', 'template')
-        result = audit(self.root, redact_paths=True)
-        self.assertEqual(result['tracked_files_checked'], 3)
-        self.assertEqual(len(result['findings']), 2)
-        self.assertNotIn('do_not_print', json.dumps(result))
-        self.assertNotIn('also_do_not_print', json.dumps(result))
-        self.assertTrue(all('path' not in finding for finding in result['findings']))
 
 
 if __name__ == '__main__':

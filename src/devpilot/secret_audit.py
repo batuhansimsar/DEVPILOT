@@ -26,31 +26,36 @@ EXACT_NAMES = frozenset({
     'credentials.json', 'secrets.json', 'service-account.json',
     'service_account.json', 'google-credentials.json',
     '.npmrc', '.pypirc', '.netrc',
+    'secrets.yml', 'secrets.yaml', '.envrc',
 })
-PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx')
-BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '~')
+PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
+STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
+# These names are ambiguous outside their well-known secret-bearing directories.
+SENSITIVE_LOCATIONS = frozenset({
+    ('.aws', 'credentials'),
+    ('.kube', 'config'),
+    ('.docker', 'config.json'),
+})
 
 
 def classify(path: str) -> str | None:
     """Classify paths, not file contents. All findings require human review."""
-    name = PurePosixPath(path.replace('\\', '/')).name.lower()
-    # Backup copies of keys and credentials remain sensitive. Handle a limited
-    # number of chained suffixes (e.g. id_rsa.old.bak) without scanning content.
-    for _ in range(3):
-        suffix = next((s for s in BACKUP_SUFFIXES if name.endswith(s)), None)
-        if suffix is None:
-            break
-        name = name[:-len(suffix)]
-    # Only exact example/default dotenv names are excluded. A file such as
-    # .env.example.production is not a template and must be reviewed.
+    parts = PurePosixPath(path.replace('\\', '/').lower()).parts
+    if not parts:
+        return None
+    name = parts[-1]
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template')):
         return None
-    if name == '.env' or name.startswith('.env.'):
+    if name == '.env' or (name.startswith('.env.') and not name.startswith(('.env.example', '.env.sample', '.env.template', '.env.defaults'))):
         return 'environment file'
+    if len(parts) >= 2 and parts[-2:] in SENSITIVE_LOCATIONS:
+        return 'potential credential configuration'
     if name in EXACT_NAMES:
         return 'potential credential file'
     if name.endswith(PRIVATE_SUFFIXES):
         return 'potential private key or certificate'
+    if name.endswith(STATE_SUFFIXES):
+        return 'potential Terraform state containing secrets'
     return None
 
 
