@@ -32,12 +32,19 @@ class GitDirtyValidationTests(unittest.TestCase):
             '?? untracked.txt\n',
             'UU conflict.txt\n',
             'R  old.txt -> new.txt\n',
-            '!! ignored.txt\n',
             ' T changed-type.txt\n',
             '?? pending.txt',  # truncated after an otherwise complete status record
         ):
             with self.subTest(record=record):
                 self.assertIs(is_git_dirty('## main\n' + record, 0), True)
+
+    def test_ignored_records_are_not_dirty_without_real_changes(self):
+        # Porcelain v1's !! denotes ignored paths, not tracked changes.
+        self.assertIs(is_git_dirty('## main\n!! ignored.txt\n', 0), False)
+        self.assertIs(is_git_dirty('## main\n!! ignored.txt\n!! cache/\n', 0), False)
+        self.assertIs(is_git_dirty('## main\n!! ignored.txt\n M changed.py\n', 0), True)
+        # A torn ignored-file record is not evidence of a clean worktree.
+        self.assertIsNone(is_git_dirty('## main\n!! ignored.txt', 0))
 
     def test_genuine_status_after_broken_prefix_is_dirty(self):
         self.assertIs(is_git_dirty('fragment\n M edited.txt\n', 0), True)
