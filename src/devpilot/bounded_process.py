@@ -77,9 +77,10 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
         # indefinitely waiting for EOF from those unrelated descendants.
         for thread in threads:
             thread.join(timeout=0.5)
-    if 'error' not in result:
-        result['stdout'] = stdout_tail.decode('utf-8', errors='replace')
-        result['stderr'] = stderr_tail.decode('utf-8', errors='replace')
-        result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES
-        result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES
+    # Preserve diagnostic output even when a timeout killed the process.
+    # Both streams remain bounded and subject to the same truncation flags.
+    result['stdout'] = stdout_tail.decode('utf-8', errors='replace')
+    result['stderr'] = stderr_tail.decode('utf-8', errors='replace')
+    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES
+    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES
     return result
