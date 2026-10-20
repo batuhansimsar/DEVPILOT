@@ -1,87 +1,129 @@
-"""Safely inventory only package names from PEP 621 and PEP 735 metadata."""
+"""Read-only dependency-name inventory for pyproject.toml.
+
+TOML is parsed without running a build backend or resolving dependencies.
+Versions, source URLs, markers and credentials are deliberately discarded.
+"""
+
 from __future__ import annotations
+
 import re
+
 try:
     import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore[no-redef]
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10
+    import tomli as tomllib
 
-_NAME = re.compile(r'^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|@\s*\S|$))')
-_SEPARATOR = re.compile(r'[-_.]+')
-_GROUP_NAME = re.compile(r'[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z')
-
-
-def _names(values: object) -> list[str]:
-    if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
-        raise ValueError('PEP 621 dependencies must be arrays of strings')
-    names: set[str] = set()
-    for value in values:
-        match = _NAME.match(value)
-        if match is None:
-            raise ValueError('invalid dependency declaration')
-        names.add(_SEPARATOR.sub('-', match.group(1)).lower())
-    return sorted(names)
+_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
+_REQUIREMENT = re.compile(
+    r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?=\s|\[|\(|[<>=!~;@]|$)"
+)
+_SEPARATORS = re.compile(r"[-_.]+")
 
 
+def _canonical(name: str) -> str:
+    return _SEPARATORS.sub("-", name).lower()
 
-def _dependency_groups(raw: object) -> dict[str, list[str]]:
-    """Resolve PEP 735 includes, rejecting cycles and ambiguous group names."""
-    if not isinstance(raw, dict):
-        raise ValueError('dependency-groups must be a table')
-    groups: dict[str, list[object]] = {}
-    for name, members in raw.items():
-        if not isinstance(name, str) or not _GROUP_NAME.fullmatch(name):
-            raise ValueError('invalid dependency group name')
-        canonical = _SEPARATOR.sub('-', name).lower()
-        if canonical in groups:
-            raise ValueError('duplicate normalized dependency group names')
-        if not isinstance(members, list):
-            raise ValueError('dependency group must be an array')
-        groups[canonical] = members
 
-    resolved: dict[str, list[str]] = {}
-    visiting: set[str] = set()
+def _requirements(entries: object, label: str) -> set[str]:
+    """Only return valid names, never a potentially credential-bearing value."""
+    if not isinstance(entries, list):
+        raise ValueError(f"pyproject.toml {label} must be a list")
+    found: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, str):
+            raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
+        match = _REQUIREMENT.match(entry)
+        if not match:
+            raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
+        found.add(_canonical(match.group(1)))
+    return found
 
-    def resolve(name: str) -> list[str]:
-        if name not in groups:
-            raise ValueError('unknown included dependency group')
-        if name in visiting:
-            raise ValueError('cyclic dependency group include')
-        if name in resolved:
-            return resolved[name]
-        visiting.add(name)
-        names: set[str] = set()
-        for member in groups[name]:
-            if isinstance(member, str):
-                names.update(_names([member]))
-            elif isinstance(member, dict) and set(member) == {'include-group'}:
-                included = member['include-group']
-                if not isinstance(included, str) or not _GROUP_NAME.fullmatch(included):
-                    raise ValueError('invalid included dependency group')
-                names.update(resolve(_SEPARATOR.sub('-', included).lower()))
-            else:
-                raise ValueError('invalid dependency group entry')
-        visiting.remove(name)
-        resolved[name] = sorted(names)
-        return resolved[name]
 
-    return {f'group:{name}': resolve(name) for name in sorted(groups)}
+def _mapping(value: object, label: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"pyproject.toml {label} must be a table")
+    return value
+
 
 def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
-    """Exclude build-system requirements and never report versions or credentials."""
-    metadata = tomllib.loads(content)
-    project = metadata.get('project')
-    groups: dict[str, list[str]] = {}
-    if project is not None:
-        if not isinstance(project, dict):
-            raise ValueError('PEP 621 project must be a table')
+    """Inventory PEP 621, PEP 735, Poetry and PDM declaration names.
+
+    Groups are kept separate for actionable reports. Poetry's python key
+    is a runtime constraint, not a package. All result values are names only.
+    """
+    try:
+        data = tomllib.loads(content)
+    except tomllib.TOMLDecodeError as exc:
+        # Parser diagnostics might contain untrusted text; never echo it.
+        raise ValueError('Invalid pyproject.toml TOML') from exc
+
+    found: dict[str, set[str]] = {}
+
+    def collect(label: str, values: set[str]) -> None:
+        found.setdefault(label, set()).update(values)
+
+    if 'project' in data:
+        project = _mapping(data['project'], 'project')
         if 'dependencies' in project:
-            groups['dependencies'] = _names(project['dependencies'])
-        extras = project.get('optional-dependencies', {})
-        if not isinstance(extras, dict):
-            raise ValueError('PEP 621 optional-dependencies must be a table')
-        for name, values in sorted(extras.items()):
-            groups[f'optional:{name}'] = _names(values)
-    if 'dependency-groups' in metadata:
-        groups.update(_dependency_groups(metadata['dependency-groups']))
-    return groups
+            collect('dependencies', _requirements(project['dependencies'], 'project.dependencies'))
+        if 'optional-dependencies' in project:
+            optional = _mapping(project['optional-dependencies'], 'project.optional-dependencies')
+            for group, values in optional.items():
+                collect(f'optional:{group}', _requirements(values, 'project.optional-dependencies'))
+
+    if 'dependency-groups' in data:
+        groups = _mapping(data['dependency-groups'], 'dependency-groups')
+        resolved: dict[str, set[str]] = {}
+        visiting: set[str] = set()
+
+        def resolve(group: str) -> set[str]:
+            if group in resolved:
+                return resolved[group]
+            if group in visiting:
+                raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
+            if group not in groups:
+                raise ValueError('pyproject.toml dependency-groups reference an unknown group')
+            visiting.add(group)
+            entries = groups[group]
+            if not isinstance(entries, list):
+                raise ValueError('pyproject.toml dependency-groups must contain lists')
+            names: set[str] = set()
+            for entry in entries:
+                if isinstance(entry, dict) and set(entry) == {'include-group'} and isinstance(entry['include-group'], str):
+                    names.update(resolve(entry['include-group']))
+                else:
+                    names.update(_requirements([entry], 'dependency-groups'))
+            visiting.remove(group)
+            resolved[group] = names
+            return names
+
+        for group in groups:
+            collect(f'group:{group}', resolve(group))
+
+    tool = _mapping(data.get('tool', {}), 'tool')
+    if 'poetry' in tool:
+        poetry = _mapping(tool['poetry'], 'tool.poetry')
+        if 'dependencies' in poetry:
+            dependencies = _mapping(poetry['dependencies'], 'tool.poetry.dependencies')
+            collect('dependencies', {_canonical(name) for name in dependencies
+                                     if name.lower() != 'python' and _NAME.fullmatch(name)})
+        if 'dev-dependencies' in poetry:
+            legacy = _mapping(poetry['dev-dependencies'], 'tool.poetry.dev-dependencies')
+            collect('group:dev', {_canonical(name) for name in legacy if _NAME.fullmatch(name)})
+        if 'group' in poetry:
+            groups = _mapping(poetry['group'], 'tool.poetry.group')
+            for group, settings in groups.items():
+                settings = _mapping(settings, 'tool.poetry.group entry')
+                if 'dependencies' in settings:
+                    dependencies = _mapping(settings['dependencies'], 'tool.poetry.group.dependencies')
+                    collect(f'group:{group}', {_canonical(name) for name in dependencies
+                                               if name.lower() != 'python' and _NAME.fullmatch(name)})
+
+    if 'pdm' in tool:
+        pdm = _mapping(tool['pdm'], 'tool.pdm')
+        if 'dev-dependencies' in pdm:
+            groups = _mapping(pdm['dev-dependencies'], 'tool.pdm.dev-dependencies')
+            for group, values in groups.items():
+                collect(f'group:{group}', _requirements(values, 'tool.pdm.dev-dependencies'))
+
+    return {group: sorted(names) for group, names in sorted(found.items())}
