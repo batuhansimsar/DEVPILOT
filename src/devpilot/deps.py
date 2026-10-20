@@ -22,6 +22,7 @@ from .composer_deps import parse_composer_dependencies
 from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
+from .requirements_deps import parse_requirements_dependencies
 from .pipenv_deps import parse_pipfile_lock
 from .json_numbers import parse_finite_json_float
 from .gemfile_lock import parse_gemfile_lock
@@ -106,17 +107,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
             raise ValueError("package.json root must be an object")
         return "Node.js", parse_node_dependency_groups(data)
     if _is_requirements_manifest(name):
-        matches = set()
-        for line in content.splitlines():
-            if line.lstrip().startswith(("#", "-", "git+", "https:", "http:")):
-                continue
-            # pip only treats whitespace-prefixed # as an inline comment;
-            # keep URL fragments in named direct references untouched.
-            requirement = re.split(r"\s+#", line, maxsplit=1)[0]
-            match = PYTHON_NAME.match(requirement)
-            if match:
-                matches.add(PYTHON_CANONICAL_SEPARATOR.sub("-", match.group(1)).lower())
-        return "Python", {"requirements": sorted(matches)}
+        return "Python", {"requirements": parse_requirements_dependencies(content)}
     if name == "Gemfile.lock":
         return "Ruby", {"locked": parse_gemfile_lock(content)}
     if name == "Pipfile.lock":
