@@ -19,6 +19,14 @@ class TLSErrorPrivacyTests(unittest.TestCase):
         self.assertNotIn('private-password', json.dumps(result))
         self.assertFalse(result['tcp_reachable'])
 
+    def test_tcp_timeout_reports_tcp_phase(self):
+        with patch('devpilot.tlscheck.socket.create_connection',
+                   side_effect=TimeoutError('private socket details')):
+            result = tls_check('example.org', 443, 1)
+        self.assertEqual(result['error'], 'TCP connection timed out')
+        self.assertNotIn('private socket details', json.dumps(result))
+        self.assertNotIn('tls_handshake_ms', result)
+
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
     def test_tls_failure_redacts_private_exception_message(self, connect, context):

@@ -99,7 +99,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         connection = socket.create_connection((dial_host, port), timeout=timeout)
     except (OSError, TimeoutError) as exc:
         result['tcp_latency_ms'] = round((time.perf_counter() - tcp_start) * 1000, 1)
-        result['error'] = _safe_tls_error(exc)
+        result['error'] = 'TCP connection timed out' if isinstance(exc, TimeoutError) else _safe_tls_error(exc)
         result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
         return result
 
