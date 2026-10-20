@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .audit import audit_tracked_files
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, select_test_commands
@@ -28,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
         ('analyze', 'Inspect languages, manifests and project structure'),
         ('workspaces', 'Discover nested projects in a monorepo'),
         ('git', 'Inspect local Git changes (read-only)'),
+        ('audit', 'Find potentially sensitive filenames already tracked by Git'),
         ('docker', 'List running Docker containers (read-only)'),
         ('test', 'Discover project test commands; execute only with --yes'),
     ):
@@ -93,6 +95,18 @@ def _human(command: str, output: dict[str, Any]) -> str:
         if not output['executed'] and output['commands']:
             lines.append('  Use --yes to run detected project test scripts (untrusted code).')
         return '\n'.join(lines)
+    if command == 'audit':
+        if output.get('error'):
+            return 'Audit unavailable: ' + output['error']
+        lines = [f"Git files checked: {output['tracked_files']}"]
+        lines += [f"  REVIEW tracked sensitive filename: {name}" for name in output['candidates']]
+        if output['truncated']:
+            lines.append('  More than 50 candidates found; list truncated')
+        if not output['candidates']:
+            lines.append('No suspicious tracked filenames detected (contents were not scanned).')
+        else:
+            lines.append('Review these paths; rotate exposed secrets if confirmed.')
+        return '\n'.join(lines)
     if command == 'docker':
         if output.get('exit_code') != 0:
             return output.get('error') or output.get('stderr') or 'Docker failed'
@@ -125,6 +139,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == 'workspaces':
             result = discover_workspaces(root)
             success = True
+        elif args.command == 'audit':
+            result = audit_tracked_files(root)
+            success = not result.get('error') and not result['candidates']
         elif args.command == 'git':
             result = git_status(root)
             success = result['exit_code'] == 0

@@ -24,6 +24,7 @@ devpilot analyze --path /path/to/project
 devpilot workspaces --path /path/to/monorepo --json
 devpilot doctor --path /path/to/project
 devpilot git --path /path/to/project
+devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
 devpilot docker
 devpilot check localhost 5432
 devpilot test --path /path/to/project           # discovery only
@@ -40,6 +41,7 @@ devpilot doctor --path /path/to/project --json
 | `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only `git status` with no shell. |
+| `audit` | Warns about Git-tracked `.env`, private keys, and credential-like filenames without opening their contents. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
 | `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. |
