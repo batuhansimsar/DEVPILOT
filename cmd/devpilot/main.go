@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/dockerfile"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "       devpilot dockerfile [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 }
@@ -28,6 +30,34 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "dockerfile":
+		flags := flag.NewFlagSet("dockerfile", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "machine-readable JSON report")
+		if err := flags.Parse(args[1:]); err != nil { return 2 }
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "dockerfile accepts at most one project directory")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 { path = flags.Arg(0) }
+		report, err := dockerfile.Inspect(path)
+		if err != nil { fmt.Fprintln(stderr, "dockerfile:", err); return 2 }
+		if *jsonOut {
+			enc := json.NewEncoder(stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(report); err != nil { fmt.Fprintln(stderr, err); return 2 }
+		} else {
+			fmt.Fprintf(stdout, "DevPilot Dockerfile: %s\n", report.File)
+			for _, stage := range report.Stages { fmt.Fprintf(stdout, "Stage at line %d: %s\n", stage.Line, stage.Base) }
+			if len(report.Findings) == 0 { fmt.Fprintln(stdout, "No findings from the available static checks.") }
+			for _, finding := range report.Findings {
+				fmt.Fprintf(stdout, "[%s] %s: %s\n", strings.ToUpper(finding.Level), finding.Evidence, finding.Message)
+				fmt.Fprintf(stdout, "       Next: %s\n", finding.Remedy)
+			}
+		}
+		if report.HasWarnings() { return 1 }
+		return 0
 	case "doctor":
 		flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 		flags.SetOutput(stderr)
