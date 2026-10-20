@@ -15,6 +15,8 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_header('Location', 'http://example.org/never-follow')
         elif self.path == '/failure':
             self.send_response(503)
+        elif self.path == '/protected':
+            self.send_response(401)
         else:
             self.send_response(204)
         self.end_headers()
@@ -109,6 +111,23 @@ class HTTPCheckTests(unittest.TestCase):
         self.assertFalse(result['reachable'])
         self.assertFalse(result['healthy'])
         self.assertIsNone(result['status'])
+
+    def test_custom_expected_status_for_protected_endpoint(self):
+        self.assertFalse(http_check(self.url('/protected'))['healthy'])
+        result = http_check(self.url('/protected'), expected_statuses=frozenset({401, 403}))
+        self.assertTrue(result['reachable'])
+        self.assertTrue(result['healthy'])
+        self.assertEqual(result['status'], 401)
+        self.assertFalse(http_check(self.url('/health'), expected_statuses=frozenset({401}))['healthy'])
+
+    def test_custom_expected_error_status(self):
+        result = http_check(self.url('/failure'), expected_statuses=frozenset({503}))
+        self.assertTrue(result['healthy'])
+
+    def test_invalid_expected_status_rejected(self):
+        for codes in (frozenset(), frozenset({99}), frozenset({600}), frozenset({True})):
+            with self.subTest(codes=codes), self.assertRaises(ValueError):
+                http_check(self.url(), expected_statuses=codes)
 
     def test_invalid_urls_rejected(self):
         for value in (
