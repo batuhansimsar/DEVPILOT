@@ -128,9 +128,7 @@ func Inspect(root string) (Report, error) {
 			}
 			r.Stages = append(r.Stages, Stage{Base: base, Name: name, Line: l.Line})
 			if !stageNames[strings.ToLower(base)] && base != "scratch" && !strings.ContainsAny(base, "${}") && !strings.Contains(base, "@sha256:") {
-				if !strings.Contains(base, ":") || strings.HasSuffix(strings.ToLower(base), ":latest") {
-					add("warning", "mutable-base-image", "Base image is not pinned to an immutable digest: "+base, l.Line, "Prefer an image digest for reproducible builds; verify digest updates regularly")
-				}
+				add("warning", "mutable-base-image", "Base image is not pinned to an immutable digest: "+base, l.Line, "Prefer an image digest for reproducible builds; verify digest updates regularly")
 			}
 			if name != "" {
 				stageNames[strings.ToLower(name)] = true

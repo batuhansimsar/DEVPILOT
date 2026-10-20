@@ -113,3 +113,14 @@ func TestContinuationAndComment(t *testing.T) {
 		t.Fatalf("incorrect logical line parsing: %#v", r)
 	}
 }
+
+func TestVersionTagAndRegistryPortAreStillMutable(t *testing.T) {
+	root := fixture(t, "Dockerfile", "FROM registry.example:5000/app:1.2.3\n")
+	r, err := Inspect(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !code(r, "mutable-base-image") {
+		t.Fatalf("version tags are not digests: %#v", r.Findings)
+	}
+}
