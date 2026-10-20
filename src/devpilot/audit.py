@@ -14,6 +14,12 @@ _PRIVATE_NAMES = frozenset({
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore'})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
+_TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup')
+_TERRAFORM_TEMPLATE_SUFFIXES = tuple(
+    sensitive + example
+    for sensitive in ('.tfvars', '.tfvars.json')
+    for example in _ENV_TEMPLATE_SUFFIXES
+)
 
 
 def _potential_secret(path: str) -> bool:
@@ -23,6 +29,10 @@ def _potential_secret(path: str) -> bool:
     ):
         return False
     if name == '.env' or name.startswith('.env.'):
+        return True
+    if name.endswith(_TERRAFORM_TEMPLATE_SUFFIXES):
+        return False
+    if name.endswith(_TERRAFORM_SENSITIVE_SUFFIXES):
         return True
     return name in _PRIVATE_NAMES or Path(name).suffix in _PRIVATE_EXTENSIONS
 
