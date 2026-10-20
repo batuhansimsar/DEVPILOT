@@ -6,6 +6,7 @@ import re
 
 _SPEC = re.compile(r'^    ([A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?) \([^\r\n]*\)$')
 _SEPARATOR = re.compile(r'[-_.]+')
+_MAX_GEM_NAME_LENGTH = 214
 
 
 def parse_gemfile_lock(content: str) -> list[str]:
@@ -36,6 +37,6 @@ def parse_gemfile_lock(content: str) -> list[str]:
                 in_specs = False
                 continue
             match = _SPEC.fullmatch(line)
-            if match:
+            if match and len(match.group(1)) <= _MAX_GEM_NAME_LENGTH:
                 names.add(_SEPARATOR.sub('-', match.group(1)).lower())
     return sorted(names)
