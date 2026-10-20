@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .audit import audit_tracked_files
+from .console import escape_terminal
 from .httpcheck import http_check
 from .env_cli import environment_status, format_environment
 from .tlscheck import tls_check
@@ -108,7 +109,7 @@ def _human(command: str, output: dict[str, Any]) -> str:
             lines.append(f"  Environment: cannot inspect {env['template']} or local .env ({env['detail']})")
         elif status == 'matched':
             lines.append(f"  Environment: names from {env['template']} are declared in .env (values not checked)")
-        lines += [f'  Warning: {warning}' for warning in output['warnings']]
+        lines += [f'  Warning: {escape_terminal(warning)}' for warning in output['warnings']]
         return '\n'.join(lines) + ('\nDoctor: healthy' if output['ok'] else '\nDoctor: needs attention')
     if command == 'test':
         lines = [f"Tests: {'executed' if output['executed'] else 'dry run'}"]
@@ -134,7 +135,7 @@ def _human(command: str, output: dict[str, Any]) -> str:
         if output.get('error'):
             return 'Audit unavailable: ' + output['error']
         lines = [f"Git files checked: {output['tracked_files']}"]
-        lines += [f"  REVIEW tracked sensitive filename: {name}" for name in output['candidates']]
+        lines += [f"  REVIEW tracked sensitive filename: {escape_terminal(name)}" for name in output['candidates']]
         if output['truncated']:
             lines.append('  More than 50 candidates found; list truncated')
         if not output['candidates']:
