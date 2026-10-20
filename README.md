@@ -61,3 +61,16 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+## Monorepo mapping
+
+Use `devpilot map [--json] [path]` to discover multiple project roots in a workspace. For example:
+
+```sh
+./devpilot map ../my-monorepo
+./devpilot map --json ../my-monorepo
+```
+
+The read-only map groups discovered Go, Node, Python, Rust and C# project manifests by directory, and runs the existing `doctor` inspection on each discovered project (without executing code). The JSON output includes project-relative paths, manifest evidence, and each project's diagnostic report.
+
+For safety, the scanner avoids symlinks and common dependency/build directories, limits traversal to four nested directory levels and 12,000 filesystem entries, and caps discovery at 256 projects. Truncation and per-path errors are reported (exit 1); invalid paths/flags exit 2. A `map` result is informational and does **not** execute suggested tests. For deeper workspaces, target a subdirectory explicitly.

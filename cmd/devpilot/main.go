@@ -19,6 +19,7 @@ import (
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "       devpilot map [--json] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
@@ -32,6 +33,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "map":
+		return runMap(args[1:], stdout, stderr)
 	case "analyze":
 		return analyzeCommand(args[1:], stdout, stderr)
 	case "doctor":
