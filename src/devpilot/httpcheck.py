@@ -39,10 +39,15 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
-    if expected_statuses is not None and (
-        not expected_statuses or any(type(code) is not int or not 100 <= code <= 599 for code in expected_statuses)
-    ):
-        raise ValueError('expected HTTP status codes must be between 100 and 599')
+    if expected_statuses is not None:
+        try:
+            valid_statuses = bool(expected_statuses) and all(
+                type(code) is int and 100 <= code <= 599 for code in expected_statuses
+            )
+        except TypeError:
+            valid_statuses = False
+        if not valid_statuses:
+            raise ValueError('expected HTTP status codes must be between 100 and 599')
     try:
         port = parts.port
     except ValueError as exc:
