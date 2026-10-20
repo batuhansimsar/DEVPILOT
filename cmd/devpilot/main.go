@@ -14,11 +14,12 @@ import (
 
 	"github.com/batuhansimsar/DEVPILOT/internal/dockercheck"
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/sarif"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
-	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "Usage: devpilot doctor [--json|--sarif] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
@@ -38,7 +39,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		jsonOut := flags.Bool("json", false, "machine-readable JSON report")
+		sarifOut := flags.Bool("sarif", false, "portable SARIF 2.1.0 diagnostic report")
 		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if *jsonOut && *sarifOut {
+			fmt.Fprintln(stderr, "--json and --sarif are mutually exclusive")
 			return 2
 		}
 		if flags.NArg() > 1 {
@@ -54,7 +60,18 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "doctor:", err)
 			return 2
 		}
-		if *jsonOut {
+		if *sarifOut {
+			items := make([]sarif.Finding, 0, len(report.Findings))
+			for _, f := range report.Findings {
+				items = append(items, sarif.Finding{Level: f.Level, Code: f.Code, Message: f.Message, Remedy: f.Remedy})
+			}
+			enc := json.NewEncoder(stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(sarif.Build(items)); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 2
+			}
+		} else if *jsonOut {
 			enc := json.NewEncoder(stdout)
 			enc.SetIndent("", "  ")
 			if err := enc.Encode(report); err != nil {
