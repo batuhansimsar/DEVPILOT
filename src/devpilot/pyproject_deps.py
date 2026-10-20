@@ -121,6 +121,9 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     except tomllib.TOMLDecodeError as exc:
         # Parser diagnostics might contain untrusted text; never echo it.
         raise ValueError('Invalid pyproject.toml TOML') from exc
+    except RecursionError:
+        # Untrusted deeply nested TOML must not crash direct parser callers.
+        raise ValueError('Invalid pyproject.toml TOML') from None
 
     found: dict[str, set[str]] = {}
 
