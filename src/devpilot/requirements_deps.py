@@ -31,13 +31,17 @@ def _logical_lines(content: str) -> Iterator[str]:
         line = raw.strip()
         if not line and fragments:
             continue
-        trailing = len(line) - len(line.rstrip('\\'))
+        # Pip removes the final backslash and newline without inserting a
+        # space. Preserve surrounding whitespace so split names, versions and
+        # URL paths are not accidentally changed. A backslash followed by
+        # spaces is not a continuation.
+        trailing = len(raw) - len(raw.rstrip('\\'))
         if trailing % 2:
-            fragments.append(line[:-1].rstrip())
+            fragments.append(raw[:-1])
             continue
         if fragments:
-            fragments.append(line)
-            line = ' '.join(fragments)
+            fragments.append(raw)
+            line = ''.join(fragments).strip()
             fragments.clear()
         yield line
 
