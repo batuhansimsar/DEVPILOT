@@ -24,6 +24,7 @@ from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .pipenv_deps import parse_pipfile_lock
+from .node_deps import parse_node_dependency_groups
 from .uv_lock import parse_uv_lock
 
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
@@ -109,14 +110,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
                           object_pairs_hook=_unique_node_keys)
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
-        groups = {}
-        for key in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
-            obj = data.get(key, {})
-            if not isinstance(obj, dict):
-                raise ValueError(f"{key} must be an object")
-            if obj:
-                groups[key] = sorted(k for k in obj if isinstance(k, str))
-        return "Node.js", groups
+        return "Node.js", parse_node_dependency_groups(data)
     if _is_requirements_manifest(name):
         matches = set()
         for line in content.splitlines():
