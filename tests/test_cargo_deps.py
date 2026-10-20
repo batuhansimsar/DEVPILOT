@@ -53,5 +53,45 @@ codegen_units = 1
         self.assertNotIn('secret-token', str(result))
 
 
+    def test_comments_after_section_headers(self):
+        toml = '''
+[dependencies] # production dependencies
+serde = "1" # version is intentionally ignored
+[dev-dependencies]# testing dependencies
+proptest = "1"
+[workspace.dependencies] # shared packages
+anyhow = "1"
+[target.'cfg(unix)'.build-dependencies.cc] # build script
+version = "1"
+'''
+        self.assertEqual(parse_cargo_dependencies(toml), {
+            'dependencies': ['anyhow', 'serde'],
+            'dev-dependencies': ['proptest'],
+            'build-dependencies': ['cc'],
+        })
+
+    def test_hash_inside_quoted_target_is_not_a_comment(self):
+        toml = '''
+[target.'cfg(feature = "special#feature")'.dependencies] # trailing comment
+my_crate = "1"
+[target.'cfg(feature = "another#feature")'.dev-dependencies.assert_cmd] # note
+version = "2"
+'''
+        self.assertEqual(parse_cargo_dependencies(toml), {
+            'dependencies': ['my_crate'], 'dev-dependencies': ['assert_cmd'],
+        })
+
+    def test_commented_metadata_does_not_create_false_dependencies(self):
+        toml = '''
+[dependencies] # legit
+serde = "1"
+[package.metadata.dependencies] # not Cargo dependencies
+private_setting = "secret"
+# [dependencies]
+# should_not_count = "1"
+'''
+        self.assertEqual(parse_cargo_dependencies(toml), {'dependencies': ['serde']})
+
+
 if __name__ == '__main__':
     unittest.main()
