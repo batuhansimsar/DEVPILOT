@@ -34,7 +34,7 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('.azure', 'msal_token_cache.bin'),
     ('gcloud', 'credentials.db'), ('gcloud', 'access_tokens.db'),
     # GitLab CLI config may hold plaintext tokens without an OS keyring.
-    ('glab-cli', 'config.yml'),
+    ('glab-cli', 'config.yml'), ('glab-cli', 'config.yaml'),
     # Python package manager authentication files are not ordinary manifests.
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
 })
