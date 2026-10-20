@@ -265,12 +265,15 @@ def docker_status(root: Path) -> dict[str, Any]:
         for line in result['stdout'].splitlines():
             try:
                 obj = json.loads(line)
-                if isinstance(obj, dict):
-                    containers.append({k: obj.get(k) for k in ('Names', 'Image', 'Status', 'Ports', 'State')})
-            except json.JSONDecodeError:
+                if not isinstance(obj, dict):
+                    raise ValueError('Expected a Docker JSON object')
+            except (json.JSONDecodeError, ValueError):
+                # Never expose a partial list as though it were trustworthy.
+                containers.clear()
                 result['error'] = 'Docker returned an unexpected response'
                 result['exit_code'] = 1
                 break
+            containers.append({k: obj.get(k) for k in ('Names', 'Image', 'Status', 'Ports', 'State')})
     return {'containers': containers, **result}
 
 
