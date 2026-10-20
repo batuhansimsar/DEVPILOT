@@ -11,12 +11,15 @@ except ModuleNotFoundError:  # Python 3.10
 
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _SEPARATOR = re.compile(r"[-_.]+")
-_PYLOCK_FILE = re.compile(r"pylock(?:\.[^.]+)?\.toml\Z")
+# Only one nonempty, ASCII filename-safe variant is allowed. The former
+# [^.]+ variant also matched slashes, whitespace and terminal controls, which
+# could incorrectly identify unrelated files as standardized lockfiles.
+_PYLOCK_FILE = re.compile(r"pylock(?:\.[A-Za-z0-9][A-Za-z0-9_-]*)?\.toml\Z")
 
 
 def is_pylock_manifest(filename: str) -> bool:
-    """Accept pylock.toml and standardized pylock.<name>.toml variants."""
-    return _PYLOCK_FILE.fullmatch(filename) is not None
+    """Accept pylock.toml and safe pylock.<name>.toml variants."""
+    return isinstance(filename, str) and _PYLOCK_FILE.fullmatch(filename) is not None
 
 
 def parse_pylock(content: str) -> list[str]:
