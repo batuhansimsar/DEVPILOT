@@ -8,7 +8,7 @@ import stat
 from pathlib import Path
 from typing import Any
 
-TEMPLATES = ('.env.example', '.env.sample', '.env.template')
+TEMPLATES = ('.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults')
 MAX_ENV_BYTES = 256 * 1024
 _KEY = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 

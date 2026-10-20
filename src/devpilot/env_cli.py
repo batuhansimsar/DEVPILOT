@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .envcheck import inspect_env
+from .envcheck import TEMPLATES, inspect_env
 
 
 def environment_status(root: Path) -> tuple[dict[str, Any], bool]:
@@ -24,5 +24,5 @@ def format_environment(result: dict[str, Any]) -> str:
     if status == 'local_absent':
         return f"Environment: {result['template']} declares {result['expected_count']} names; local .env is absent"
     if status == 'no_template':
-        return 'Environment: no .env.example, .env.sample, or .env.template found'
+        return 'Environment: no ' + ', '.join(TEMPLATES) + ' found'
     return f"Environment: unable to inspect {result['template']} or .env ({result['detail']})"
