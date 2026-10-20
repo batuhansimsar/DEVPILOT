@@ -92,3 +92,7 @@ The command uses HEAD, reports HTTP status and latency, and returns an unsuccess
 ## Dependency inventory
 
 `devpilot deps --path /path/to/repo` reports dependency names in Node.js `package.json`, Python `requirements*.txt`, Go `go.mod`, Rust `Cargo.toml`, and .NET project files. Use `--json` for machine-readable output. This is a bounded, read-only scan that does not execute project code or access the network. Version specifications and dependency URLs are deliberately omitted to avoid exposing credentials. This is **not** a vulnerability audit.
+
+## TLS certificate expiry warnings
+
+Use `devpilot check example.com 443 --tls --json` to verify a service certificate and inspect `expires_at`. When the certificate has an expiration date, the JSON response also includes `expires_in_days` (full days remaining, floored at zero) and `expires_soon` (true when expiry is within 30 days). These are renewal hints; exit status still reflects TLS verification rather than renewal urgency. No certificate data is stored or sent to third parties.
