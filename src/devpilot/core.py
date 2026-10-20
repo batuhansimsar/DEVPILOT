@@ -54,6 +54,7 @@ KEY_FILES = frozenset({
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
     'uv.lock', 'poetry.lock', 'go.work',
+    'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
 })
 MAX_FILES = 10000
@@ -107,7 +108,9 @@ def detect_projects(root: Path) -> list[str]:
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
                 'settings.gradle', 'settings.gradle.kts'}:
         types.add('Java')
-    if any(Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'} for name in names):
+    if names & {'global.json', 'Directory.Packages.props'} or any(
+            Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'}
+            for name in names):
         types.add('.NET')
     if any(is_container_manifest(name) for name in names):
         types.add('Docker')
