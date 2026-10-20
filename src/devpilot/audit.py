@@ -20,6 +20,8 @@ _PRIVATE_NAMES = frozenset({
     'auth.json', '.yarnrc', '.yarnrc.yml',
     # Database client authentication files can embed reusable credentials.
     '.pgpass', '.my.cnf', '.mylogin.cnf',
+    # Kubernetes client configs and Terraform plans may hold reusable secrets.
+    'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
 _SENSITIVE_LOCATIONS = frozenset({
@@ -34,7 +36,7 @@ _SENSITIVE_LOCATIONS = frozenset({
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
-_TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup')
+_TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup', '.tfplan')
 _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     sensitive + example
     for sensitive in ('.tfvars', '.tfvars.json')
