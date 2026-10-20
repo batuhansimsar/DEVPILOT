@@ -14,10 +14,20 @@ _REQUIREMENTS_MANIFEST = re.compile(
 )
 
 
+# Copies such as requirements.txt.txt are not pip-compatible manifest names;
+# otherwise a document accidentally copied with a second suffix can trigger
+# Python-project detection and unnecessary dependency scanning.
+_DOUBLE_EXTENSION = ('.txt.txt', '.txt.in', '.in.txt', '.in.in')
+
+
 def is_requirements_manifest(name: str) -> bool:
     """Accept pip and pip-tools filenames without matching unrelated files.
 
     Supports base manifests, separated variants, and prefixed requirements
     files; rejects empty variants, backups, and partial word matches.
     """
-    return isinstance(name, str) and _REQUIREMENTS_MANIFEST.fullmatch(name) is not None
+    return (
+        isinstance(name, str)
+        and not name.endswith(_DOUBLE_EXTENSION)
+        and _REQUIREMENTS_MANIFEST.fullmatch(name) is not None
+    )
