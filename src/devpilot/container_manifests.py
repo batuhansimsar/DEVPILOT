@@ -10,6 +10,7 @@ _CONTAINER_MANIFESTS = frozenset({
     'docker-compose.yml', 'docker-compose.yaml',
 })
 _BUILD_FILE_PREFIXES = ('Dockerfile.', 'Containerfile.')
+_IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '~', '.dockerignore')
 
 
 def is_container_manifest(filename: str) -> bool:
@@ -18,4 +19,9 @@ def is_container_manifest(filename: str) -> bool:
     Match exact case, as project discovery also runs on case-sensitive systems.
     The caller is responsible for accepting only regular, non-symlinked files.
     """
-    return filename in _CONTAINER_MANIFESTS or filename.startswith(_BUILD_FILE_PREFIXES)
+    if filename.casefold().endswith(_IGNORED_SUFFIXES):
+        return False
+    return filename in _CONTAINER_MANIFESTS or any(
+        filename.startswith(prefix) and len(filename) > len(prefix)
+        for prefix in _BUILD_FILE_PREFIXES
+    )

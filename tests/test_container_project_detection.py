@@ -22,7 +22,9 @@ class ContainerManifestTests(unittest.TestCase):
     def test_unrelated_names_not_classified(self):
         for filename in ('DockerfileX', 'myDockerfile.dev',
                          'ContainerfileOther', 'dockerfile', 'compose.json',
-                         'docker-compose.yml.old'):
+                         'docker-compose.yml.old', 'Dockerfile.', 'Containerfile.',
+                         'Dockerfile.bak', 'Dockerfile.tmp', 'Dockerfile.dockerignore',
+                         'Containerfile.prod.backup', 'Containerfile.SWP'):
             with self.subTest(filename=filename):
                 self.assertFalse(is_container_manifest(filename))
 
@@ -40,6 +42,15 @@ class ContainerManifestTests(unittest.TestCase):
                 self.assertIn('Docker', health['project_types'])
                 self.assertIn('Missing docker required by detected project', health['warnings'])
                 self.assertEqual(discover_workspaces(root)['workspaces'][0]['ecosystems'], ['Docker'])
+
+    def test_backup_files_do_not_create_phantom_docker_projects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'Dockerfile.bak').write_text('FROM scratch\n', encoding='utf-8')
+            (root / 'Containerfile.dev.tmp').write_text('FROM scratch\n', encoding='utf-8')
+            self.assertEqual(detect_projects(root), [])
+            self.assertEqual(analyze_project(root)['key_files'], [])
+            self.assertEqual(discover_workspaces(root)['workspace_count'], 0)
 
     def test_symlink_to_containerfile_not_counted(self):
         with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as outside:
