@@ -74,27 +74,27 @@ def _human(command: str, output: dict[str, Any]) -> str:
     if command == 'env':
         return format_environment(output)
     if command == 'deps':
-        lines = [f"Dependency inventory: {output['root']}"]
+        lines = [f"Dependency inventory: {escape_terminal(output['root'])}"]
         for item in output['manifests']:
-            lines.append(f"  {item['ecosystem']}: {item['path']} ({item['count']} dependencies)")
+            lines.append(f"  {item['ecosystem']}: {escape_terminal(item['path'])} ({item['count']} dependencies)")
             for group, names in item['groups'].items():
-                lines.append(f"    {group}: {', '.join(names) or '(none)'}")
-        lines.extend(f"  Warning: {warning}" for warning in output['warnings'])
+                lines.append(f"    {group}: {escape_terminal(', '.join(names)) or '(none)'}")
+        lines.extend(f"  Warning: {escape_terminal(warning)}" for warning in output['warnings'])
         return '\n'.join(lines)
     if command == 'analyze':
-        lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}",
+        lines = [f"Project: {escape_terminal(output['path'])}", f"Detected: {', '.join(output['project_types']) or 'unknown'}",
                  f"Files scanned: {output['file_count']}{' (limit reached)' if output['truncated'] else ''}"]
         lines += [f'  {name}: {count} files' for name, count in output['languages'].items()]
-        lines += [f'  Manifest: {name}' for name in output['key_files']]
-        lines += [f'  npm script: {name}' for name in output['npm_scripts']]
-        lines += [f'  Warning: {problem}' for problem in output['problems']]
+        lines += [f'  Manifest: {escape_terminal(name)}' for name in output['key_files']]
+        lines += [f'  npm script: {escape_terminal(name)}' for name in output['npm_scripts']]
+        lines += [f'  Warning: {escape_terminal(problem)}' for problem in output['problems']]
         return '\n'.join(lines)
     if command == 'workspaces':
-        lines = [f"Workspaces in {output['path']}: {output['workspace_count']}"]
-        lines += [f"  {item['path']}: {', '.join(item['ecosystems'])}" for item in output['workspaces']]
+        lines = [f"Workspaces in {escape_terminal(output['path'])}: {output['workspace_count']}"]
+        lines += [f"  {escape_terminal(item['path'])}: {', '.join(item['ecosystems'])}" for item in output['workspaces']]
         if output['truncated']:
             lines.append('  Warning: workspace scan incomplete (scan limit or unreadable directory)')
-        lines += [f"  Warning: {problem}" for problem in output.get('problems', [])]
+        lines += [f"  Warning: {escape_terminal(problem)}" for problem in output.get('problems', [])]
         return '\n'.join(lines)
     if command == 'doctor':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
