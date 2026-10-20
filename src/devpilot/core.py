@@ -8,6 +8,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 
@@ -204,11 +205,23 @@ def doctor_report(root: Path) -> dict[str, Any]:
 
 
 def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, Any]:
+    """Run without a shell; spool output to temporary files to bound RAM usage."""
+    def tail(stream: Any) -> tuple[str, bool]:
+        stream.seek(0, os.SEEK_END)
+        size = stream.tell()
+        stream.seek(max(0, size - 20000))
+        return stream.read().decode('utf-8', errors='replace'), size > 20000
+
     try:
-        finished = subprocess.run(argv, cwd=root, capture_output=True, text=True,
-                                  timeout=timeout, shell=False, errors='replace')
-        return {'argv': argv, 'exit_code': finished.returncode,
-                'stdout': finished.stdout[-20000:], 'stderr': finished.stderr[-20000:]}
+        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+            finished = subprocess.run(argv, cwd=root, stdout=out, stderr=err,
+                                      timeout=timeout, shell=False)
+            stdout, stdout_truncated = tail(out)
+            stderr, stderr_truncated = tail(err)
+            return {'argv': argv, 'exit_code': finished.returncode,
+                    'stdout': stdout, 'stderr': stderr,
+                    'stdout_truncated': stdout_truncated,
+                    'stderr_truncated': stderr_truncated}
     except subprocess.TimeoutExpired:
         return {'argv': argv, 'exit_code': None, 'error': f'Timed out after {timeout}s'}
     except OSError as exc:
@@ -228,6 +241,9 @@ def git_status(root: Path) -> dict[str, Any]:
 def docker_status(root: Path) -> dict[str, Any]:
     result = command_result(['docker', 'ps', '--format', '{{json .}}'], root)
     containers: list[dict[str, Any]] = []
+    if result.get('stdout_truncated'):
+        return {'containers': containers, **result, 'exit_code': 1,
+                'error': 'Docker output exceeded capture limit; JSON report incomplete'}
     if result.get('exit_code') == 0:
         for line in result['stdout'].splitlines():
             try:
