@@ -18,9 +18,9 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     changing the existing total ``latency_ms`` or certificate verification.
     """
     if not isinstance(host, str) or not host or any(
-        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host
+        char.isspace() or not char.isprintable() for char in host
     ):
-        raise ValueError('host must be a hostname or IP address without whitespace')
+        raise ValueError('host must be a hostname or IP address without whitespace or control characters')
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
