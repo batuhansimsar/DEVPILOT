@@ -97,6 +97,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Go", {"require": parse_go_requirements(content)}
     if name == "composer.json":
         return "PHP", parse_composer_dependencies(content)
+    if name == "pom.xml":
+        return "Java", parse_maven_dependencies(content)
     if name == "Cargo.toml":
         return "Rust", parse_cargo_dependencies(content)
     if name.endswith((".csproj", ".fsproj", ".vbproj")):
