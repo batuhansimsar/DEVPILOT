@@ -10,16 +10,7 @@ import (
 // A packageManager declaration must identify a fixed Corepack release rather
 // than a tag, range, URL, or arbitrary command argument. Permit prerelease,
 // build metadata, and Corepack's optional integrity hash suffix.
-var corepackVersion = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+(?:[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*|sha(?:224|256|384|512)\\.[A-Za-z0-9+/=]+))?package doctor
-
-import (
-	"fmt"
-	"regexp"
-	"sort"
-	"strings"
-)
-
-)
+var corepackVersion = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*|sha(?:224|256|384|512)\.[A-Za-z0-9+/=]+))?$`)
 
 // selectNodePackageManager chooses a known executable from packageManager
 // metadata while detecting stale lockfiles. It never executes the value.
