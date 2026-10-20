@@ -38,6 +38,7 @@ WORKSPACE_FILES = {
     'MODULE.bazel': 'Bazel',
     'Gemfile': 'Ruby',
     'Gemfile.lock': 'Ruby',
+    'gems.locked': 'Ruby',
     'gems.rb': 'Ruby',
     'composer.json': 'PHP',
     'Package.swift': 'Swift',

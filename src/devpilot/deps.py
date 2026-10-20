@@ -109,7 +109,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Node.js", parse_node_dependency_groups(data)
     if _is_requirements_manifest(name):
         return "Python", {"requirements": parse_requirements_dependencies(content)}
-    if name == "Gemfile.lock":
+    if name in ("Gemfile.lock", "gems.locked"):
         return "Ruby", {"locked": parse_gemfile_lock(content)}
     if name == "Pipfile.lock":
         return "Python", parse_pipfile_lock(content)
@@ -154,7 +154,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock")
+            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
                     or _is_requirements_manifest(filename)
                     or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
