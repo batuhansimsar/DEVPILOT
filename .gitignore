@@ -1,0 +1,6 @@
+/devpilot
+/devpilot.exe
+*.test
+.env
+.env.*
+!.env.example
