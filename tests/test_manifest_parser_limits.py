@@ -28,6 +28,15 @@ class ManifestParserLimitsTests(unittest.TestCase):
         self.assertIsNone(parsed)
         self.assertEqual(error, 'Invalid package.json: JSON exceeds parser limits')
 
+    def test_nonfinite_literals_return_safe_generic_error(self):
+        for literal in ('NaN', 'Infinity', '-Infinity'):
+            with self.subTest(literal=literal):
+                self.manifest.write_text('{"secret":"do-not-echo","value":' + literal + '}', encoding='utf-8')
+                parsed, error = read_package_json(self.root)
+                self.assertIsNone(parsed)
+                self.assertEqual(error, 'Invalid package.json: JSON exceeds parser limits')
+                self.assertNotIn('do-not-echo', error)
+
     def test_valid_json_still_works(self):
         self.manifest.write_text('{"scripts":{"test":"echo ok"}}', encoding='utf-8')
         self.assertEqual(read_package_json(self.root)[0]['scripts']['test'], 'echo ok')

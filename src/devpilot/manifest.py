@@ -69,4 +69,4 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
     except (RecursionError, ValueError):
         # A size-bounded JSON file can still exceed parser nesting or integer
         # conversion limits. Never let untrusted metadata crash diagnostics.
-        return None, 'Invalid package.json: JSON exceeds parser limits or contains invalid numbers'
+        return None, 'Invalid package.json: JSON exceeds parser limits'
