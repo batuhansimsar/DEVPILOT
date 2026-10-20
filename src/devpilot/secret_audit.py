@@ -42,7 +42,7 @@ EXACT_NAMES = frozenset({
     '.s3cfg', '.boto', 'rclone.conf',
 })
 # Include Apple App Store Connect and PuTTY private-key formats.
-PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore', '.p8', '.ppk')
+PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore', '.p8', '.ppk', '.jceks', '.bks')
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
 PLAN_NAMES = frozenset({'tfplan'})
 PLAN_SUFFIXES = ('.tfplan',)
