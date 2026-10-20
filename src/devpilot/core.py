@@ -18,6 +18,7 @@ from typing import Any
 from .gradle import gradle_test_command
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
+from .walk import walk_project
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -92,7 +93,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
     key_files: list[str] = []
     problems: list[str] = []
     # Do not follow symlinks or recurse into generated/dependency folders.
-    for current, dirs, files in os.walk(root, followlinks=False):
+    for current, dirs, files in walk_project(root, problems):
         here = Path(current)
         relative = here.relative_to(root)
         depth = len(relative.parts)
