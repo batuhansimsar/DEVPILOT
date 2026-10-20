@@ -12,6 +12,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
+
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
     'node_modules', 'dist', 'build', '.next', '.nuxt', '.turbo',
@@ -36,23 +38,6 @@ KEY_FILES = frozenset({
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
-MAX_MANIFEST_BYTES = 256 * 1024
-
-
-def _read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
-    manifest = root / 'package.json'
-    if not manifest.is_file() or manifest.is_symlink():
-        return None, None
-    try:
-        if manifest.stat().st_size > MAX_MANIFEST_BYTES:
-            return None, 'package.json exceeds the 256 KiB inspection limit'
-        data = json.loads(manifest.read_text(encoding='utf-8'))
-        if not isinstance(data, dict):
-            return None, 'package.json must contain a JSON object'
-        return data, None
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        return None, f'Invalid package.json: {exc}'
-
 
 def _root_files(root: Path) -> set[str]:
     try:
