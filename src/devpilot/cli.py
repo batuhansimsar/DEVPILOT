@@ -11,6 +11,7 @@ from typing import Any
 
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
+from .test_selection import ECOSYSTEMS, select_test_commands
 
 
 def _add_repo_flags(parser: argparse.ArgumentParser) -> None:
@@ -33,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
         cmd = sub.add_parser(name, help=description)
         _add_repo_flags(cmd)
         if name == 'test':
+            cmd.add_argument('--ecosystem', choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
             cmd.add_argument('--timeout', type=int, default=120, help='Per-command timeout in seconds (1-3600)')
     health = sub.add_parser('check', help='Check TCP reachability of a host and port')
@@ -122,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             if not 1 <= args.timeout <= 3600:
                 parser.error('--timeout must be between 1 and 3600 seconds')
-            commands = test_commands(root)
+            commands = select_test_commands(test_commands(root), args.ecosystem)
             result = {'path': str(root), 'executed': args.yes, 'commands': commands}
             success = bool(commands)
             if args.yes:
