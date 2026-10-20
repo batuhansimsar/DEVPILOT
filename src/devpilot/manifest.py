@@ -61,3 +61,7 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
         return None, 'Invalid package.json: must be UTF-8'
     except (OSError, json.JSONDecodeError) as exc:
         return None, f'Invalid package.json: {exc}'
+    except (RecursionError, ValueError):
+        # A size-bounded JSON file can still exceed parser nesting or integer
+        # conversion limits. Never let untrusted metadata crash diagnostics.
+        return None, 'Invalid package.json: JSON exceeds parser limits'
