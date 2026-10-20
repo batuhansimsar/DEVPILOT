@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import subprocess
 from typing import Any
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa', 'credentials.json',
-    'service-account.json', '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
+    'service-account.json', 'service_account.json', 'google-credentials.json',
+    'secrets.json', '.netrc', '.envrc',
+    '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
 })
-_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore'})
+_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
+_SENSITIVE_LOCATIONS = frozenset({
+    ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
+})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 _TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup')
@@ -25,7 +30,12 @@ _MAX_TRACKED_PATHS = 100_000
 
 
 def _potential_secret(path: str) -> bool:
-    name = Path(path).name.lower()
+    # Git paths use '/', but accepting Windows separators makes the helper
+    # cross-platform and avoids skipping imported path lists.
+    parts = tuple(part.lower() for part in PurePosixPath(path.replace('\\', '/')).parts)
+    if not parts:
+        return False
+    name = parts[-1]
     if name in _ENV_EXAMPLES or (
         name.startswith('.env.') and name.endswith(_ENV_TEMPLATE_SUFFIXES)
     ):
@@ -36,8 +46,8 @@ def _potential_secret(path: str) -> bool:
         return False
     if name.endswith(_TERRAFORM_SENSITIVE_SUFFIXES):
         return True
-    return name in _PRIVATE_NAMES or Path(name).suffix in _PRIVATE_EXTENSIONS
-
+    return (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
+            or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS)
 
 def audit_tracked_files(root: Path) -> dict[str, Any]:
     """Check Git's index only; never open candidate files or print secret values."""
