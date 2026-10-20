@@ -41,6 +41,11 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
             if opened.st_size > MAX_ENV_BYTES:
                 return None, 'exceeds 256 KiB limit'
             raw = handle.read(MAX_ENV_BYTES + 1)
+            # Detect an in-place rewrite or append during the bounded read.
+            finished = os.fstat(handle.fileno())
+            if (finished.st_dev, finished.st_ino, finished.st_size, finished.st_mtime_ns, finished.st_ctime_ns) != (
+                    opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns):
+                return None, 'file changed during inspection'
     except OSError:
         return None, 'not readable'
     if len(raw) > MAX_ENV_BYTES:
