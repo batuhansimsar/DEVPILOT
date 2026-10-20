@@ -22,6 +22,12 @@ WORKSPACE_FILES = {
     'build.gradle.kts': 'Java',
     'Gemfile': 'Ruby',
     'composer.json': 'PHP',
+    'Dockerfile': 'Docker',
+    'Containerfile': 'Docker',
+    'compose.yml': 'Docker',
+    'compose.yaml': 'Docker',
+    'docker-compose.yml': 'Docker',
+    'docker-compose.yaml': 'Docker',
 }
 DOTNET_SUFFIXES = {'.csproj', '.fsproj', '.vbproj', '.sln', '.slnx'}
 
