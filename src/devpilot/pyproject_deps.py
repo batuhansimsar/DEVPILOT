@@ -91,7 +91,7 @@ def _mapping(value: object, label: str) -> dict:
 
 
 def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
-    """Inventory PEP 621, PEP 735, Poetry and PDM declaration names.
+    """Inventory PEP 621, PEP 735, Poetry, PDM and uv declaration names.
 
     Groups are kept separate for actionable reports. Poetry's python key
     is a runtime constraint, not a package. All result values are names only.
@@ -210,5 +210,11 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
             groups = _mapping(pdm['dev-dependencies'], 'tool.pdm.dev-dependencies')
             for group, values in groups.items():
                 collect(f'group:{group}', _requirements(values, 'tool.pdm.dev-dependencies'))
+
+    if 'uv' in tool:
+        uv = _mapping(tool['uv'], 'tool.uv')
+        if 'dev-dependencies' in uv:
+            # uv's legacy field predates PEP 735; both forms can coexist.
+            collect('group:dev', _requirements(uv['dev-dependencies'], 'tool.uv.dev-dependencies'))
 
     return {group: sorted(names) for group, names in sorted(found.items())}
