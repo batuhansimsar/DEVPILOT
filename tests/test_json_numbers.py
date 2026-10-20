@@ -31,5 +31,32 @@ class FiniteJSONFloatTests(unittest.TestCase):
                 self.assertNotIn('secret', str(raised.exception))
 
 
+    def test_rejects_python_float_spellings_not_valid_in_json(self):
+        invalid = ('+1', '01', '-01', '.5', '1.', '1_000', ' 1', '1\\n',
+                   '1e', '1e+', '--1', '0x10', 'inf', 'nan')
+        for value in invalid:
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, '^invalid JSON number
+    unittest.main()
+) as caught:
+                    parse_finite_json_float(value)
+                self.assertNotIn(value, str(caught.exception))
+
+    def test_direct_valid_json_spellings(self):
+        cases = {'0': 0.0, '-0': -0.0, '1': 1.0, '-1.25': -1.25,
+                 '1e+2': 100.0, '1E-2': 0.01, '10.0': 10.0}
+        for value, expected in cases.items():
+            with self.subTest(value=value):
+                self.assertEqual(parse_finite_json_float(value), expected)
+
+    def test_non_string_direct_input_is_safely_rejected(self):
+        for value in (None, 1, True, b'1'):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, '^invalid JSON number
+    unittest.main()
+):
+                    parse_finite_json_float(value)
+
+
 if __name__ == '__main__':
     unittest.main()
