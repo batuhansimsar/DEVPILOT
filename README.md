@@ -55,3 +55,7 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+### Go toolchain compatibility
+
+For Go repositories, `doctor` compares the `go` version declared in `go.mod` with the local stable toolchain. An older toolchain produces the actionable `go-version-too-old` warning. This runs only `go version` with `GOTOOLCHAIN=local` (and with a three-second timeout), so inspection never downloads a toolchain or executes project source. Prerelease versions that cannot be safely compared are not guessed.
