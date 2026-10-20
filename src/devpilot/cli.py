@@ -63,6 +63,16 @@ def _human(command: str, output: dict[str, Any]) -> str:
     if command == 'doctor':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
         lines += [f"  {'OK' if t['available'] else 'MISSING'} {t['name']}" + (f" (for {', '.join(t['required_by'])})" if t['required_by'] else ' (optional)') for t in output['tools']]
+        env = output.get('environment', {})
+        status = env.get('status')
+        if status == 'missing_keys':
+            lines.append(f"  Environment: {env['template']} keys absent in .env: {', '.join(env['missing_keys'])} (may be supplied externally)")
+        elif status == 'local_absent':
+            lines.append(f"  Environment: {env['template']} lists {env['expected_count']} keys; no local .env found")
+        elif status in ('unreadable_template', 'unreadable_local'):
+            lines.append(f"  Environment: cannot inspect {env['template']} or local .env ({env['detail']})")
+        elif status == 'matched':
+            lines.append(f"  Environment: names from {env['template']} are declared in .env (values not checked)")
         lines += [f'  Warning: {warning}' for warning in output['warnings']]
         return '\n'.join(lines) + ('\nDoctor: healthy' if output['ok'] else '\nDoctor: needs attention')
     if command == 'test':
