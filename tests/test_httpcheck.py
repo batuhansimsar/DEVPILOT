@@ -1,3 +1,4 @@
+import os
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -86,6 +87,19 @@ class HTTPCheckTests(unittest.TestCase):
             proxy.shutdown()
             proxy.server_close()
             thread.join()
+
+    def test_environment_proxy_does_not_intercept_direct_health_check(self):
+        # A broken ambient proxy must not replace the endpoint being probed.
+        proxy_settings = {
+            'http_proxy': 'http://127.0.0.1:1',
+            'HTTP_PROXY': 'http://127.0.0.1:1',
+            'no_proxy': '',
+            'NO_PROXY': '',
+        }
+        with patch.dict(os.environ, proxy_settings):
+            result = http_check(self.url('/health'))
+        self.assertTrue(result['reachable'], result)
+        self.assertEqual(result['status'], 204)
 
     def test_invalid_urls_rejected(self):
         for value in (
