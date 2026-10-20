@@ -97,6 +97,19 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                 certificate = secured.getpeercert()
                 result['tls_valid'] = True
                 result['reachable'] = True
+                # Report verified negotiation details without exposing certificate data.
+                # Ignore absent or malformed socket metadata rather than adding
+                # non-serializable objects to the CLI's JSON result.
+                version = secured.version()
+                if isinstance(version, str) and version:
+                    result['tls_version'] = version
+                cipher = secured.cipher()
+                if isinstance(cipher, tuple) and len(cipher) == 3:
+                    cipher_name, _, cipher_bits = cipher
+                    if isinstance(cipher_name, str) and cipher_name:
+                        result['tls_cipher'] = cipher_name
+                    if type(cipher_bits) is int and cipher_bits > 0:
+                        result['tls_cipher_bits'] = cipher_bits
                 if certificate and certificate.get('notAfter'):
                     expires = datetime.datetime.fromtimestamp(
                         ssl.cert_time_to_seconds(certificate['notAfter']),
