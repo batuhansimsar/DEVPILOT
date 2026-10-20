@@ -69,12 +69,20 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
     return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
 
 
+def _has_python_manifest(names: set[str]) -> bool:
+    """Match the Python dependency manifests supported by dependency scanning."""
+    return bool(names & {'pyproject.toml', 'setup.py', 'Pipfile', 'Pipfile.lock'}) or any(
+        name.startswith('requirements') and name.endswith(('.txt', '.in'))
+        for name in names
+    )
+
+
 def detect_projects(root: Path) -> list[str]:
     names = _root_files(root)
     types: set[str] = set()
     if 'package.json' in names:
         types.add('Node.js')
-    if names & {'pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile', 'Pipfile.lock'}:
+    if _has_python_manifest(names):
         types.add('Python')
     if names & {'Cargo.toml'}:
         types.add('Rust')
@@ -179,7 +187,7 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if dotnet_target:
         commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test', dotnet_target],
                          'reason': 'unique .NET solution/project'})
-    if names & {'pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile', 'Pipfile.lock'} and (root / 'tests').is_dir():
+    if _has_python_manifest(names) and (root / 'tests').is_dir():
         if (root / 'tests').is_symlink():
             pass
         elif shutil.which('pytest'):
