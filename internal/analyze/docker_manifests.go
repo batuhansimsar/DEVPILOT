@@ -3,10 +3,10 @@ package analyze
 import "strings"
 
 // dockerManifestKind recognizes Docker, Containerfile, and Compose manifests by
-// filename only. Temporary and backup files must not appear as manifests.
+// filename only. Temporary, backup, and Docker ignore files must not appear as manifests.
 func dockerManifestKind(name string) (string, bool) {
 	lower := strings.ToLower(name)
-	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~"} {
+	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~", ".dockerignore"} {
 		if strings.HasSuffix(lower, suffix) {
 			return "", false
 		}
