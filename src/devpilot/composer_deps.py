@@ -57,6 +57,11 @@ def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
         if any(not (_PACKAGE_NAME.fullmatch(name) or _PLATFORM_NAME.fullmatch(name))
                for name in entries):
             raise ValueError(f'composer.json {group} contains an invalid package name')
+        # Composer package identifiers are case-insensitive. JSON accepts
+        # differently cased keys, but inventorying both as distinct packages
+        # would hide an ambiguous or conflicting requirement.
+        if len({name.casefold() for name in entries}) != len(entries):
+            raise ValueError(f'composer.json {group} contains duplicate case-insensitive package names')
         if entries:
             groups[group] = sorted(entries)
     return groups
