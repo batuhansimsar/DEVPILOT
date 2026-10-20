@@ -156,9 +156,9 @@ func Inspect(root string) (Report, error) {
 		}
 		tool("cargo", "Cargo")
 	}
-	if hasMarker(abs, "requirements.txt") || hasMarker(abs, "pyproject.toml") || hasMarker(abs, "pytest.ini") {
+	if hasMarker(abs, "requirements.txt") || hasMarker(abs, "pyproject.toml") || hasMarker(abs, "pytest.ini") || hasMarker(abs, "setup.cfg") || hasMarker(abs, "conftest.py") {
 		language("Python")
-		if hasMarker(abs, "pytest.ini") || hasMarker(abs, "pyproject.toml") {
+		if pythonHasPytest(abs) {
 			if r.Tests == nil {
 				r.Tests = &TestCommand{Executable: "python", Arguments: []string{"-m", "pytest"}}
 			}

@@ -57,3 +57,7 @@ python -m unittest discover -s tests -v
 Contributions are welcome. Please add regression tests for bug fixes. For security reports, do not publish credentials, exploit data, or private logs in public issues; reach out to the maintainers privately first.
 
 Licensed under the MIT License.
+
+## Python test detection
+
+A plain `pyproject.toml` or `requirements.txt` is not itself evidence of pytest. DevPilot proposes `python -m pytest` only after recognizing a pytest config, `conftest.py`, or a declared pytest dependency. This avoids suggesting a nonexistent runner for ordinary Python projects.
