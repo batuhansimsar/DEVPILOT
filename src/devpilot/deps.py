@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from .walk import walk_project
+from .cargo_deps import parse_cargo_dependencies
 
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
 MAX_BYTES = 512_000
@@ -298,17 +299,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
                 names.add(match.group(1))
         return "Go", {"require": sorted(names)}
     if name == "Cargo.toml":
-        groups: dict[str, set[str]] = {}
-        section = ""
-        for raw in content.splitlines():
-            line = raw.strip()
-            if line.startswith("[") and line.endswith("]"):
-                section = line.strip("[]").split(".")[-1]
-            elif section in ("dependencies", "dev-dependencies", "build-dependencies"):
-                match = CARGO_NAME.match(line)
-                if match:
-                    groups.setdefault(section, set()).add(match.group(1))
-        return "Rust", {key: sorted(value) for key, value in groups.items()}
+        return "Rust", parse_cargo_dependencies(content)
     if name.endswith((".csproj", ".fsproj", ".vbproj")):
         if "<!DOCTYPE" in content.upper() or "<!ENTITY" in content.upper():
             raise ValueError("DTD and XML entities are not supported")
