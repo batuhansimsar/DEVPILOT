@@ -121,7 +121,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stdout, "... entry limit reached; increase --max to inspect more")
 		}
 		return 0
- case "test":
+	case "test":
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
