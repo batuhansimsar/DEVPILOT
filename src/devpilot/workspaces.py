@@ -91,6 +91,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
             if path.is_symlink() or not path.is_file():
                 continue
             ecosystem = WORKSPACE_FILES.get(filename)
+            if not ecosystem and filename.startswith('requirements') and filename.endswith(('.txt', '.in')):
+                ecosystem = 'Python'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
