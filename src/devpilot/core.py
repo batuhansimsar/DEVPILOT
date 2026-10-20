@@ -16,6 +16,7 @@ from .envcheck import inspect_env
 from typing import Any
 
 from .gradle import gradle_test_command
+from .maven import maven_test_command
 from .git_state import is_git_dirty
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
@@ -183,7 +184,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         else:
             commands.append({'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests'], 'reason': 'tests directory'})
     if 'pom.xml' in names:
-        commands.append({'ecosystem': 'Java', 'argv': ['mvn', 'test'], 'reason': 'pom.xml'})
+        argv, reason = maven_test_command(root, names, os.name)
+        commands.append({'ecosystem': 'Java', 'argv': argv, 'reason': reason})
     elif names & {'build.gradle', 'build.gradle.kts'}:
         argv, reason = gradle_test_command(root, names, os.name)
         commands.append({'ecosystem': 'Java', 'argv': argv, 'reason': reason})
