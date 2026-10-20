@@ -191,15 +191,11 @@ func Inspect(root string) (Report, error) {
 						framework(name)
 					}
 				}
-				manager, executable := "npm", "npm"
-				// Lockfiles are authoritative where available. Avoid guessing from a package name.
-				for _, spec := range []struct{ file, name, exe string }{{"pnpm-lock.yaml", "pnpm", "pnpm"}, {"yarn.lock", "yarn", "yarn"}, {"bun.lock", "bun", "bun"}, {"bun.lockb", "bun", "bun"}, {"package-lock.json", "npm", "npm"}} {
-					if hasMarker(abs, spec.file) {
-						manager, executable = spec.name, spec.exe
-						break
-					}
-				}
+				manager, executable, lockfiles := detectJSLockfiles(abs)
 				r.PackageManager = manager
+				if len(lockfiles) > 1 {
+					add("warning", "js-lockfiles-conflict", "Multiple JavaScript lockfiles detected: "+strings.Join(lockfiles, ", "), "Keep only the lockfile for the selected package manager after confirming which one is authoritative.")
+				}
 				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
 					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
 					r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
