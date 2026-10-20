@@ -1,7 +1,9 @@
 import os
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from unittest.mock import patch
 
 from devpilot.envcheck import MAX_ENV_BYTES, inspect_env
@@ -129,6 +131,53 @@ class EnvCheckTests(unittest.TestCase):
         self.assertEqual(result['status'], 'unreadable_template')
         self.assertEqual(result['detail'], 'file changed during inspection')
 
+
+
+    def test_template_swap_after_lstat_is_not_read(self):
+        self.write('.env.example', 'PUBLIC=ok\n')
+        with tempfile.TemporaryDirectory() as outside:
+            external = Path(outside) / 'secret'
+            external.write_text('PRIVATE_KEY=do-not-read\n', encoding='utf-8')
+            target = self.root / '.env.example'
+            original_lstat = Path.lstat
+            swapped = False
+
+            def swap_after_stat(path):
+                nonlocal swapped
+                metadata = original_lstat(path)
+                if path == target and not swapped:
+                    target.unlink()
+                    try:
+                        target.symlink_to(external)
+                    except (OSError, NotImplementedError):
+                        self.skipTest('symlinks not available')
+                    swapped = True
+                return metadata
+
+            with patch.object(Path, 'lstat', autospec=True, side_effect=swap_after_stat):
+                result = inspect_env(self.root)
+            self.assertEqual(result['status'], 'unreadable_template')
+            self.assertNotIn('PRIVATE_KEY', str(result))
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'requires named pipes')
+    def test_fifo_swap_does_not_block_or_read(self):
+        self.write('.env.example', 'PUBLIC=ok\n')
+        target = self.root / '.env.example'
+        original_lstat = Path.lstat
+        swapped = False
+
+        def swap_after_stat(path):
+            nonlocal swapped
+            metadata = original_lstat(path)
+            if path == target and not swapped:
+                target.unlink()
+                os.mkfifo(target)
+                swapped = True
+            return metadata
+
+        with patch.object(Path, 'lstat', autospec=True, side_effect=swap_after_stat):
+            result = inspect_env(self.root)
+        self.assertEqual(result['status'], 'unreadable_template')
 
 
 if __name__ == '__main__':
