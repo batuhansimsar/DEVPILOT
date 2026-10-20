@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 
@@ -51,7 +51,15 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
-    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
+    # HTTP request targets must be ASCII; encode Unicode path/query data as
+    # UTF-8 without double-encoding existing percent escapes.
+    request_url = urlunsplit((
+        parts.scheme, parts.netloc,
+        quote(parts.path, safe="/%:@!    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})'()*+,;=-._~"),
+        quote(parts.query, safe="/?%:@!    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})'()*+,;=-._~"),
+        '',
+    ))
+    request = Request(request_url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()
     try:
         with opener.open(request, timeout=timeout) as response:
