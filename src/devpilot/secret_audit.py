@@ -64,6 +64,9 @@ SENSITIVE_LOCATIONS = frozenset({
 SENSITIVE_CLI_LOCATIONS = frozenset({
     ('.config', 'gh', 'hosts.yml'),
     ('.config', 'gh', 'hosts.yaml'),
+    # GitLab CLI persists authenticated hosts and tokens in this config.
+    ('.config', 'glab-cli', 'config.yml'),
+    ('.config', 'glab-cli', 'config.yaml'),
 })
 
 # Token files in these AWS CLI directories have arbitrary JSON filenames.
