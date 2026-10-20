@@ -7,11 +7,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 
+	"github.com/batuhansimsar/DEVPILOT/internal/dashboard"
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
 )
 
@@ -19,6 +22,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot ui [--port=0] [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 }
 
@@ -28,6 +32,44 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "ui":
+		flags := flag.NewFlagSet("ui", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		port := flags.Int("port", 0, "localhost port (0 chooses an available port)")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 || *port < 0 || *port > 65535 {
+			fmt.Fprintln(stderr, "ui accepts at most one path and a port from 0 to 65535")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		report, err := doctor.Inspect(path)
+		if err != nil {
+			fmt.Fprintln(stderr, "ui:", err)
+			return 2
+		}
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
+		if err != nil {
+			fmt.Fprintln(stderr, "ui:", err)
+			return 2
+		}
+		defer ln.Close()
+		srv := &http.Server{
+			Handler: dashboard.Handler(func() (any, error) { return doctor.Inspect(report.Path) }),
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		stop := context.AfterFunc(ctx, func() { _ = srv.Shutdown(context.Background()) })
+		defer stop()
+		fmt.Fprintf(stdout, "DevPilot local dashboard: http://%s\nWorkspace: %s\n", ln.Addr().String(), report.Path)
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fmt.Fprintln(stderr, "ui:", err)
+			return 1
+		}
+		return 0
 	case "doctor":
 		flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 		flags.SetOutput(stderr)
