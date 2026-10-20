@@ -63,10 +63,10 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     if len(raw) > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
     names: set[str] = set()
-    for line in raw.decode('utf-8', errors='replace').splitlines():
+    for line in raw.decode('utf-8-sig', errors='replace').splitlines():
         line = line.strip()
-        if line.startswith('export '):
-            line = line[7:].lstrip()
+        if line.startswith('export') and len(line) > 6 and line[6].isspace():
+            line = line[6:].lstrip()
         key, separator, _ = line.partition('=')
         if separator and _KEY.fullmatch(key.strip()):
             names.add(key.strip())
