@@ -17,34 +17,14 @@ _HASH_OPTIONS = re.compile(r'(?:\s+--hash(?:=|\s+)(?:sha256|sha384|sha512):[0-9a
 
 
 def _logical_lines(content: str) -> Iterator[str]:
-    """Join pip's backslash-continued lines before examining declarations.
-
-    An unterminated continuation is incomplete and must not contribute a
-    dependency, even if its first physical line looks like a valid name.
-    """
-    pieces: list[str] = []
-    for raw in content.splitlines():
-        line = raw.strip()
-        if line.endswith('\\'):
-            pieces.append(line[:-1].rstrip())
-            continue
-        if pieces:
-            pieces.append(line)
-            yield ' '.join(pieces)
-            pieces.clear()
-        else:
-            yield line
-
-
-
-def _logical_lines(content: str):
     """Join pip's unescaped backslash continuations before parsing entries.
 
     A dangling continuation is incomplete and must not create an inventory
     entry. Accumulate fragments in a list so long, bounded files remain cheap.
+    A single UTF-8 BOM at the beginning of the document is permitted.
     """
     fragments: list[str] = []
-    for raw in content.splitlines():
+    for raw in content.removeprefix('\ufeff').splitlines():
         line = raw.strip()
         if not line and fragments:
             continue
