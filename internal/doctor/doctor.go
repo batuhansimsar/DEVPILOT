@@ -105,8 +105,11 @@ func hasMarker(root, name string) bool {
 func namesFromEnv(data []byte) []string {
 	set := make(map[string]bool)
 	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		line = strings.TrimPrefix(line, "export ")
+		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "\ufeff"))
+		if strings.HasPrefix(line, "export") && len(line) > len("export") &&
+			(line[len("export")] == ' ' || line[len("export")] == '\t') {
+			line = strings.TrimSpace(line[len("export"):])
+		}
 		name, _, ok := strings.Cut(line, "=")
 		if ok && variableName.MatchString(strings.TrimSpace(name)) {
 			set[strings.TrimSpace(name)] = true
