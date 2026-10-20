@@ -18,6 +18,7 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
 
     The lstat and descriptor checks defend against a project swapping the file
     after it has been inspected. O_NONBLOCK avoids hanging on a swapped-in FIFO.
+    Rechecking the open descriptor after reading detects in-place edits too.
     """
     try:
         metadata = path.lstat()
@@ -34,13 +35,24 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     try:
         with os.fdopen(os.open(path, flags), 'rb') as handle:
             opened = os.fstat(handle.fileno())
-            if (not stat.S_ISREG(opened.st_mode) or
-                    (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns) !=
-                    (metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns, metadata.st_ctime_ns)):
+            if not stat.S_ISREG(opened.st_mode):
                 return None, 'file changed during inspection'
             if opened.st_size > MAX_ENV_BYTES:
                 return None, 'exceeds 256 KiB limit'
+            if (opened.st_dev, opened.st_ino, opened.st_size,
+                    opened.st_mtime_ns, opened.st_ctime_ns) != (
+                    metadata.st_dev, metadata.st_ino, metadata.st_size,
+                    metadata.st_mtime_ns, metadata.st_ctime_ns):
+                return None, 'file changed during inspection'
             raw = handle.read(MAX_ENV_BYTES + 1)
+            after_read = os.fstat(handle.fileno())
+            if after_read.st_size > MAX_ENV_BYTES or len(raw) > MAX_ENV_BYTES:
+                return None, 'exceeds 256 KiB limit'
+            if (after_read.st_dev, after_read.st_ino, after_read.st_size,
+                    after_read.st_mtime_ns, after_read.st_ctime_ns) != (
+                    opened.st_dev, opened.st_ino, opened.st_size,
+                    opened.st_mtime_ns, opened.st_ctime_ns):
+                return None, 'file changed during inspection'
             # Detect an in-place rewrite or append during the bounded read.
             finished = os.fstat(handle.fileno())
             if (finished.st_dev, finished.st_ino, finished.st_size, finished.st_mtime_ns, finished.st_ctime_ns) != (
