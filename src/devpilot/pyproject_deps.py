@@ -115,7 +115,9 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     is a runtime constraint, not a package. All result values are names only.
     """
     try:
-        data = tomllib.loads(content)
+        # The scanner decodes UTF-8-SIG; direct callers may supply text with
+        # one leading BOM. Do not strip embedded or repeated BOMs.
+        data = tomllib.loads(content.removeprefix('\ufeff'))
     except tomllib.TOMLDecodeError as exc:
         # Parser diagnostics might contain untrusted text; never echo it.
         raise ValueError('Invalid pyproject.toml TOML') from exc
