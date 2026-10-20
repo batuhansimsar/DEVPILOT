@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 
 # Composer dependencies are vendor/package names or platform requirements.
@@ -30,10 +31,19 @@ def _reject_nonfinite_number(_value: str) -> None:
     raise ValueError('composer.json contains a non-finite JSON number')
 
 
+def _parse_finite_float(value: str) -> float:
+    """JSON numeric exponents must not silently overflow to infinity."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError('composer.json contains a non-finite JSON number')
+    return number
+
+
 def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
     """Return require/require-dev package names, never version constraints or URLs."""
     manifest = json.loads(content, object_pairs_hook=_unique_object_keys,
-                          parse_constant=_reject_nonfinite_number)
+                          parse_constant=_reject_nonfinite_number,
+                          parse_float=_parse_finite_float)
     if not isinstance(manifest, dict):
         raise ValueError('composer.json root must be an object')
     groups: dict[str, list[str]] = {}
