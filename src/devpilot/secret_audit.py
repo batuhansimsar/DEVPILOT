@@ -29,6 +29,9 @@ EXACT_NAMES = frozenset({
     'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
     '.npmrc', '.pypirc', '.netrc', '.git-credentials',
+    # Registry, database, and Terraform CLI authentication files can hold tokens.
+    'auth.json', '.yarnrc', '.yarnrc.yml',
+    '.pgpass', '.my.cnf', '.mylogin.cnf', '.terraformrc',
     'secrets.yml', 'secrets.yaml', '.envrc',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
 })
@@ -50,6 +53,10 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.terraform.d', 'credentials.tfrc.json'),
     ('gcloud', 'credentials.db'),
     ('gcloud', 'access_tokens.db'),
+    # Only flag ambiguous package-manager config names in credential locations.
+    ('pypoetry', 'auth.toml'),
+    ('pip', 'pip.conf'),
+    ('pip', 'pip.ini'),
 })
 # GitHub CLI stores OAuth tokens in this precise path.
 SENSITIVE_CLI_LOCATIONS = frozenset({
