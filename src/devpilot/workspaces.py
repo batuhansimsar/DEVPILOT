@@ -72,6 +72,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
             if path.is_symlink() or not path.is_file():
                 continue
             ecosystem = WORKSPACE_FILES.get(filename)
+            if not ecosystem and filename.startswith(('Dockerfile.', 'Containerfile.')):
+                ecosystem = 'Docker'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
                 ecosystem = '.NET'
             if ecosystem:
