@@ -39,22 +39,22 @@ def _installed_name(path: str) -> str | None:
     positions = [index for index, segment in enumerate(parts) if segment == 'node_modules']
     if not positions:
         return None
-    # A lockfile path must be a normalized relative path. Without this check,
-    # traversal or empty segments can hide an invalid entry behind a valid
-    # final node_modules/package suffix and produce a misleading inventory.
-    if any(segment in ('', '.', '..') for segment in parts):
-        raise ValueError('npm lockfile contains an invalid installed package path')
-    tail = parts[positions[-1] + 1:]
-    if len(tail) == 1:
-        name = tail[0]
-    elif len(tail) == 2 and tail[0].startswith('@'):
-        name = '/'.join(tail)
-    else:
-        raise ValueError('npm lockfile contains an invalid installed package path')
-    if not _valid_package_name(name):
-        raise ValueError('npm lockfile contains an invalid package name')
-    return name
-
+    # Validate each ancestor package in a nested node_modules chain. A
+    # malformed ancestor must not be ignored just because the leaf is valid.
+    installed = None
+    for index, position in enumerate(positions):
+        end = positions[index + 1] if index + 1 < len(positions) else len(parts)
+        tail = parts[position + 1:end]
+        if len(tail) == 1:
+            name = tail[0]
+        elif len(tail) == 2 and tail[0].startswith('@'):
+            name = '/'.join(tail)
+        else:
+            raise ValueError('npm lockfile contains an invalid installed package path')
+        if not _valid_package_name(name):
+            raise ValueError('npm lockfile contains an invalid package name')
+        installed = name
+    return installed
 
 def parse_npm_lock(content: str) -> list[str]:
     """Return unique installed package names from package-lock/shrinkwrap JSON.
