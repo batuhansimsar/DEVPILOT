@@ -63,7 +63,10 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     if len(raw) > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
     names: set[str] = set()
-    for line in raw.decode('utf-8-sig', errors='replace').splitlines():
+    # splitlines() treats Unicode NEL/LS/PS and VT/FF as line endings.
+    # Those are not .env separators and could forge additional key names.
+    # Only split on LF; strip() below continues to support CRLF files.
+    for line in raw.decode('utf-8-sig', errors='replace').split('\n'):
         line = line.strip()
         if line.startswith('export') and len(line) > 6 and line[6].isspace():
             line = line[6:].lstrip()
