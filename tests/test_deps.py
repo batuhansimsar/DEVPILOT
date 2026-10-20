@@ -37,6 +37,30 @@ class DependencyTests(unittest.TestCase):
         (self.root / "Cargo.toml").write_text('[dependencies]\nserde = "1"\n[dev-dependencies]\ntokio = "1"\n')
         self.assertEqual(scan(self.root)["totals"]["Rust"], 2)
 
+    def test_cargo_table_form_dependencies_and_target_groups(self):
+        (self.root / "Cargo.toml").write_text(
+            '[dependencies.serde]\nversion = "1"\n'
+            '[dev-dependencies.pretty_assertions]\nversion = "1"\n'
+            '[workspace.dependencies.anyhow]\nversion = "1"\n'
+            "[target.'cfg(unix)'.build-dependencies.cc]\nversion = \"1\"\n"
+            "[target.'cfg(windows)'.dependencies]\nwinapi = \"1\"\n"
+        )
+        groups = scan(self.root)["manifests"][0]["groups"]
+        self.assertEqual(groups, {
+            "dependencies": ["anyhow", "serde", "winapi"],
+            "dev-dependencies": ["pretty_assertions"],
+            "build-dependencies": ["cc"],
+        })
+
+    def test_cargo_metadata_dependencies_are_not_packages(self):
+        (self.root / "Cargo.toml").write_text(
+            '[package.metadata.dependencies]\nnot_a_dependency = "1"\n'
+            '[package.metadata.dependencies.fake]\nversion = "1"\n'
+            '[features]\nfull = ["dep:serde"]\n'
+        )
+        self.assertEqual(scan(self.root)["manifests"][0]["groups"], {})
+        self.assertEqual(scan(self.root)["totals"]["Rust"], 0)
+
     def test_dotnet_references(self):
         (self.root / "app.csproj").write_text('<Project><ItemGroup><PackageReference Include="MediatR" Version="1"/><PackageReference Update="Serilog"/></ItemGroup></Project>')
         self.assertEqual(scan(self.root)["manifests"][0]["groups"]["PackageReference"], ["MediatR", "Serilog"])
