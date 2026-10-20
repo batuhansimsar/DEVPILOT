@@ -36,16 +36,38 @@ def _logical_lines(content: str) -> Iterator[str]:
             yield line
 
 
+
+def _logical_lines(content: str):
+    """Join pip's unescaped backslash continuations before parsing entries.
+
+    A dangling continuation is incomplete and must not create an inventory
+    entry. Accumulate fragments in a list so long, bounded files remain cheap.
+    """
+    fragments: list[str] = []
+    for raw in content.splitlines():
+        line = raw.strip()
+        if not line and fragments:
+            continue
+        trailing = len(line) - len(line.rstrip('\\'))
+        if trailing % 2:
+            fragments.append(line[:-1].rstrip())
+            continue
+        if fragments:
+            fragments.append(line)
+            line = ' '.join(fragments)
+            fragments.clear()
+        yield line
+
+
 def parse_requirements_dependencies(content: str) -> list[str]:
     """Return canonical names from valid requirement declarations only.
 
     Ignore pip directives, bare VCS/URL lines and malformed requirements.
-    Backslashes join continuation lines before validation, including hash
-    options, version specifiers and environment markers.
+    Join pip-style continuations first, including versions, direct references
+    and hash options; incomplete trailing entries are ignored.
     """
     names: set[str] = set()
-    for raw in _logical_lines(content):
-        line = raw.strip()
+    for line in _logical_lines(content):
         if not line or line.startswith(('#', '-', 'git+', 'https:', 'http:')):
             continue
         # A comment must have whitespace before #; URL fragments are data.
