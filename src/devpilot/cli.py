@@ -11,6 +11,7 @@ from typing import Any
 
 from .audit import audit_tracked_files
 from .httpcheck import http_check
+from .env_cli import environment_status, format_environment
 from .tlscheck import tls_check
 from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
@@ -32,6 +33,7 @@ def build_parser() -> argparse.ArgumentParser:
         ('analyze', 'Inspect languages, manifests and project structure'),
         ('deps', 'Inventory dependency manifests without executing project code'),
         ('workspaces', 'Discover nested projects in a monorepo'),
+        ('env', 'Compare environment variable names without exposing values'),
         ('git', 'Inspect local Git changes (read-only)'),
         ('audit', 'Find potentially sensitive filenames already tracked by Git'),
         ('docker', 'List running Docker containers (read-only)'),
@@ -63,6 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _human(command: str, output: dict[str, Any]) -> str:
+    if command == 'env':
+        return format_environment(output)
     if command == 'deps':
         lines = [f"Dependency inventory: {output['root']}"]
         for item in output['manifests']:
@@ -168,7 +172,9 @@ def main(argv: list[str] | None = None) -> int:
         root = Path(args.path).expanduser().resolve()
         if not root.is_dir():
             parser.error(f'Not a directory: {root}')
-        if args.command == 'doctor':
+        if args.command == 'env':
+            result, success = environment_status(root)
+        elif args.command == 'doctor':
             result = doctor_report(root)
             success = result['ok']
         elif args.command == 'deps':
