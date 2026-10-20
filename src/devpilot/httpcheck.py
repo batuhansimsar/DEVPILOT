@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from itertools import islice
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit, urlunsplit
 from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, ProxyHandler, Request, build_opener
@@ -40,14 +41,18 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
     if expected_statuses is not None:
+        # Capture once: generators would otherwise be exhausted by validation,
+        # causing membership checks to reject even an expected response.
+        # At most 500 distinct HTTP status codes exist, so bound consumption.
         try:
-            valid_statuses = bool(expected_statuses) and all(
-                type(code) is int and 100 <= code <= 599 for code in expected_statuses
-            )
-        except TypeError:
-            valid_statuses = False
-        if not valid_statuses:
+            statuses = tuple(islice(iter(expected_statuses), 501))
+        except (TypeError, ValueError):
+            statuses = ()
+        if not statuses or len(statuses) > 500 or not all(
+            type(code) is int and 100 <= code <= 599 for code in statuses
+        ):
             raise ValueError('expected HTTP status codes must be between 100 and 599')
+        expected_statuses = frozenset(statuses)
     try:
         port = parts.port
     except ValueError as exc:
