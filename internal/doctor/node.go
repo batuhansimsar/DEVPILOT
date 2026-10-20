@@ -2,8 +2,23 @@ package doctor
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
+)
+
+// A packageManager declaration must identify a fixed Corepack release rather
+// than a tag, range, URL, or arbitrary command argument. Permit prerelease,
+// build metadata, and Corepack's optional integrity hash suffix.
+var corepackVersion = regexp.MustCompile(`^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+(?:[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*|sha(?:224|256|384|512)\\.[A-Za-z0-9+/=]+))?package doctor
+
+import (
+	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+)
+
 )
 
 // selectNodePackageManager chooses a known executable from packageManager
@@ -13,7 +28,7 @@ func selectNodePackageManager(declared, detected string, lockfiles []string) (st
 		return detected, nil
 	}
 	name, version, ok := strings.Cut(declared, "@")
-	if !ok || version == "" || len(version) > 128 || strings.ContainsAny(version, " \t\r\n") ||
+	if !ok || len(version) == 0 || len(version) > 128 || !corepackVersion.MatchString(version) ||
 		(name != "npm" && name != "pnpm" && name != "yarn" && name != "bun") {
 		return detected, []Finding{{
 			Level: "warning", Code: "package-manager-invalid",
