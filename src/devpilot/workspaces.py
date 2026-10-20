@@ -15,6 +15,7 @@ WORKSPACE_FILES = {
     'setup.py': 'Python',
     'Pipfile': 'Python',
     'go.mod': 'Go',
+    'go.work': 'Go',
     'Cargo.toml': 'Rust',
     'pom.xml': 'Java',
     'build.gradle': 'Java',
