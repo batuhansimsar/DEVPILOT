@@ -1,19 +1,12 @@
 package doctor
 
-import "strings"
-
-// declaredNodeManager recognizes the packageManager field used by Corepack.
-// Unsupported or malformed identifiers are ignored instead of becoming a
-// program name, so project metadata cannot inject arbitrary executables.
+// declaredNodeManager uses the same strict Corepack version validation as
+// selectNodePackageManager. Invalid declarations must not influence which
+// package-manager executable is selected for an inspected project.
 func declaredNodeManager(spec string) string {
-	name, version, ok := strings.Cut(spec, "@")
-	if !ok || version == "" || strings.ContainsAny(version, " \t\r\n") {
+	manager, findings := selectNodePackageManager(spec, "", nil)
+	if len(findings) != 0 {
 		return ""
 	}
-	switch name {
-	case "npm", "pnpm", "yarn", "bun":
-		return name
-	default:
-		return ""
-	}
+	return manager
 }

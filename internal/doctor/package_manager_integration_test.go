@@ -34,3 +34,37 @@ func TestNodeDeclaredManagerMismatch(t *testing.T) {
 		}
 	}
 }
+
+func TestInvalidNodeManagerCannotSelectRunner(t *testing.T) {
+	cases := []struct {
+		name, spec string
+		lockfile   bool
+	}{
+		{"dist tag", "pnpm@latest", false},
+		{"version range", "yarn@^4.0.0", false},
+		{"extra at-sign", "bun@1.1.0@other", false},
+		{"invalid with npm lockfile", "pnpm@latest", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			write(t, dir, "package.json", `{"packageManager":"`+tc.spec+`","scripts":{"test":"echo ok"}}`)
+			if tc.lockfile {
+				write(t, dir, "package-lock.json", "{}")
+			}
+			r, err := Inspect(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.PackageManager != "npm" || r.Tests == nil || r.Tests.Executable != "npm" {
+				t.Fatalf("invalid declaration selected executable: %+v", r)
+			}
+			if !finding(r, "package-manager-invalid") {
+				t.Fatalf("expected invalid packageManager warning, got %+v", r.Findings)
+			}
+			if finding(r, "js-package-manager-mismatch") {
+				t.Fatalf("invalid declaration must not emit a lockfile mismatch: %+v", r.Findings)
+			}
+		})
+	}
+}
