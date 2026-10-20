@@ -31,6 +31,9 @@ def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
         entries = manifest.get(group, {})
         if not isinstance(entries, dict):
             raise ValueError(f'composer.json {group} must be an object')
+        # Composer constraints must be strings; do not disclose rejected values.
+        if any(not isinstance(constraint, str) for constraint in entries.values()):
+            raise ValueError(f'composer.json {group} constraints must be strings')
         if entries:
             groups[group] = sorted(key for key in entries if isinstance(key, str))
     return groups
