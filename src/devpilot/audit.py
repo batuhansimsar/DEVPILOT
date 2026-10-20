@@ -16,6 +16,8 @@ _PRIVATE_NAMES = frozenset({
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
     '.terraformrc', 'credentials.tfrc.json',
+    # Database client authentication files can embed reusable credentials.
+    '.pgpass', '.my.cnf', '.mylogin.cnf',
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
 _SENSITIVE_LOCATIONS = frozenset({
