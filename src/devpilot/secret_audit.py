@@ -37,6 +37,8 @@ EXACT_NAMES = frozenset({
     '.pgpass', '.my.cnf', '.mylogin.cnf', '.terraformrc',
     'credentials.tfrc.json',
     'secrets.yml', 'secrets.yaml', '.envrc', '.vault-token',
+    # Conventional Ansible Vault password-file names may expose encryption keys.
+    '.vault_pass', '.vault_password', '.vault_pass.txt', 'vault-password.txt',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
     # s3cmd, Boto and rclone may persist storage credentials in these files.
     '.s3cfg', '.boto', 'rclone.conf',

@@ -17,6 +17,8 @@ _PRIVATE_NAMES = frozenset({
     'service-account.json', 'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
+    # Ansible Vault can read plaintext decryption passwords from these files.
+    '.vault_pass', '.vault_password', '.vault_pass.txt', 'vault-password.txt',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml', '.vault-token',
     '.terraformrc', 'credentials.tfrc.json',
     # Package registry authentication files can store reusable access tokens.
