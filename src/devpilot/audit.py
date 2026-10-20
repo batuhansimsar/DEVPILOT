@@ -15,7 +15,7 @@ _PRIVATE_NAMES = frozenset({
     'service-account.json', 'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
-    '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
+    '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml', '.vault-token',
     '.terraformrc', 'credentials.tfrc.json',
     # Package registry authentication files can store reusable access tokens.
     'auth.json', '.yarnrc', '.yarnrc.yml',
@@ -25,7 +25,7 @@ _PRIVATE_NAMES = frozenset({
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
 # Apple App Store Connect .p8 and PuTTY .ppk files can contain private keys.
-_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks', '.p8', '.ppk'})
+_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks', '.p8', '.ppk', '.keytab'})
 _SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
     ('gh', 'hosts.yml'), ('gh', 'hosts.yaml'),

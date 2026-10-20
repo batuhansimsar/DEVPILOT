@@ -33,7 +33,7 @@ EXACT_NAMES = frozenset({
     'auth.json', '.yarnrc', '.yarnrc.yml',
     '.pgpass', '.my.cnf', '.mylogin.cnf', '.terraformrc',
     'credentials.tfrc.json',
-    'secrets.yml', 'secrets.yaml', '.envrc',
+    'secrets.yml', 'secrets.yaml', '.envrc', '.vault-token',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
     # s3cmd, Boto and rclone may persist storage credentials in these files.
     '.s3cfg', '.boto', 'rclone.conf',
@@ -124,6 +124,8 @@ def classify(path: str) -> str | None:
         return 'potential credential configuration'
     if name in EXACT_NAMES:
         return 'potential credential file'
+    if name.endswith('.keytab'):
+        return 'potential Kerberos credential file'
     if name.endswith(PRIVATE_SUFFIXES):
         return 'potential private key or certificate'
     if _matches_sensitive_extension(name, STATE_SUFFIXES):
