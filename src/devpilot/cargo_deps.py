@@ -9,6 +9,28 @@ _DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za
 _NAME = re.compile(r'[A-Za-z0-9_-]+\Z')
 
 
+def _without_comment(line: str) -> str:
+    """Ignore TOML comments, retaining hashes inside quoted table names.
+
+    Table headers may be followed by comments without whitespace. Splitting at
+    the first hash loses legitimate hashes in quoted target expressions.
+    """
+    quote = ''
+    escaped = False
+    for index, char in enumerate(line):
+        if quote:
+            if quote == '"' and escaped:
+                escaped = False
+            elif quote == '"' and char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = ''
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '#':
+            return line[:index]
+    return line
+
 def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     """List Cargo dependency names from inline and table-style declarations.
 
@@ -19,7 +41,7 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     found: dict[str, set[str]] = {}
     active_group = ''
     for raw in content.splitlines():
-        line = raw.strip()
+        line = _without_comment(raw).strip()
         if line.startswith('[') and line.endswith(']'):
             sections = line.strip('[]').split('.')
             allowed_scope = len(sections) == 1 or sections[0] in ('target', 'workspace')
