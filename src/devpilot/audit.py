@@ -42,7 +42,7 @@ _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     for sensitive in ('.tfvars', '.tfvars.json')
     for example in _ENV_TEMPLATE_SUFFIXES
 )
-_BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~')
+_BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo')
 _MAX_INDEX_BYTES = 8 * 1024 * 1024
 _MAX_TRACKED_PATHS = 100_000
 
