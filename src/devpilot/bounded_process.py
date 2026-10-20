@@ -88,6 +88,10 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
         )
     except OSError as exc:
         return {**result, 'error': _safe_spawn_error(exc)}
+    except (TypeError, ValueError):
+        # Popen may reject an invalid cwd (including embedded NULs) with
+        # these exceptions. Keep private paths out of diagnostic errors.
+        return {**result, 'error': 'Cannot start command: invalid working directory or process arguments'}
 
     stdout_tail = bytearray()
     stderr_tail = bytearray()
