@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import shutil
 import socket
 import subprocess
@@ -212,8 +213,13 @@ def doctor_report(root: Path) -> dict[str, Any]:
             'ok': not issues and not missing}
 
 
+
 def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, Any]:
-    """Run without a shell; spool output to temporary files to bound RAM usage."""
+    """Run without a shell; spool output to temporary files to bound RAM usage.
+
+    On POSIX, terminate the entire spawned process group when a command
+    exceeds its timeout, not just the top-level test runner.
+    """
     def tail(stream: Any) -> tuple[str, bool]:
         stream.seek(0, os.SEEK_END)
         size = stream.tell()
@@ -222,16 +228,26 @@ def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, 
 
     try:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            finished = subprocess.run(argv, cwd=root, stdout=out, stderr=err,
-                                      timeout=timeout, shell=False)
-            stdout, stdout_truncated = tail(out)
-            stderr, stderr_truncated = tail(err)
-            return {'argv': argv, 'exit_code': finished.returncode,
-                    'stdout': stdout, 'stderr': stderr,
-                    'stdout_truncated': stdout_truncated,
-                    'stderr_truncated': stderr_truncated}
-    except subprocess.TimeoutExpired:
-        return {'argv': argv, 'exit_code': None, 'error': f'Timed out after {timeout}s'}
+            with subprocess.Popen(argv, cwd=root, stdout=out, stderr=err,
+                                  shell=False, start_new_session=(os.name == 'posix')) as process:
+                try:
+                    process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    if os.name == 'posix':
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    else:
+                        process.kill()
+                    process.wait()
+                    return {'argv': argv, 'exit_code': None, 'error': f'Timed out after {timeout}s'}
+                stdout, stdout_truncated = tail(out)
+                stderr, stderr_truncated = tail(err)
+                return {'argv': argv, 'exit_code': process.returncode,
+                        'stdout': stdout, 'stderr': stderr,
+                        'stdout_truncated': stdout_truncated,
+                        'stderr_truncated': stderr_truncated}
     except OSError as exc:
         return {'argv': argv, 'exit_code': None, 'error': str(exc)}
 
