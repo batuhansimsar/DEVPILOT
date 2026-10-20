@@ -52,16 +52,18 @@ def _tls_dial_host(host: str) -> str:
         dial_host = host[1:-1]
         try:
             parsed = ipaddress.ip_address(dial_host)
-        except ValueError as exc:
-            raise ValueError('bracketed host must be a valid IPv6 address') from exc
+        except ValueError:
+            # ipaddress includes the untrusted host in its exception message.
+            raise ValueError('bracketed host must be a valid IPv6 address') from None
         if not isinstance(parsed, ipaddress.IPv6Address):
             raise ValueError('bracketed host must be a valid IPv6 address')
 
     if ':' in dial_host:
         try:
             parsed = ipaddress.ip_address(dial_host)
-        except ValueError as exc:
-            raise ValueError('host contains an invalid IPv6 address or embedded port') from exc
+        except ValueError:
+            # Suppress the cause so tracebacks cannot disclose the input.
+            raise ValueError('host contains an invalid IPv6 address or embedded port') from None
         if not isinstance(parsed, ipaddress.IPv6Address):
             raise ValueError('host contains an invalid IPv6 address or embedded port')
     else:
