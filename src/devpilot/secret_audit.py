@@ -14,6 +14,8 @@ from pathlib import Path, PurePosixPath
 from threading import Thread
 from typing import Any
 
+from .firebase_credentials import is_firebase_service_account_key
+
 MAX_OUTPUT = 8 * 1024 * 1024
 MAX_PATHS = 100_000
 TIMEOUT_SECONDS = 12
@@ -122,6 +124,8 @@ def classify(path: str) -> str | None:
         return 'potential credential configuration'
     if len(parts) >= 3 and parts[-3:] in SENSITIVE_CLI_LOCATIONS:
         return 'potential credential configuration'
+    if is_firebase_service_account_key(name):
+        return 'potential Firebase service account key'
     if name in EXACT_NAMES:
         return 'potential credential file'
     if name.endswith('.keytab'):
