@@ -202,7 +202,12 @@ def audit(root: Path, *, redact_paths: bool = False) -> dict[str, Any]:
         raise ValueError('Not a directory: ' + str(root))
     if shutil.which('git') is None:
         raise RuntimeError('Git is not installed or is not in PATH')
-    raw_paths = _tracked_paths(root).split(b'\0')
+    raw = _tracked_paths(root)
+    # Git's -z listing must terminate each nonempty filename with NUL.
+    # A partial final record or an empty record is not proof of a clean index.
+    if raw and (not raw.endswith(b'\0') or raw.startswith(b'\0') or b'\0\0' in raw):
+        raise RuntimeError('Malformed Git index output (unterminated or empty record)')
+    raw_paths = raw.split(b'\0')
     if len(raw_paths) - 1 > MAX_PATHS:
         raise RuntimeError('Git index exceeds 100,000 path safety limit')
     findings: list[dict[str, str]] = []
