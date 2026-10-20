@@ -47,6 +47,7 @@ WORKSPACE_FILES = {
     'gems.locked': 'Ruby',
     'gems.rb': 'Ruby',
     'composer.json': 'PHP',
+    'composer.lock': 'PHP',
     'Package.swift': 'Swift',
     'pubspec.yaml': 'Dart',
     'mix.exs': 'Elixir',
