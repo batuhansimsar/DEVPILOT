@@ -6,13 +6,14 @@ import "strings"
 // interpreting potentially untrusted pipeline definitions. Paths are slash-
 // separated relative to the repository root.
 func isCIConfig(path string) bool {
-	const workflows = ".github/workflows/"
-	if strings.HasPrefix(path, workflows) {
-		// GitHub only discovers workflow files directly in this directory.
-		// Nested YAML files (for example, archived workflows) are not run.
-		filename := strings.TrimPrefix(path, workflows)
-		return filename != "" && !strings.Contains(filename, "/") &&
-			(strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml"))
+	// GitHub, Gitea, and Forgejo only discover workflow files directly
+	// in their respective workflow directories, never nested YAML files.
+	for _, workflows := range []string{".github/workflows/", ".gitea/workflows/", ".forgejo/workflows/"} {
+		if strings.HasPrefix(path, workflows) {
+			filename := strings.TrimPrefix(path, workflows)
+			return filename != "" && !strings.Contains(filename, "/") &&
+				(strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml"))
+		}
 	}
 	switch path {
 	case ".gitlab-ci.yml", "azure-pipelines.yml", "Jenkinsfile",
