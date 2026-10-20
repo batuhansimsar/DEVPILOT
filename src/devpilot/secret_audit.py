@@ -186,12 +186,19 @@ def audit(root: Path, *, redact_paths: bool = False) -> dict[str, Any]:
     for raw_path in raw_paths:
         if not raw_path:
             continue
-        path = raw_path.decode('utf-8', errors='replace')
+        # Preserve distinct invalid UTF-8 byte names for correct classification.
+        path = raw_path.decode('utf-8', errors='surrogateescape')
         category = classify(path)
         if category:
             item = {'category': category, 'action': 'Review tracking; remove sensitive material from Git history and rotate exposed credentials if necessary.'}
             if not redact_paths:
-                item['path'] = path
+                # Escape surrogate-escaped bytes, which cannot be encoded as
+                # UTF-8 in JSON/terminal output. Preserve valid Unicode and
+                # control characters for existing JSON consumers.
+                item['path'] = ''.join(
+                    f'\\u{ord(char):04x}' if 0xdc80 <= ord(char) <= 0xdcff else char
+                    for char in path
+                )
             findings.append(item)
     return {
         'path': str(root), 'tracked_files_checked': len(raw_paths) - 1,
