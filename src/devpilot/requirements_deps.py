@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
+from urllib.parse import parse_qsl
 
-from .pyproject_deps import _EXTRAS, _REQUIREMENT, _canonical, _valid_requirement_suffix
+from .pyproject_deps import _EXTRAS, _NAME, _REQUIREMENT, _canonical, _valid_requirement_suffix
 
 # pip accepts both --hash=algorithm:digest and --hash algorithm:digest.
 # Strip one or more options before validating the PEP 508 declaration, while
@@ -17,6 +18,30 @@ _HASH_OPTIONS = re.compile(r'(?:\s+--hash(?:=|\s+)(?:sha256|sha384|sha512):[0-9a
 
 
 _EDITABLE_OPTION = re.compile(r'^(?:-e|--editable)(?:\s+|=)(.+)\Z')
+_LEGACY_VCS_URL = re.compile(
+    r'(?:git|hg|svn|bzr)\+(?:https?|ssh|git|file)://[^\s#]+#([^\s#]+)\Z'
+)
+
+
+def _legacy_vcs_egg_name(target: str) -> str | None:
+    """Read only an explicit, valid #egg= name from a legacy pip VCS URL.
+
+    pip accepts this deprecated form in editable and ordinary requirements.
+    Ignore all other URL components; they may contain credentials or tokens.
+    Reject ambiguous/duplicate fragments rather than selecting one name.
+    """
+    match = _LEGACY_VCS_URL.fullmatch(target)
+    if match is None:
+        return None
+    try:
+        fields = parse_qsl(match.group(1), keep_blank_values=True,
+                           strict_parsing=True, max_num_fields=16)
+    except ValueError:
+        return None
+    eggs = [value for key, value in fields if key == 'egg']
+    if len(eggs) != 1 or len(eggs[0]) > 214 or not _NAME.fullmatch(eggs[0]):
+        return None
+    return _canonical(eggs[0])
 
 
 def _logical_lines(content: str) -> Iterator[str]:
@@ -49,14 +74,15 @@ def _logical_lines(content: str) -> Iterator[str]:
 def parse_requirements_dependencies(content: str) -> list[str]:
     """Return canonical names from valid requirement declarations only.
 
-    Ignore pip directives, bare VCS/URL lines and malformed requirements.
-    Also include named editable direct references (but never their URLs).
+    Ignore pip directives, bare anonymous URLs and malformed requirements.
+    Include named PEP 508 direct references and legacy VCS #egg references,
+    without ever exposing their potentially credential-bearing URLs.
     Join pip-style continuations before parsing declarations; incomplete
     trailing entries are ignored.
     """
     names: set[str] = set()
     for line in _logical_lines(content):
-        if not line or line.startswith(('#', 'git+', 'https:', 'http:')):
+        if not line or line.startswith(('#', 'https:', 'http:')):
             continue
         # A comment must have whitespace before #; URL fragments are data.
         line = re.split(r'\s+#', line, maxsplit=1)[0].rstrip()
@@ -65,6 +91,10 @@ def parse_requirements_dependencies(content: str) -> list[str]:
             target = editable.group(1).strip()
             if len(target) >= 2 and target[0] in ('"', "'") and target[-1] == target[0]:
                 target = target[1:-1]
+            legacy_name = _legacy_vcs_egg_name(target)
+            if legacy_name is not None:
+                names.add(legacy_name)
+                continue
             # Editable paths and anonymous VCS refs carry no reliable name.
             # Require an explicit PEP 508 direct-reference name instead.
             match = _REQUIREMENT.match(target)
@@ -76,6 +106,11 @@ def parse_requirements_dependencies(content: str) -> list[str]:
                         suffix = suffix[extras.end():].strip()
                 if suffix.startswith('@') and _valid_requirement_suffix(target[match.end():]):
                     names.add(_canonical(match.group(1)))
+            continue
+        if line.startswith(('git+', 'hg+', 'svn+', 'bzr+')):
+            legacy_name = _legacy_vcs_egg_name(line)
+            if legacy_name is not None:
+                names.add(legacy_name)
             continue
         if line.startswith('-'):
             continue
