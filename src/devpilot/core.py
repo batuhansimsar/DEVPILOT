@@ -7,12 +7,11 @@ import os
 import signal
 import shutil
 import socket
-import subprocess
 import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 
+from .bounded_process import run_bounded
 from .envcheck import inspect_env
 from typing import Any
 
@@ -215,41 +214,8 @@ def doctor_report(root: Path) -> dict[str, Any]:
 
 
 def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, Any]:
-    """Run without a shell; spool output to temporary files to bound RAM usage.
-
-    On POSIX, terminate the entire spawned process group when a command
-    exceeds its timeout, not just the top-level test runner.
-    """
-    def tail(stream: Any) -> tuple[str, bool]:
-        stream.seek(0, os.SEEK_END)
-        size = stream.tell()
-        stream.seek(max(0, size - 20000))
-        return stream.read().decode('utf-8', errors='replace'), size > 20000
-
-    try:
-        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            with subprocess.Popen(argv, cwd=root, stdout=out, stderr=err,
-                                  shell=False, start_new_session=(os.name == 'posix')) as process:
-                try:
-                    process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    if os.name == 'posix':
-                        try:
-                            os.killpg(process.pid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                    else:
-                        process.kill()
-                    process.wait()
-                    return {'argv': argv, 'exit_code': None, 'error': f'Timed out after {timeout}s'}
-                stdout, stdout_truncated = tail(out)
-                stderr, stderr_truncated = tail(err)
-                return {'argv': argv, 'exit_code': process.returncode,
-                        'stdout': stdout, 'stderr': stderr,
-                        'stdout_truncated': stdout_truncated,
-                        'stderr_truncated': stderr_truncated}
-    except OSError as exc:
-        return {'argv': argv, 'exit_code': None, 'error': str(exc)}
+    """Execute a local command with bounded in-memory stdout/stderr capture."""
+    return run_bounded(argv, root, timeout)
 
 
 def git_status(root: Path) -> dict[str, Any]:
