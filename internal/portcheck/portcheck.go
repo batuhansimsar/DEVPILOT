@@ -42,6 +42,15 @@ func safeDialError(err error) string {
 	if errors.Is(err, syscall.ECONNREFUSED) {
 		return "connection refused"
 	}
+	if errors.Is(err, syscall.ECONNRESET) {
+		return "connection reset"
+	}
+	if errors.Is(err, syscall.ECONNABORTED) {
+		return "connection aborted"
+	}
+	if errors.Is(err, syscall.EADDRNOTAVAIL) {
+		return "local address unavailable"
+	}
 	if errors.Is(err, syscall.ENETUNREACH) {
 		return "network unreachable"
 	}
@@ -50,6 +59,9 @@ func safeDialError(err error) string {
 	}
 	var dnsError *net.DNSError
 	if errors.As(err, &dnsError) {
+		if dnsError.IsNotFound {
+			return "DNS name not found"
+		}
 		return "DNS resolution failed"
 	}
 	return "TCP connection failed"
