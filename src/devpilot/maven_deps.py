@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 import xml.etree.ElementTree as ET
 
+from .xml_safety import parse_xml_without_doctype
+
 _MAVEN_NS = 'http://maven.apache.org/POM/4.0.0'
 # A dependency inventory reports *identifiers* only. Invalid coordinates may
 # contain terminal control sequences, URLs or credentials from untrusted POMs.
@@ -25,10 +27,7 @@ def parse_maven_dependencies(content: str) -> dict[str, list[str]]:
     Profile dependencies are reported separately because activation is unknown.
     Extension namespaces cannot contribute Maven dependency declarations.
     """
-    upper = content.upper()
-    if '<!DOCTYPE' in upper or '<!ENTITY' in upper:
-        raise ValueError('DTD and XML entities are not supported')
-    root = ET.fromstring(content)
+    root = parse_xml_without_doctype(content)
     if root.tag not in ('project', f'{{{_MAVEN_NS}}}project'):
         raise ValueError('pom.xml root must be a Maven project element')
 

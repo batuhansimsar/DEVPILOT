@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 import xml.etree.ElementTree as ET
 
+from .xml_safety import parse_xml_without_doctype
+
 _MSBUILD_NS = 'http://schemas.microsoft.com/developer/msbuild/2003'
 # Literal NuGet package IDs contain letters, digits, dots, underscores and
 # hyphens. A bounded, conservative identifier is safe to echo in reports;
@@ -24,10 +26,7 @@ def parse_dotnet_dependencies(content: str, *, central: bool = False) -> dict[st
     are supported. Refuse dynamic or malformed names rather than accidentally
     printing project-defined expressions, URLs or credentials in diagnostics.
     """
-    upper = content.upper()
-    if '<!DOCTYPE' in upper or '<!ENTITY' in upper:
-        raise ValueError('DTD and XML entities are not supported')
-    root = ET.fromstring(content)
+    root = parse_xml_without_doctype(content)
     if root.tag not in ('Project', f'{{{_MSBUILD_NS}}}Project'):
         raise ValueError('.NET manifest root must be an MSBuild Project element')
 
