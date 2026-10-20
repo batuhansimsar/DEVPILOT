@@ -34,6 +34,8 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
+# AWS CLI assumes-role and SSO caches contain reusable, short-lived tokens.
+_CLOUD_TOKEN_CACHE_DIRS = frozenset({('.aws', 'cli', 'cache'), ('.aws', 'sso', 'cache')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 _TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup', '.tfplan')
@@ -77,7 +79,9 @@ def _potential_secret(path: str) -> bool:
         return True
     return (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
-            or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS)
+            or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
+            or (len(parts) >= 4 and parts[-4:-1] in _CLOUD_TOKEN_CACHE_DIRS
+                and name.endswith('.json')))
 
 def audit_tracked_files(root: Path) -> dict[str, Any]:
     """Check Git's index only; never open candidate files or print secret values."""
