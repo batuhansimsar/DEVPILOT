@@ -287,7 +287,8 @@ def main(argv: list[str] | None = None) -> int:
         print('devpilot-secret-audit: ' + str(exc), file=sys.stderr)
         return 2
     if args.json:
-        print(json.dumps(report, indent=2, ensure_ascii=False))
+        # Escape bidi/formatting controls in untrusted Git paths in terminal JSON.
+        print(json.dumps(report, indent=2, ensure_ascii=True))
     else:
         print('Scanned ' + str(report['tracked_files_checked']) + ' tracked paths; ' + str(len(report['findings'])) + ' potential risks.')
         for item in report['findings']:
