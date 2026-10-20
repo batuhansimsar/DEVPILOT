@@ -23,10 +23,18 @@ def parse_gemfile_lock(content: str) -> list[str]:
             in_source = line.strip() in {'GEM', 'GIT', 'PATH'}
             in_specs = False
             continue
-        if in_source and line.strip() == 'specs:' and line.startswith('  '):
+        # Bundler's specs marker has exactly two spaces. Indented metadata
+        # elsewhere in a source section must not restart a specs block.
+        if in_source and line == '  specs:':
             in_specs = True
             continue
         if in_specs:
+            # Source metadata (remote, revision, branch, etc.) is indented
+            # by two spaces. It terminates the current specs block, so a
+            # following four-space line cannot masquerade as a locked gem.
+            if line.strip() and not line.startswith('    '):
+                in_specs = False
+                continue
             match = _SPEC.fullmatch(line)
             if match:
                 names.add(_SEPARATOR.sub('-', match.group(1)).lower())
