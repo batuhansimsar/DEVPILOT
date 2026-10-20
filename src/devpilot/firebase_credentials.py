@@ -10,8 +10,14 @@ import re
 _FIREBASE_ADMIN_SDK_KEY = re.compile(
     r"(?:[a-z0-9][a-z0-9._-]*-)?firebase-adminsdk-[a-z0-9]{5}-[a-z0-9]{10,}\.json\Z"
 )
+# Firebase key exports are also frequently renamed to one of these conventional
+# service-account names. Keep matches exact to avoid flagging firebase.json or
+# Google client configuration files that do not contain private keys.
 _SERVICE_ACCOUNT_NAMES = frozenset({
     'serviceaccountkey.json', 'service-account-key.json', 'service_account_key.json',
+    'firebase-service-account.json', 'firebase_service_account.json',
+    'firebaseserviceaccount.json', 'firebase-service-account-key.json',
+    'firebase_service_account_key.json', 'firebaseserviceaccountkey.json',
 })
 
 
