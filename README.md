@@ -22,6 +22,8 @@ For local source development without installing: `PYTHONPATH=src python -m devpi
 ```bash
 devpilot analyze --path /path/to/project
 devpilot workspaces --path /path/to/monorepo --json
+# Tune bounded discovery for small or very large workspaces:
+devpilot workspaces --path /path/to/monorepo --max-depth 3 --max-directories 1000 --json
 devpilot doctor --path /path/to/project
 devpilot git --path /path/to/project
 devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
