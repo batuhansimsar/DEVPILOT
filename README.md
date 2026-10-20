@@ -96,3 +96,5 @@ The command defaults to HEAD, reports HTTP status and latency, and treats HTTP 3
 ## TLS certificate expiry warnings
 
 Use `devpilot check example.com 443 --tls --json` to verify a service certificate and inspect `expires_at`. When the certificate has an expiration date, the JSON response also includes `expires_in_days` (full days remaining, floored at zero) and `expires_soon` (true when expiry is within 30 days). These are renewal hints; exit status still reflects TLS verification rather than renewal urgency. No certificate data is stored or sent to third parties.
+
+The same JSON result includes `tcp_latency_ms` (TCP connection attempt) and, if a TCP connection succeeds and TLS negotiation is attempted, `tls_handshake_ms` (TLS negotiation time, including failed verification). `latency_ms` remains the total probe duration. Stage timings can help distinguish network connectivity delays from TLS negotiation delays.
