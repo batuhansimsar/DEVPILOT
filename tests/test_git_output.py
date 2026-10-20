@@ -43,15 +43,22 @@ class GitOutputTests(unittest.TestCase):
 
     def test_failed_git_without_diagnostics_is_not_reported_clean(self):
         self.assertEqual(format_git_status({'exit_code': 128, 'stdout': '', 'stderr': ''}),
-                         'Git status unavailable')
+                         'Git status failed (exit code 128)')
         self.assertEqual(format_git_status({'exit_code': 0, 'dirty': None, 'stdout': ''}),
-                         'Git status unavailable')
+                         'Git status unavailable (worktree state inconclusive)')
         self.assertEqual(format_git_status({'exit_code': 0, 'dirty': False, 'stdout': ''}),
                          'No changes')
 
+    def test_missing_stdout_must_not_hide_known_dirty_state(self):
+        self.assertEqual(format_git_status({'exit_code': 0, 'dirty': True, 'stdout': ''}),
+                         'Git status reports changes but output is unavailable')
+        self.assertIn('Git status reports changes', format_git_status({
+            'dirty': True, 'stdout': '', 'stdout_truncated': True,
+        }))
+
     def test_git_failure_diagnostics_take_precedence(self):
         self.assertEqual(format_git_status({'exit_code': 128, 'stderr': 'fatal: no repository'}),
-                         'fatal: no repository')
+                         'Git status failed (exit code 128)\nfatal: no repository')
 
 
 if __name__ == '__main__':

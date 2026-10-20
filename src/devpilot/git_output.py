@@ -34,6 +34,8 @@ def format_git_status(report: dict[str, Any]) -> str:
             warnings.append(escape_terminal(str(diagnostic)))
     elif report.get("dirty", False) is None and "dirty" in report:
         warnings.append("Git status unavailable (worktree state inconclusive)")
+    elif not stdout and report.get("dirty") is True:
+        warnings.append("Git status reports changes but output is unavailable")
     elif not stdout and diagnostic:
         warnings.append(escape_terminal(str(diagnostic)))
 
