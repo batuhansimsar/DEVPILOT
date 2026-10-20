@@ -14,7 +14,11 @@ _KEY = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 
 
 def _keys(path: Path) -> tuple[set[str] | None, str | None]:
-    """Read variable names only; reject links, races and oversized files."""
+    """Read names only from an unchanged, regular file; never follow symlinks.
+
+    The lstat and descriptor checks defend against a project swapping the file
+    after it has been inspected. O_NONBLOCK avoids hanging on a swapped-in FIFO.
+    """
     try:
         metadata = path.lstat()
     except FileNotFoundError:
@@ -26,18 +30,13 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     if metadata.st_size > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
 
-    # Lstat alone cannot protect against a symlink or FIFO swap before open.
-    # O_NOFOLLOW rejects late symlinks where supported; O_NONBLOCK avoids
-    # blocking on swapped-in pipes. Comparing file identity also protects
-    # platforms without O_NOFOLLOW, before any content is read.
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     try:
         with os.fdopen(os.open(path, flags), 'rb') as handle:
             opened = os.fstat(handle.fileno())
-            if not stat.S_ISREG(opened.st_mode):
-                return None, 'not a regular file'
-            if not os.path.samestat(metadata, opened):
-                return None, 'changed during inspection'
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino) != (metadata.st_dev, metadata.st_ino)):
+                return None, 'file changed during inspection'
             if opened.st_size > MAX_ENV_BYTES:
                 return None, 'exceeds 256 KiB limit'
             raw = handle.read(MAX_ENV_BYTES + 1)
