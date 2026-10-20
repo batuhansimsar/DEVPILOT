@@ -23,7 +23,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
-	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot test [--dry-run [--json] | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
 	fmt.Fprintln(w, "       devpilot check [--json] [--timeout=3s] host port")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
@@ -133,12 +133,21 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
 		dryRun := flags.Bool("dry-run", false, "preview test command without executing it")
+		jsonOut := flags.Bool("json", false, "emit a machine-readable test preview (requires --dry-run)")
 		timeout := flags.Duration("timeout", 2*time.Minute, "test timeout (maximum 10 minutes)")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
 		}
 		if flags.NArg() > 1 {
 			fmt.Fprintln(stderr, "test accepts at most one path")
+			return 2
+		}
+		if *dryRun && *trust {
+			fmt.Fprintln(stderr, "--dry-run and --trust cannot be combined")
+			return 2
+		}
+		if *jsonOut && !*dryRun {
+			fmt.Fprintln(stderr, "--json requires --dry-run for the test command")
 			return 2
 		}
 		if !*trust && !*dryRun {
@@ -163,7 +172,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		if *dryRun {
-			printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			if *jsonOut {
+				if err := printJSONTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments); err != nil {
+					fmt.Fprintln(stderr, "Cannot write test plan:", err)
+					return 2
+				}
+			} else {
+				printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			}
 			return 0
 		}
 		if _, err = exec.LookPath(report.Tests.Executable); err != nil {
