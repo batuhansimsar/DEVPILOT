@@ -22,6 +22,7 @@ For local source development without installing: `PYTHONPATH=src python -m devpi
 ```bash
 devpilot analyze --path /path/to/project
 devpilot workspaces --path /path/to/monorepo --json
+devpilot env --path /path/to/project --json
 # Tune bounded discovery for small or very large workspaces:
 devpilot workspaces --path /path/to/monorepo --max-depth 3 --max-directories 1000 --json
 devpilot doctor --path /path/to/project
@@ -43,6 +44,7 @@ devpilot doctor --path /path/to/project --json
 
 | Command | Behavior |
 | --- | --- |
+| `env` | Compares environment variable names against an `.env` template without printing secret values. Missing keys return exit status 1; no local `.env` is advisory. |
 | `workspaces` | Discovers nested Python, Node.js, Go, Rust, Java, .NET, Ruby and PHP projects without following symlinks or reading file contents. | 
 | `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
@@ -57,11 +59,11 @@ devpilot doctor --path /path/to/project --json
 
 `devpilot doctor` warns if Git tracks potentially sensitive `.env` files (including nested `.env.production` or `.env.local`). Template filenames such as `.env.example` and `.env.sample` are excluded. This check inspects Git's index only; it never reads environment-file contents.
 
-DevPilot is designed to **inspect before acting**. Analysis skips symlinked files and folders, dependency/build directories, and caps scans at 10,000 files / 12 directory levels. It never reads `.env` contents or executes project scripts during `doctor` or `analyze`. External tools such as Git and Docker are invoked with argument arrays, **not shell interpolation**. Git status disables repository-configured filesystem-monitor hooks and optional index writes, avoiding unexpected helper execution during inspection. CLI stdout/stderr may contain sensitive project data; do not publish `--json` output blindly. `test --yes` runs untrusted repository code and should only be used with projects you trust. The `check` command opens a network connection only to the host explicitly supplied. No telemetry is collected.
+DevPilot is designed to **inspect before acting**. Analysis skips symlinked files and folders, dependency/build directories, and caps scans at 10,000 files / 12 directory levels. It never prints `.env` values or executes project scripts during `doctor` or `analyze`. External tools such as Git and Docker are invoked with argument arrays, **not shell interpolation**. Git status disables repository-configured filesystem-monitor hooks and optional index writes, avoiding unexpected helper execution during inspection. CLI stdout/stderr may contain sensitive project data; do not publish `--json` output blindly. `test --yes` runs untrusted repository code and should only be used with projects you trust. The `check` command opens a network connection only to the host explicitly supplied. No telemetry is collected.
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
-The Python `doctor` command also compares variable **names only** from root-level `.env.example`, `.env.sample`, or `.env.template` against `.env` (when present). No values are printed; missing local keys are informational because variables may be provided externally. Symlinked or oversized environment files are not inspected (256 KiB limit).
+The explicit `env` command performs the same variable-name comparison and exits unsuccessfully if expected names are missing. The Python `doctor` command also compares variable **names only** from root-level `.env.example`, `.env.sample`, or `.env.template` against `.env` (when present). No values are printed; missing local keys are informational because variables may be provided externally. Symlinked or oversized environment files are not inspected (256 KiB limit).
 
 ## Development
 
