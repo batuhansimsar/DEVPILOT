@@ -7,7 +7,8 @@ import re
 # Go module path elements accept '+' and '~' in addition to letters, digits,
 # dots, underscores and hyphens. Go's modfile syntax is broader than package
 # identifiers; excluding these characters drops valid dependencies.
-_REQUIREMENT = re.compile(r"([A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)+)\s+(v\S+)\Z")
+# Paths with just one element (e.g. example.com) are valid too.
+_REQUIREMENT = re.compile(r"([A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)\s+(v\S+)\Z")
 
 
 def parse_go_requirements(content: str) -> list[str]:
