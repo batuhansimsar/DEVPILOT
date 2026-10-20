@@ -107,7 +107,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Java", parse_maven_dependencies(content)
     if name == "Cargo.toml":
         return "Rust", parse_cargo_dependencies(content)
-    if name.endswith((".csproj", ".fsproj", ".vbproj")):
+    if name.lower().endswith((".csproj", ".fsproj", ".vbproj")):
         if "<!DOCTYPE" in content.upper() or "<!ENTITY" in content.upper():
             raise ValueError("DTD and XML entities are not supported")
         root = ET.fromstring(content)
@@ -145,7 +145,7 @@ def scan(path: str | Path) -> dict:
         for filename in sorted(filenames):
             if not (filename in ("package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock")
                     or filename.startswith("requirements") and filename.endswith(".txt")
-                    or filename.endswith((".csproj", ".fsproj", ".vbproj"))):
+                    or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
             filepath = folder / filename
             if filepath.is_symlink():
