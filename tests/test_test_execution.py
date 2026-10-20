@@ -41,5 +41,27 @@ class TestExecutionTests(unittest.TestCase):
         runner.assert_not_called()
 
 
+    def test_reuse_after_fail_fast_removes_skip_and_runs_all(self):
+        first_runner = Mock(return_value={'exit_code': 1})
+        self.assertFalse(execute_test_commands(self.commands, self.root, 10, first_runner, fail_fast=True))
+        self.assertIn('skipped_reason', self.commands[1])
+        second_runner = Mock(return_value={'exit_code': 0})
+        self.assertTrue(execute_test_commands(self.commands, self.root, 10, second_runner))
+        self.assertEqual(second_runner.call_count, 2)
+        self.assertEqual([c['result']['exit_code'] for c in self.commands], [0, 0])
+        self.assertTrue(all('skipped_reason' not in c for c in self.commands))
+        self.assertEqual(self.commands[0]['reason'], 'test script')
+
+    def test_reuse_then_fail_fast_removes_previous_result_from_skipped_command(self):
+        first_runner = Mock(return_value={'exit_code': 0})
+        self.assertTrue(execute_test_commands(self.commands, self.root, 10, first_runner))
+        self.assertIn('result', self.commands[1])
+        second_runner = Mock(return_value={'exit_code': 1})
+        self.assertFalse(execute_test_commands(self.commands, self.root, 10, second_runner, fail_fast=True))
+        second_runner.assert_called_once()
+        self.assertNotIn('result', self.commands[1])
+        self.assertIn('fail-fast', self.commands[1]['skipped_reason'])
+
+
 if __name__ == '__main__':
     unittest.main()
