@@ -26,6 +26,8 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
+    if any(char.isspace() for char in parts.hostname) or '\\' in parts.hostname:
+        raise ValueError('URL host must not contain whitespace or backslashes')
     if not 0.1 <= timeout <= 30:
         raise ValueError('timeout must be between 0.1 and 30 seconds')
     if expected_statuses is not None and (
