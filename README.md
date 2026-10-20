@@ -27,6 +27,8 @@ devpilot git --path /path/to/project
 devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
 devpilot docker
 devpilot check localhost 5432
+# HTTP HEAD health check (redirects are not followed):
+devpilot http http://localhost:8080/health --json
 devpilot test --path /path/to/project           # discovery only
 devpilot test --path /path/to/project --ecosystem go  # select only Go tests
 # Review the proposed command first; test scripts execute project code:
@@ -44,6 +46,7 @@ devpilot doctor --path /path/to/project --json
 | `audit` | Warns about Git-tracked `.env`, private keys, and credential-like filenames without opening their contents. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
+| `http` | Sends a bounded HTTP HEAD request without following redirects or reading the response body. Only HTTP 2xx is considered healthy; 3xx is reachable but unhealthy. Query strings are omitted from the displayed URL. |
 | `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. |
 
 ## Security and limits
