@@ -11,6 +11,7 @@ from typing import Any
 
 from .audit import audit_tracked_files
 from .httpcheck import http_check
+from .tlscheck import tls_check
 from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
@@ -47,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     health.add_argument('port', type=int, help='TCP port (1-65535)')
     health.add_argument('--timeout', type=float, default=3, help='Socket timeout in seconds (0.1-30)')
     health.add_argument('--json', action='store_true')
+    health.add_argument('--tls', action='store_true', help='Require a verified TLS handshake')
     web_health = sub.add_parser('http', help='Probe an HTTP endpoint with a no-redirect HEAD request')
     web_health.add_argument('url', help='Absolute http(s) endpoint URL')
     web_health.add_argument('--timeout', type=float, default=3, help='Request timeout in seconds (0.1-30)')
@@ -129,7 +131,14 @@ def _human(command: str, output: dict[str, Any]) -> str:
     if command == 'http':
         return f"{output['url']} — HTTP {output['status']}" + (' (healthy)' if output.get('healthy') else ' (unhealthy)') if output['reachable'] else f"{output['url']} — unreachable ({output.get('error', 'network error')})"
     if command == 'check':
-        return f"{output['host']}:{output['port']} — {'reachable' if output['reachable'] else 'unreachable'}" + (f" ({output['error']})" if output.get('error') else '')
+        status = 'reachable' if output['reachable'] else 'unreachable'
+        if 'tls_valid' in output:
+            details = (' (TLS certificate verified; expires ' + output['expires_at'] + ')'
+                       if output.get('expires_at') else
+                       ' (TLS certificate verified)' if output['tls_valid'] else
+                       f" (TLS verification failed: {output.get('error', 'unknown error')})")
+            return f"{output['host']}:{output['port']} — {status}" + details
+        return f"{output['host']}:{output['port']} — {status}" + (f" ({output['error']})" if output.get('error') else '')
     return output.get('stdout') or output.get('error') or output.get('stderr') or 'No changes'
 
 
@@ -147,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error('--timeout must be between 0.1 and 30 seconds')
         if not 1 <= args.port <= 65535:
             parser.error('port must be between 1 and 65535')
-        result = tcp_check(args.host, args.port, args.timeout)
+        result = tls_check(args.host, args.port, args.timeout) if args.tls else tcp_check(args.host, args.port, args.timeout)
         success = result['reachable']
     else:
         root = Path(args.path).expanduser().resolve()
