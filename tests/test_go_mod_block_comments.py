@@ -30,18 +30,7 @@ class GoModuleCommentTests(unittest.TestCase):
         self.assertEqual(parse_go_requirements(content), ['github.com/acme/normal'])
 
     def test_unclosed_block_comment_fails_closed(self):
-        with self.assertRaisesRegex(ValueError, '^go.mod contains unterminated block comment
-
-    def test_line_comment_does_not_consume_next_entry(self):
-        content = ('require github.com/acme/one v1.0.0 // indirect\n'
-                   'require github.com/acme/two v2.0.0\n')
-        self.assertEqual(parse_go_requirements(content),
-                         ['github.com/acme/one', 'github.com/acme/two'])
-
-
-if __name__ == '__main__':
-    unittest.main()
-):
+        with self.assertRaisesRegex(ValueError, '^go.mod contains unterminated block comment'):
             parse_go_requirements(
                 'require github.com/acme/first v1.0.0\n/* unfinished\n'
                 'require github.com/acme/fake v1.0.0\n')
