@@ -23,7 +23,8 @@ _PRIVATE_NAMES = frozenset({
     # Kubernetes client configs and Terraform plans may hold reusable secrets.
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
-_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
+# Apple App Store Connect .p8 and PuTTY .ppk files can contain private keys.
+_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks', '.p8', '.ppk'})
 _SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
     ('gh', 'hosts.yml'), ('gh', 'hosts.yaml'),

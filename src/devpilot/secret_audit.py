@@ -35,7 +35,8 @@ EXACT_NAMES = frozenset({
     'secrets.yml', 'secrets.yaml', '.envrc',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
 })
-PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
+# Include Apple App Store Connect and PuTTY private-key formats.
+PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore', '.p8', '.ppk')
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
 PLAN_NAMES = frozenset({'tfplan'})
 PLAN_SUFFIXES = ('.tfplan',)
