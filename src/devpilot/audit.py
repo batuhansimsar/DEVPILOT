@@ -47,7 +47,7 @@ _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     for sensitive in ('.tfvars', '.tfvars.json')
     for example in _ENV_TEMPLATE_SUFFIXES
 )
-_BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo')
+_BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo', '.swn')
 _MAX_INDEX_BYTES = 8 * 1024 * 1024
 _MAX_TRACKED_PATHS = 100_000
 
@@ -61,11 +61,14 @@ def _potential_secret(path: str) -> bool:
     name = parts[-1]
     # Consume every backup suffix: 4+ nested copies must not hide a secret.
     # Each iteration removes characters, so even hostile names terminate.
+    saw_vim_swap = False
     while True:
         suffix = next((suffix for suffix in _BACKUP_SUFFIXES
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None:
             break
+        if suffix in ('.swp', '.swo', '.swn'):
+            saw_vim_swap = True
         name = name[:-len(suffix)]
     parts = (*parts[:-1], name)
     if name in _ENV_EXAMPLES or (
@@ -80,11 +83,14 @@ def _potential_secret(path: str) -> bool:
         return False
     if name.endswith(_TERRAFORM_SENSITIVE_SUFFIXES):
         return True
-    return (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
+    found = (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
             or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
             or (len(parts) >= 4 and parts[-4:-1] in _CLOUD_TOKEN_CACHE_DIRS
                 and name.endswith('.json')))
+    # Vim adds an extra leading dot when creating swap copies of non-dotfiles.
+    return found or (saw_vim_swap and name.startswith('.')
+                     and _potential_secret('/'.join((*parts[:-1], name[1:]))))
 
 def audit_tracked_files(root: Path) -> dict[str, Any]:
     """Check Git's index only; never open candidate files or print secret values."""

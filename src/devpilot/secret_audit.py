@@ -43,7 +43,7 @@ PLAN_NAMES = frozenset({'tfplan'})
 PLAN_SUFFIXES = ('.tfplan',)
 VARIABLE_SUFFIXES = ('.tfvars', '.tfvars.json')
 TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
-BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo')
+BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo', '.swn')
 # These names are ambiguous outside their well-known secret-bearing directories.
 SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
@@ -93,11 +93,14 @@ def classify(path: str) -> str | None:
     name = parts[-1]
     # Consume all nested backup suffixes so deeper copies cannot evade audit.
     # The name strictly shrinks on every iteration, guaranteeing termination.
+    saw_vim_swap = False
     while True:
         suffix = next((suffix for suffix in BACKUP_SUFFIXES
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None:
             break
+        if suffix in ('.swp', '.swo', '.swn'):
+            saw_vim_swap = True
         name = name[:-len(suffix)]
     parts = (*parts[:-1], name)
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
@@ -128,6 +131,9 @@ def classify(path: str) -> str | None:
         return 'potential Terraform plan containing secrets'
     if _matches_sensitive_extension(name, VARIABLE_SUFFIXES):
         return 'potential Terraform variables containing secrets'
+    # Vim prepends a dot: e.g. '.credentials.json.swp' is a credentials.json copy.
+    if saw_vim_swap and name.startswith('.'):
+        return classify('/'.join((*parts[:-1], name[1:])))
     return None
 
 
