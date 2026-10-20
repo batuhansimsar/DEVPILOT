@@ -27,6 +27,19 @@ _VERSION = re.compile(
 
 
 
+def _valid_version(version: str) -> bool:
+    """Reject numeric SemVer prerelease identifiers with leading zeroes."""
+    if not _VERSION.fullmatch(version):
+        return False
+    core = version.split('+', 1)[0]
+    if '-' in core:
+        prerelease = core.split('-', 1)[1]
+        if any(len(part) > 1 and part.startswith('0') and part.isdecimal()
+               for part in prerelease.split('.')):
+            return False
+    return True
+
+
 def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str], str | None]:
     """Return (selected manager, detected lockfiles, packageManager declaration).
 
@@ -42,7 +55,7 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
         candidate, separator, version = declaration.partition('@')
         # Reject malformed Corepack versions rather than treating arbitrary
         # non-whitespace strings as explicit package-manager declarations.
-        valid_version = 0 < len(version) <= 128 and _VERSION.fullmatch(version) is not None
+        valid_version = 0 < len(version) <= 128 and _valid_version(version)
         if separator and candidate in SUPPORTED and valid_version:
             declared = candidate
     families = {LOCKFILES[name] for name in locks}
