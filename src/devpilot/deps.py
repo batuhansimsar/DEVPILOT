@@ -15,6 +15,8 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from .walk import walk_project
+
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
 MAX_BYTES = 512_000
 MAX_DEPTH = 4
@@ -134,7 +136,7 @@ def scan(path: str | Path) -> dict:
     manifests = []
     warnings = []
     found = 0
-    for current, subdirs, filenames in os.walk(root, followlinks=False):
+    for current, subdirs, filenames in walk_project(root, warnings):
         folder = Path(current)
         depth = len(folder.relative_to(root).parts)
         subdirs[:] = sorted(d for d in subdirs if d not in IGNORED and not (folder / d).is_symlink()) if depth < MAX_DEPTH else []
