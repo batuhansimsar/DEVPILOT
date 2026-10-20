@@ -123,7 +123,8 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
         if not raw:
             continue
         report['tracked_files'] += 1
-        name = raw.decode('utf-8', 'replace')
+        # Distinct non-UTF-8 filenames must not collapse to identical replacement glyphs.
+        name = raw.decode('utf-8', errors='surrogateescape')
         if _potential_secret(name):
             if len(report['candidates']) < 50:
                 report['candidates'].append(name)
