@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import stat
 import re
@@ -24,6 +23,7 @@ from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .pipenv_deps import parse_pipfile_lock
+from .json_numbers import parse_finite_json_float
 from .gemfile_lock import parse_gemfile_lock
 from .node_deps import parse_node_dependency_groups
 from .uv_lock import parse_uv_lock
@@ -56,14 +56,6 @@ def _unique_node_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
 def _reject_nonfinite_number(_value: str) -> None:
     """Reject Python's nonstandard NaN/Infinity extensions in JSON manifests."""
     raise ValueError("non-finite JSON number in package.json")
-
-
-def _parse_finite_float(value: str) -> float:
-    """Reject overflowing JSON numbers even though they use valid JSON syntax."""
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError("non-finite JSON number in package.json")
-    return number
 
 
 def _file_identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
@@ -107,7 +99,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Python", parse_pyproject_dependencies(content)
     if name == "package.json":
         data = json.loads(content, parse_constant=_reject_nonfinite_number,
-                          parse_float=_parse_finite_float,
+                          parse_float=parse_finite_json_float,
                           object_pairs_hook=_unique_node_keys)
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
