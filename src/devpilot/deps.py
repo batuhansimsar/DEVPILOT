@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import stat
 import re
@@ -55,6 +56,14 @@ def _reject_nonfinite_number(_value: str) -> None:
     raise ValueError("non-finite JSON number in package.json")
 
 
+def _parse_finite_float(value: str) -> float:
+    """Reject overflowing JSON numbers even though they use valid JSON syntax."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("non-finite JSON number in package.json")
+    return number
+
+
 def _file_identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
     """Identify file replacement and in-place writes during inspection."""
     return (metadata.st_dev, metadata.st_ino, metadata.st_size,
@@ -96,6 +105,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Python", parse_pyproject_dependencies(content)
     if name == "package.json":
         data = json.loads(content, parse_constant=_reject_nonfinite_number,
+                          parse_float=_parse_finite_float,
                           object_pairs_hook=_unique_node_keys)
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
