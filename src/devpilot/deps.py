@@ -178,7 +178,11 @@ def scan(path: str | Path) -> dict:
                 # Expose only the stable errno mnemonic in inventory reports.
                 warnings.append(f"{rel}: {errno.errorcode.get(exc.errno, 'I/O error')}")
                 continue
-            except (UnicodeError, ValueError, ET.ParseError) as exc:
+            except UnicodeError:
+                # Decode errors can include private manifest bytes in their text.
+                warnings.append(f"{rel}: manifest is not valid UTF-8")
+                continue
+            except (ValueError, ET.ParseError) as exc:
                 warnings.append(f"{rel}: {exc}")
                 continue
             manifests.append({"path": rel, "ecosystem": ecosystem, "groups": groups,
