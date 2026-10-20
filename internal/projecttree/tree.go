@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 const MaxEntries = 4000
@@ -119,7 +120,7 @@ func Print(w io.Writer, tree Result) error {
 		} else if item.Kind == "symlink" {
 			suffix = " -> [symlink, not followed]"
 		}
-		if _, err := fmt.Fprintf(w, "%s- %s%s\n", strings.Repeat("  ", level), filepath.Base(filepath.FromSlash(item.Path)), suffix); err != nil {
+		if _, err := fmt.Fprintf(w, "%s- %s%s\n", strings.Repeat("  ", level), safeDisplayName(filepath.Base(filepath.FromSlash(item.Path))), suffix); err != nil {
 			return err
 		}
 	}
@@ -128,4 +129,16 @@ func Print(w io.Writer, tree Result) error {
 		return err
 	}
 	return nil
+}
+
+
+// safeDisplayName prevents control sequences and bidirectional format characters
+// in repository-supplied filenames from changing terminal output.
+func safeDisplayName(name string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
+			return '?'
+		}
+		return r
+	}, name)
 }
