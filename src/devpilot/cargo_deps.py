@@ -160,7 +160,8 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     found: dict[str, set[str]] = {}
     active_group = ''
     multiline: str | None = None
-    for raw in content.splitlines():
+    # Mirror scanner decoding for direct UTF-8-SIG text callers.
+    for raw in content.removeprefix('\ufeff').splitlines():
         masked, multiline = _without_multiline_strings(raw, multiline)
         line = _without_comment(masked).strip()
         if line.startswith('['):
