@@ -22,9 +22,9 @@ def tracked_environment_files(root: Path) -> list[str]:
         return []
     try:
         result = subprocess.run(
-            ['git', '-C', str(root), 'ls-files', '--cached', '-z', '--',
-             ':(icase,glob)**/.env*'],
-            capture_output=True, check=False, timeout=5,
+            ['git', '-C', str(root), '--no-optional-locks', '-c', 'core.fsmonitor=false',
+             'ls-files', '--cached', '-z', '--', ':(icase,glob)**/.env*'],
+            capture_output=True, check=False, timeout=5, stdin=subprocess.DEVNULL,
         )
     except (OSError, subprocess.TimeoutExpired):
         return []
