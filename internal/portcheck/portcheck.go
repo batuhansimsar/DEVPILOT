@@ -4,10 +4,12 @@ package portcheck
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/netip"
 	"strconv"
+	"syscall"
 	"strings"
 	"time"
 	"unicode"
@@ -21,6 +23,36 @@ type Result struct {
 	Reachable bool    `json:"reachable"`
 	LatencyMS float64 `json:"latency_ms"`
 	Error     string  `json:"error,omitempty"`
+}
+
+// safeDialError reports actionable failure classes without forwarding potentially
+// sensitive hostnames, IP addresses, or operating-system diagnostics. Dial
+// errors can include untrusted resolver responses and the full remote address.
+func safeDialError(err error) string {
+	if errors.Is(err, context.Canceled) {
+		return "connection canceled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "connection timed out"
+	}
+	var networkError net.Error
+	if errors.As(err, &networkError) && networkError.Timeout() {
+		return "connection timed out"
+	}
+	if errors.Is(err, syscall.ECONNREFUSED) {
+		return "connection refused"
+	}
+	if errors.Is(err, syscall.ENETUNREACH) {
+		return "network unreachable"
+	}
+	if errors.Is(err, syscall.EHOSTUNREACH) {
+		return "host unreachable"
+	}
+	var dnsError *net.DNSError
+	if errors.As(err, &dnsError) {
+		return "DNS resolution failed"
+	}
+	return "TCP connection failed"
 }
 
 // Check attempts one TCP connection to the explicitly supplied host and port.
@@ -72,7 +104,7 @@ func Check(ctx context.Context, host string, port int, timeout time.Duration) (R
 	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(dialHost, strconv.Itoa(port)))
 	result.LatencyMS = float64(time.Since(started)) / float64(time.Millisecond)
 	if err != nil {
-		result.Error = err.Error()
+		result.Error = safeDialError(err)
 		return result, nil
 	}
 	_ = conn.Close()
