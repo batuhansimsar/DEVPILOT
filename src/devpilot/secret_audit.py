@@ -34,6 +34,7 @@ PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore'
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
 VARIABLE_SUFFIXES = ('.tfvars', '.tfvars.json')
 TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
+BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~')
 # These names are ambiguous outside their well-known secret-bearing directories.
 SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
@@ -53,6 +54,16 @@ def classify(path: str) -> str | None:
     if not parts:
         return None
     name = parts[-1]
+    # Inspect a bounded number of editor/backup suffixes before classifying.
+    # This catches committed copies of credentials without treating copies of
+    # example templates as live secrets or recursing on hostile filenames.
+    for _ in range(3):
+        suffix = next((suffix for suffix in BACKUP_SUFFIXES
+                       if name.endswith(suffix) and len(name) > len(suffix)), None)
+        if suffix is None:
+            break
+        name = name[:-len(suffix)]
+        parts = (*parts[:-1], name)
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
