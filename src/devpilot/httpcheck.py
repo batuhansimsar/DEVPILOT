@@ -13,6 +13,8 @@ from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, Proxy
 
 
 _INVALID_PERCENT_ESCAPE = re.compile(r'%(?![0-9A-Fa-f]{2})')
+# Bound raw and percent-encoded request targets before sending network traffic.
+MAX_HTTP_URL_LENGTH = 8192
 
 
 def _encode_component(value: str, *, safe: str) -> str:
@@ -35,6 +37,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('method must be HEAD or GET')
     if not isinstance(url, str):
         raise ValueError('URL must be a string')
+    # A giant input should not reach URL parsing, escaping, or the network.
+    if len(url) > MAX_HTTP_URL_LENGTH:
+        raise ValueError('URL exceeds 8192 character limit')
     # Lone UTF-16 surrogates cannot be encoded as UTF-8 for the request target.
     # Reject them before building an opener or triggering a low-level encoding
     # exception that might expose parts of the user-supplied URL.
@@ -117,7 +122,6 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
     display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (_encode_component(parts.path, safe="/%:@!$&'()*+,;=-._~") or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
-    opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     # Encode Unicode path/query data as UTF-8 without double-encoding existing
     # percent escapes. Keep only an ASCII, percent-encoded path in reports.
     request_url = urlunsplit((
@@ -126,6 +130,10 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         _encode_component(parts.query, safe="/?%:@!$&'()*+,;=-._~"),
         '',
     ))
+    # Percent encoding can expand short Unicode input into a much larger URL.
+    if len(request_url) > MAX_HTTP_URL_LENGTH:
+        raise ValueError('Encoded URL exceeds 8192 character limit')
+    opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     request = Request(request_url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()
     try:
