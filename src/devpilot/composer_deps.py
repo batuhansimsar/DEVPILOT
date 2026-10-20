@@ -3,6 +3,16 @@
 from __future__ import annotations
 
 import json
+import re
+
+# Composer dependencies are vendor/package names or platform requirements.
+# Reject other JSON object keys rather than exposing arbitrary text from a
+# potentially untrusted manifest in reports or terminal output.
+_PACKAGE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
+_PLATFORM_NAME = re.compile(
+    r"(?:php(?:-[A-Za-z0-9][A-Za-z0-9_.-]*)?|hhvm|composer(?:-plugin-api|-runtime-api)?|"
+    r"(?:ext|lib)-[A-Za-z0-9][A-Za-z0-9_.-]*)\Z", re.IGNORECASE,
+)
 
 
 def _unique_object_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -34,6 +44,9 @@ def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
         # Composer constraints must be strings; do not disclose rejected values.
         if any(not isinstance(constraint, str) for constraint in entries.values()):
             raise ValueError(f'composer.json {group} constraints must be strings')
+        if any(not (_PACKAGE_NAME.fullmatch(name) or _PLATFORM_NAME.fullmatch(name))
+               for name in entries):
+            raise ValueError(f'composer.json {group} contains an invalid package name')
         if entries:
-            groups[group] = sorted(key for key in entries if isinstance(key, str))
+            groups[group] = sorted(entries)
     return groups
