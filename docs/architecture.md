@@ -12,3 +12,7 @@ The CLI entrypoint lives in `cmd/devpilot`; read-only manifest diagnostics live 
 ## Trust boundaries
 
 Manifest files and environment examples are untrusted. Inspection refuses symlinks and files over 1 MiB. `.env` values must never appear in findings. Repository-defined scripts require explicit user trust and use argument arrays rather than shell interpolation. Git HEAD is read without executing Git. Do not use DevPilot as a security sandbox: even trusted test commands can spawn child processes and access local credentials.
+
+## Project tree command
+
+`internal/projecttree` performs deterministic, bounded directory enumeration with `os.ReadDir`. It does not read file contents or dereference symlinks. Common dependency/build directories and secret-like filenames are skipped by default. Limits are 1–10 levels and 1–2000 entries; omitted entries set `truncated=true`. This is a structure *preview*, not a complete security or dependency audit.

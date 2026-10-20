@@ -20,6 +20,7 @@ On Windows, run `devpilot.exe` instead of `./devpilot`.
 
 ## Commands
 
+- `devpilot tree [--json] [--depth=3] [--max-entries=250] [path]` — bounded, read-only project structure listing. Skips common generated directories, secret-like filenames and symlink targets. No command execution.
 - `devpilot doctor [--json] [path]` — **read-only** root-level project diagnostics. Exit 0 for no warnings, 1 for warnings, 2 for invalid input.
 - `devpilot test --trust [--timeout=2m] [path]` — run a discovered test command with a default 2-minute timeout (maximum 10 minutes). **Only use with repositories you trust.** Project test scripts can execute arbitrary code. There is no automatic testing in `doctor`.
 
@@ -28,6 +29,8 @@ Examples:
 ```sh
 ./devpilot doctor .
 ./devpilot doctor --json ../my-project
+./devpilot tree --depth=3 --max-entries=250 ../my-project
+./devpilot tree --json ../my-project
 ./devpilot test --trust ../my-trusted-go-project
 ```
 
