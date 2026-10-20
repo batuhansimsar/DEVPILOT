@@ -27,7 +27,8 @@ def execute_test_commands(
     for index, item in enumerate(commands):
         result = runner(item['argv'], root, timeout)
         item['result'] = result
-        if result.get('exit_code') != 0:
+        exit_code = result.get('exit_code')
+        if type(exit_code) is not int or exit_code != 0:
             passed = False
             if fail_fast:
                 for skipped in commands[index + 1:]:
