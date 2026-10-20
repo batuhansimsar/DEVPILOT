@@ -1,6 +1,7 @@
 """Timeout cleanup should tolerate failures to signal POSIX process groups."""
 
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,6 +38,36 @@ class BoundedProcessKillFallbackTests(unittest.TestCase):
                 )
         killpg.assert_called_once()
         self.assertIn('Timed out after', result['error'])
+
+
+    def test_failed_group_and_child_kill_returns_failure_without_hanging(self):
+        spawned = []
+        real_popen = subprocess.Popen
+
+        def launch(*args, **kwargs):
+            process = real_popen(*args, **kwargs)
+            spawned.append(process)
+            process.kill = lambda: (_ for _ in ()).throw(
+                PermissionError('secret termination diagnostic')
+            )
+            return process
+
+        try:
+            with tempfile.TemporaryDirectory() as temp:
+                with patch('devpilot.bounded_process.subprocess.Popen', side_effect=launch):
+                    with patch('devpilot.bounded_process.os.killpg',
+                               side_effect=PermissionError('private group')):
+                        result = run_bounded(
+                            [sys.executable, '-c', 'import time; time.sleep(60)'],
+                            Path(temp), timeout=0.02,
+                        )
+            self.assertIn('unable to confirm process termination', result['error'])
+            self.assertNotIn('secret', repr(result))
+            self.assertNotIn('private', repr(result))
+        finally:
+            for process in spawned:
+                real_popen.kill(process)
+                process.wait(timeout=2)
 
 
 if __name__ == '__main__':
