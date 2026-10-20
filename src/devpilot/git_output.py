@@ -22,4 +22,6 @@ def format_git_status(report: dict[str, Any]) -> str:
     diagnostic = report.get('error') or report.get('stderr')
     if diagnostic:
         return escape_terminal(str(diagnostic))
+    if report.get('exit_code') not in (None, 0) or ('dirty' in report and report['dirty'] is None):
+        return 'Git status unavailable'
     return 'No changes'
