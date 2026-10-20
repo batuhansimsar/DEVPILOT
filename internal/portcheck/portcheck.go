@@ -27,8 +27,10 @@ type Result struct {
 // The timeout applies to DNS resolution and dialing via the context.
 // LatencyMS measures the dial attempt, including DNS resolution when needed.
 func Check(ctx context.Context, host string, port int, timeout time.Duration) (Result, error) {
-	if host == "" || host != strings.TrimSpace(host) || strings.IndexFunc(host, unicode.IsControl) >= 0 {
-		return Result{}, fmt.Errorf("host must be a nonempty hostname or IP address without surrounding whitespace or control characters")
+	if host == "" || host != strings.TrimSpace(host) || strings.IndexFunc(host, func(r rune) bool {
+		return unicode.IsControl(r) || unicode.Is(unicode.Cf, r)
+	}) >= 0 {
+		return Result{}, fmt.Errorf("host must be a nonempty hostname or IP address without surrounding whitespace, control, or formatting characters")
 	}
 	// A bracketed IPv6 literal is common when copied from a URL. DialContext
 	// needs the address without brackets because JoinHostPort adds them.
