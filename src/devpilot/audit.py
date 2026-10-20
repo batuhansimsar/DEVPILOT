@@ -25,7 +25,7 @@ _PRIVATE_NAMES = frozenset({
     # Package registry authentication files can store reusable access tokens.
     'auth.json', '.yarnrc', '.yarnrc.yml',
     # Database client authentication files can embed reusable credentials.
-    '.pgpass', '.my.cnf', '.mylogin.cnf',
+    '.pgpass', '.pg_service.conf', '.htpasswd', '.my.cnf', '.mylogin.cnf',
     # Storage clients can persist long-lived cloud API keys in these files.
     '.s3cfg', '.boto', 'rclone.conf',
     # Legacy Docker registry config stores reusable registry authentication.
