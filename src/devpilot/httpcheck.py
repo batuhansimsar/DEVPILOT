@@ -28,7 +28,7 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
         port = parts.port
     except ValueError as exc:
         raise ValueError('URL contains an invalid port') from exc
-    if port == 0:
+    if port == 0 or (port is None and parts.netloc.endswith(':')):
         raise ValueError('URL port must be between 1 and 65535')
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
@@ -44,7 +44,7 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
         status = exc.code  # 3xx, 4xx and 5xx are valid HTTP responses, not network failures.
         exc.close()
     except (URLError, OSError, TimeoutError) as exc:
-        return {'url': display, 'reachable': False, 'status': None,
+        return {'url': display, 'reachable': False, 'status': None, 'healthy': False,
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
     # A redirect is reachable, but not healthy: following it is deliberately disabled.
