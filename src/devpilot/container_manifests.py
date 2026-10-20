@@ -20,13 +20,18 @@ _NAMED_BUILD = re.compile(
 _NAMED_COMPOSE = re.compile(
     r'(?:docker-)?compose\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.ya?ml\Z'
 )
-_IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save', '~', '.dockerignore')
+# JetBrains safe-write files can look like named Dockerfiles because underscores
+# are valid variant characters. Never treat these editor temporary copies as
+# genuine container manifests.
+_IGNORED_SUFFIXES = (
+    '.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save',
+    '~', '.dockerignore', '.___jb_tmp___', '.___jb_old___',
+)
 
 
 # Vim may rotate through .swp, .swo, ..., .swa when previous swaps exist.
 # Such editor state files must not be interpreted as named build recipes.
 _VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z', re.IGNORECASE)
-
 
 
 def is_container_manifest(filename: str) -> bool:
@@ -35,6 +40,8 @@ def is_container_manifest(filename: str) -> bool:
     Match exact case, as project discovery also runs on case-sensitive systems.
     The caller is responsible for accepting only regular, non-symlinked files.
     """
+    if not isinstance(filename, str):
+        return False
     if filename.casefold().endswith(_IGNORED_SUFFIXES) or _VIM_SWAP_SUFFIX.search(filename):
         return False
     return (filename in _CONTAINER_MANIFESTS
