@@ -21,6 +21,8 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     """
     if method not in ('HEAD', 'GET'):
         raise ValueError('method must be HEAD or GET')
+    if not isinstance(url, str):
+        raise ValueError('URL must be a string')
     # urlsplit silently strips leading spaces and certain control characters;
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
@@ -34,7 +36,8 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL must be an absolute http(s) URL without credentials')
     if any(char.isspace() for char in parts.hostname) or '\\' in parts.hostname:
         raise ValueError('URL host must not contain whitespace or backslashes')
-    if not 0.1 <= timeout <= 30:
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
     if expected_statuses is not None and (
         not expected_statuses or any(type(code) is not int or not 100 <= code <= 599 for code in expected_statuses)
