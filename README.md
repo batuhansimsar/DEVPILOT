@@ -87,7 +87,7 @@ Probe an explicitly supplied HTTP endpoint without reading the response body or 
 devpilot http http://localhost:8080/health --json
 ```
 
-The command uses HEAD, reports HTTP status and latency, and returns an unsuccessful exit code for HTTP 4xx/5xx or network failures. Credentials in URLs are rejected; query parameters are omitted from diagnostics. Use `--timeout 5` to adjust the deadline (0.1–30 seconds).
+The command defaults to HEAD, reports HTTP status and latency, and treats HTTP 3xx/4xx/5xx as unhealthy unless explicitly allowed with `--expect-status`. For endpoints that reject HEAD, use `devpilot http http://localhost:8080/health --method GET --json`. GET can have application side effects, so it is opt-in. DevPilot does not read GET response bodies or follow redirects. JSON output includes the selected `method`. Credentials in URLs are rejected; query parameters are omitted from diagnostics. Use `--timeout 5` to adjust the deadline (0.1–30 seconds).
 
 ## Dependency inventory
 
