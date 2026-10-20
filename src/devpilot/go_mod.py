@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 
 # Go module path elements accept '+' and '~' in addition to letters, digits,
@@ -9,8 +10,13 @@ import re
 # identifiers; excluding these characters drops valid dependencies.
 # Paths with just one element (e.g. example.com) are valid too.
 # Go also permits double-quoted module paths and versions in require declarations.
+_MODULE_PATH = re.compile(r'[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*\Z')
+_GO_QUOTED_CONTENT = re.compile(
+    r'(?:[^"\\]|\\(?:[abfnrtv\\"]|[0-7]{3}|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}))*\Z'
+)
 _REQUIREMENT = re.compile(
-    r'(?P<quote>"?)(?P<module>[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)(?P=quote)\s+'
+    r'(?:(?P<plain>[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)|'
+    r'"(?P<quoted>(?:[^"\\]|\\.)*)")\s+'
     r'(?P<version_quote>"?)v[^\s"]+(?P=version_quote)\Z'
 )
 
@@ -18,8 +24,8 @@ _REQUIREMENT = re.compile(
 def parse_go_requirements(content: str) -> list[str]:
     """Collect dependencies in single-line and parenthesized require blocks.
 
-    Go permits tabs and repeated whitespace between directive tokens. Only
-    require declarations are included: replace and exclude do not describe
+    Go permits whitespace and double-quoted strings with Go-style escapes.
+    Only require declarations are included: replace and exclude do not describe
     additional dependencies. Returned data contains names, no versions.
     """
     names: set[str] = set()
@@ -43,5 +49,16 @@ def parse_go_requirements(content: str) -> list[str]:
                 continue
         match = _REQUIREMENT.fullmatch(entry)
         if match:
-            names.add(match.group('module'))
+            module = match.group('plain')
+            if module is None:
+                quoted = match.group('quoted')
+                if not _GO_QUOTED_CONTENT.fullmatch(quoted):
+                    continue
+                try:
+                    # Decode only string literals; never evaluate expressions.
+                    module = ast.literal_eval('"' + quoted + '"')
+                except (SyntaxError, ValueError, UnicodeError):
+                    continue
+            if _MODULE_PATH.fullmatch(module):
+                names.add(module)
     return sorted(names)
