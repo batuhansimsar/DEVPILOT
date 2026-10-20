@@ -12,6 +12,8 @@ It searches Git's tracked index for names such as .env, environment-specific con
 
 Additional path-sensitive checks cover Azure CLI token cache files (`.azure/accessTokens.json`, `.azure/msal_token_cache.json`, `.azure/msal_token_cache.bin`), GitHub CLI OAuth credential storage (`.config/gh/hosts.yml`) and Google application-default credentials (`application_default_credentials.json`). Generic `hosts.yml` and configuration filenames are not flagged outside the known credential locations.
 
+Path-sensitive build-tool checks also flag tracked `.m2/settings.xml` (Maven server credentials), `.gradle/gradle.properties` (possible repository passwords), and `NuGet/NuGet.Config` (package feed credentials). Generic `settings.xml`, `gradle.properties`, and `NuGet.Config` outside those directories are not flagged. Backup copies are checked, while example and sample templates remain excluded.
+
 The command **never reads file contents**, does not access the network, and does not change the repository. It skips untracked files; it is not a full secrets scanner or proof of compromise. All findings are heuristics and need human review.
 
 Exit status: 0 means no suspicious tracked filenames, 1 means potential risks found, 2 means invocation or Git inspection failed. The --redact-paths option excludes filenames from findings **and masks the absolute repository path** with `<redacted>` in JSON reports for safer automation logs.
