@@ -81,7 +81,9 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
     The path is a repository root; all returned paths are relative to it. A cap
     prevents unexpectedly expensive walks across very large monorepos.
     """
-    root = root.resolve()
+    # Preserve a symlink at the requested root so walk_project can report an
+    # incomplete scan rather than following it into another directory.
+    root = root.absolute()
     if not root.is_dir():
         raise ValueError(f'Not a directory: {root}')
     if (type(max_depth) is not int or type(max_directories) is not int
