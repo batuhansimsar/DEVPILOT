@@ -17,11 +17,14 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     ``tcp_latency_ms`` and ``tls_handshake_ms`` help locate a slow phase without
     changing the existing total ``latency_ms`` or certificate verification.
     """
-    if not host or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host):
+    if not isinstance(host, str) or not host or any(
+        char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host
+    ):
         raise ValueError('host must be a hostname or IP address without whitespace')
-    if not 1 <= port <= 65535:
+    if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
-    if not 0.1 <= timeout <= 30:
+    if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
+            or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
     start = time.monotonic()
     result: dict[str, Any] = {
