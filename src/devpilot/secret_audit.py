@@ -69,6 +69,8 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.terraform.d', 'credentials.tfrc.json'),
     ('gcloud', 'credentials.db'),
     ('gcloud', 'access_tokens.db'),
+    # GitLab Runner configuration may hold long-lived runner auth tokens.
+    ('gitlab-runner', 'config.toml'), ('.gitlab-runner', 'config.toml'),
     # GitLab CLI config may hold plaintext tokens without an OS keyring.
     ('glab-cli', 'config.yml'),
     ('glab-cli', 'config.yaml'),
