@@ -60,7 +60,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
     root = root.resolve()
     if not root.is_dir():
         raise ValueError(f'Not a directory: {root}')
-    if not (0 <= max_depth <= 50 and 1 <= max_directories <= 100000):
+    if (type(max_depth) is not int or type(max_directories) is not int
+            or not (0 <= max_depth <= 50 and 1 <= max_directories <= 100000)):
         raise ValueError('Invalid scan limits')
 
     workspaces: list[dict[str, Any]] = []
