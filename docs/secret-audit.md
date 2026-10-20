@@ -8,7 +8,7 @@ Run from a Git repository:
     python -m devpilot.secret_audit . --json
     python -m devpilot.secret_audit . --json --redact-paths
 
-It searches Git's tracked index for names such as .env, environment-specific configuration, private key formats (.pem, .p12, .pfx, .key, .kdbx), service-account JSON and known credential config filenames. Example/sample files are excluded where possible.
+It searches Git's tracked index for names such as .env, environment-specific configuration, private key formats (.pem, .p12, .pfx, .key, .kdbx), service-account JSON and known credential config filenames. Example/sample files are excluded where possible. Common tracked backup copies, such as `credentials.json.backup`, `private.key.bak`, and `prod.tfstate.old`, are also checked; backup copies of recognized example/templates remain excluded.
 
 Additional path-sensitive checks cover Azure CLI token cache files (`.azure/accessTokens.json`, `.azure/msal_token_cache.json`, `.azure/msal_token_cache.bin`), GitHub CLI OAuth credential storage (`.config/gh/hosts.yml`) and Google application-default credentials (`application_default_credentials.json`). Generic `hosts.yml` and configuration filenames are not flagged outside the known credential locations.
 
