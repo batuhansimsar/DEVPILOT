@@ -13,11 +13,13 @@ import (
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/projecttree"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "       devpilot tree [--json] [--depth=3] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 }
@@ -73,6 +75,39 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		if report.HasWarnings() {
 			return 1
+		}
+		return 0
+	case "tree":
+		flags := flag.NewFlagSet("tree", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "machine-readable JSON outline")
+		depth := flags.Int("depth", 3, "maximum directory levels (1-6)")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "tree accepts at most one path")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		result, err := projecttree.Scan(path, *depth)
+		if err != nil {
+			fmt.Fprintln(stderr, "tree:", err)
+			return 2
+		}
+		if *jsonOut {
+			enc := json.NewEncoder(stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(result); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 2
+			}
+		} else if err := projecttree.Print(stdout, result); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 2
 		}
 		return 0
 	case "test":
