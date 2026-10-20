@@ -10,6 +10,7 @@ from .container_manifests import is_container_manifest
 from .core import SKIP_DIRS
 from .walk import walk_project
 from .requirements_names import is_requirements_manifest
+from .pylock import is_pylock_manifest
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
@@ -110,6 +111,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 continue
             ecosystem = WORKSPACE_FILES.get(filename)
             if not ecosystem and is_requirements_manifest(filename):
+                ecosystem = 'Python'
+            if not ecosystem and is_pylock_manifest(filename):
                 ecosystem = 'Python'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'

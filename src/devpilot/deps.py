@@ -34,6 +34,7 @@ from .gemfile_lock import parse_gemfile_lock
 from .node_deps import parse_node_dependency_groups
 from .npm_lock import parse_npm_lock
 from .uv_lock import parse_uv_lock
+from .pylock import is_pylock_manifest, parse_pylock
 from .poetry_lock import parse_poetry_lock
 
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
@@ -119,6 +120,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Python", parse_pipfile_lock(content)
     if name == "uv.lock":
         return "Python", {"locked": parse_uv_lock(content)}
+    if is_pylock_manifest(name):
+        return "Python", {"locked": parse_pylock(content)}
     if name == "poetry.lock":
         return "Python", {"locked": parse_poetry_lock(content)}
     if name == "go.mod":
@@ -164,6 +167,7 @@ def scan(path: str | Path) -> dict:
         for filename in sorted(filenames):
             if not (filename in ("pyproject.toml", "package.json", "package-lock.json", "npm-shrinkwrap.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "composer.lock", "pom.xml", "Pipfile", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
                     or _is_requirements_manifest(filename)
+                    or is_pylock_manifest(filename)
                     or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue

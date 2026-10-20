@@ -25,6 +25,7 @@ from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_jso
 from .node import LOCKFILES, package_manager
 from .walk import walk_project
 from .requirements_names import is_requirements_manifest
+from .pylock import is_pylock_manifest
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -78,7 +79,7 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
 def _has_python_manifest(names: set[str]) -> bool:
     """Match the Python dependency manifests supported by dependency scanning."""
     return bool(names & {'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
-        is_requirements_manifest(name)
+        is_requirements_manifest(name) or is_pylock_manifest(name)
         for name in names
     )
 
@@ -145,7 +146,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
                 languages[language] += 1
             rel = p.relative_to(root).as_posix()
             if (filename in KEY_FILES or filename.lower().endswith('.gemspec')
-                or is_container_manifest(filename)) and (
+                or is_pylock_manifest(filename) or is_container_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
                 key_files.append(rel)
