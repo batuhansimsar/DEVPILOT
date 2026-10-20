@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/batuhansimsar/DEVPILOT/internal/dockercheck"
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
 	"github.com/batuhansimsar/DEVPILOT/internal/dockerfile"
 )
@@ -20,8 +21,11 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot dockerfile [--json] [path]")
-	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
+	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
+	fmt.Fprintln(w, "Docker queries are read-only and have a 5-second timeout.")
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -30,15 +34,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "analyze":
+		return analyzeCommand(args[1:], stdout, stderr)
 	case "dockerfile":
 		flags := flag.NewFlagSet("dockerfile", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		jsonOut := flags.Bool("json", false, "machine-readable JSON report")
 		if err := flags.Parse(args[1:]); err != nil { return 2 }
-		if flags.NArg() > 1 {
-			fmt.Fprintln(stderr, "dockerfile accepts at most one project directory")
-			return 2
-		}
+		if flags.NArg() > 1 { fmt.Fprintln(stderr, "dockerfile accepts at most one project directory"); return 2 }
 		path := "."
 		if flags.NArg() == 1 { path = flags.Arg(0) }
 		report, err := dockerfile.Inspect(path)
@@ -109,6 +112,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
+		dryRun := flags.Bool("dry-run", false, "preview test command without executing it")
 		timeout := flags.Duration("timeout", 2*time.Minute, "test timeout (maximum 10 minutes)")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
@@ -117,8 +121,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "test accepts at most one path")
 			return 2
 		}
-		if !*trust {
-			fmt.Fprintln(stderr, "Refusing to execute untrusted project code. Pass --trust only for repositories you trust.")
+		if !*trust && !*dryRun {
+			fmt.Fprintln(stderr, "Refusing to execute untrusted project code. Pass --trust to execute or --dry-run to preview.")
 			return 2
 		}
 		if *timeout <= 0 || *timeout > 10*time.Minute {
@@ -138,6 +142,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "No supported test command discovered.")
 			return 2
 		}
+		if *dryRun {
+			printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			return 0
+		}
 		if _, err = exec.LookPath(report.Tests.Executable); err != nil {
 			fmt.Fprintln(stderr, "Test executable not installed:", report.Tests.Executable)
 			return 2
@@ -155,6 +163,58 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			} else {
 				fmt.Fprintln(stderr, "Test failed:", err)
 			}
+			return 1
+		}
+		return 0
+	case "docker":
+		flags := flag.NewFlagSet("docker", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "machine-readable JSON report")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 || (flags.NArg() == 1 && flags.Arg(0) != "ps") {
+			fmt.Fprintln(stderr, "docker accepts only the optional ps subcommand")
+			return 2
+		}
+		enc := json.NewEncoder(stdout)
+		enc.SetIndent("", "  ")
+		if flags.NArg() == 1 {
+			report := dockercheck.List(ctx, nil)
+			if *jsonOut {
+				if err := enc.Encode(report); err != nil {
+					fmt.Fprintln(stderr, err)
+					return 2
+				}
+			} else if report.Available {
+				fmt.Fprintf(stdout, "Running containers: %d\n", len(report.Items))
+				for _, item := range report.Items {
+					fmt.Fprintln(stdout, string(item))
+				}
+			} else {
+				fmt.Fprintln(stderr, report.Detail)
+			}
+			if !report.Available {
+				return 1
+			}
+			return 0
+		}
+		report := dockercheck.Inspect(ctx, nil)
+		if *jsonOut {
+			if err := enc.Encode(report); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 2
+			}
+		} else {
+			fmt.Fprintf(stdout, "Docker installed: %t\nDocker daemon reachable: %t\n", report.Installed, report.Reachable)
+			if report.Version != "" {
+				fmt.Fprintf(stdout, "Server version: %s\n", report.Version)
+			}
+			if report.Detail != "" {
+				fmt.Fprintln(stderr, report.Detail)
+			}
+		}
+		if !report.Reachable {
 			return 1
 		}
 		return 0
