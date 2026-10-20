@@ -103,6 +103,23 @@ func namesFromEnv(data []byte) []string {
 	return names
 }
 
+// declaresPytest recognizes the standard pytest table in a TOML manifest.
+// Arbitrary pyproject.toml presence is not evidence that pytest is configured.
+func declaresPytest(data []byte) bool {
+	const table = "[tool.pytest.ini_options]"
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, table) {
+			continue
+		}
+		trailing := strings.TrimSpace(strings.TrimPrefix(line, table))
+		if trailing == "" || strings.HasPrefix(trailing, "#") {
+			return true
+		}
+	}
+	return false
+}
+
 func Inspect(root string) (Report, error) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
@@ -156,12 +173,20 @@ func Inspect(root string) (Report, error) {
 		}
 		tool("cargo", "Cargo")
 	}
-	if hasMarker(abs, "requirements.txt") || hasMarker(abs, "pyproject.toml") || hasMarker(abs, "pytest.ini") {
+	pyproject := hasMarker(abs, "pyproject.toml")
+	pytestConfigured := hasMarker(abs, "pytest.ini") || hasMarker(abs, "conftest.py")
+	if pyproject {
+		data, _, readErr := readMarker(abs, "pyproject.toml")
+		if readErr != nil {
+			add("warning", "pyproject-unreadable", "Cannot inspect pyproject.toml: "+readErr.Error(), "Review the file's permissions and size.")
+		} else if declaresPytest(data) {
+			pytestConfigured = true
+		}
+	}
+	if hasMarker(abs, "requirements.txt") || pyproject || pytestConfigured {
 		language("Python")
-		if hasMarker(abs, "pytest.ini") || hasMarker(abs, "pyproject.toml") {
-			if r.Tests == nil {
-				r.Tests = &TestCommand{Executable: "python", Arguments: []string{"-m", "pytest"}}
-			}
+		if pytestConfigured && r.Tests == nil {
+			r.Tests = &TestCommand{Executable: "python", Arguments: []string{"-m", "pytest"}}
 		}
 		tool("python", "Python")
 	}
