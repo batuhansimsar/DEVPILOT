@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>DevPilot · Doctor</title><link rel="stylesheet" href="/styles.css"><script src="/main.js" defer></script></head>
+<body><div class="shell">
+<header><div class="mark" aria-hidden="true">◈</div><div><h1>DevPilot</h1><p>Local developer control center</p></div><button id="refresh" type="button">↻ Rescan</button></header>
+<main><section class="intro"><span class="eyebrow">PROJECT DOCTOR</span><h2>Understand your project.</h2><p id="path">Inspecting…</p></section>
+<section class="stats" aria-label="Project summary"><div><span>Languages</span><strong id="languages">—</strong></div><div><span>Frameworks</span><strong id="frameworks">—</strong></div><div><span>Package manager</span><strong id="manager">—</strong></div><div><span>Findings</span><strong id="findingCount">—</strong></div></section>
+<div class="columns"><section class="panel"><h3>Diagnostics</h3><div id="findings" aria-live="polite">Loading…</div></section><section class="panel"><h3>Test discovery</h3><p class="hint">Display only. No project scripts are executed by this dashboard.</p><div id="tests"></div><h3 class="spaced">Workspace safety</h3><p class="hint">Runs on your machine only. No account, paid AI provider or upload required. Do not execute unknown test scripts without explicit trust.</p></section></div></main>
+<footer>Read-only project diagnostics · Built for contributors</footer>
+</div></body></html>
