@@ -16,6 +16,14 @@ def _printable(text: str) -> str:
     )
 
 
+def _safe_error_detail(error: OSError) -> str:
+    """Use an OS-defined description, never a potentially sensitive strerror."""
+    try:
+        return os.strerror(error.errno)
+    except (TypeError, ValueError, OverflowError):
+        return 'I/O error'
+
+
 def walk_project(root: Path, problems: list[str]) -> Iterator[tuple[str, list[str], list[str]]]:
     """Traverse without following symlinks and report unreadable directories.
 
@@ -30,7 +38,6 @@ def walk_project(root: Path, problems: list[str]) -> Iterator[tuple[str, list[st
                 location = relative.as_posix() if ".." not in relative.parts else "[outside project]"
             except (ValueError, TypeError):
                 location = '[outside project]'
-        detail = error.strerror or type(error).__name__
-        problems.append(f"Cannot inspect {_printable(location)}: {_printable(detail)}")
+        problems.append(f"Cannot inspect {_printable(location)}: {_printable(_safe_error_detail(error))}")
 
     yield from os.walk(root, followlinks=False, onerror=onerror)

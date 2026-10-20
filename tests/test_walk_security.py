@@ -27,18 +27,30 @@ class WalkErrorTerminalSafetyTests(unittest.TestCase):
         self.assertNotIn('\x1b', problems[0])
         self.assertNotIn('\u202e', problems[0])
 
-    def test_untrusted_error_detail_cannot_emit_terminal_controls(self):
+    def test_untrusted_error_detail_is_not_echoed(self):
         root = Path.cwd() / 'example'
         problems = []
 
         def fake_walk(path, *, followlinks, onerror):
-            onerror(OSError(errno.EACCES, 'failed\x1b[0m\rupdate', str(root / 'private')))
+            onerror(OSError(errno.EACCES, 'token=private\x1b[0m\rupdate', str(root / 'private')))
             return iter(())
 
         with patch('devpilot.walk.os.walk', side_effect=fake_walk):
             list(walk_project(root, problems))
-        self.assertEqual(problems, ['Cannot inspect private: failed\\u001b[0m\\u000dupdate'])
+        self.assertEqual(problems, ['Cannot inspect private: Permission denied'])
 
+
+    def test_error_without_errno_is_redacted(self):
+        root = Path.cwd() / 'example'
+        problems = []
+
+        def fake_walk(path, *, followlinks, onerror):
+            onerror(OSError('private credential in OS error'))
+            return iter(())
+
+        with patch('devpilot.walk.os.walk', side_effect=fake_walk):
+            list(walk_project(root, problems))
+        self.assertEqual(problems, ['Cannot inspect .: I/O error'])
 
     def test_nonprinting_unicode_separators_are_escaped(self):
         root = Path.cwd() / 'example'

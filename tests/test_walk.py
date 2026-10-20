@@ -57,7 +57,7 @@ class WalkProjectTests(unittest.TestCase):
         with patch('devpilot.walk.os.walk', side_effect=fake_walk):
             self.assertEqual(list(walk_project(root, problems)), [])
         self.assertEqual(problems, [
-            r'Cannot inspect bad\u000aname\u001b[31m: Permission\u001b[2J denied\u202e'
+            r'Cannot inspect bad\u000aname\u001b[31m: Permission denied'
         ])
         self.assertFalse(any('\x1b' in issue or '\n' in issue or '\u202e' in issue
                              for issue in problems))
