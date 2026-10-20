@@ -19,6 +19,7 @@ from .container_manifests import is_container_manifest
 from .gradle import gradle_test_command
 from .maven import maven_test_command
 from .git_state import is_git_dirty
+from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
 from .walk import walk_project
@@ -283,13 +284,14 @@ def tcp_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host
     ):
         raise ValueError('host must be a hostname or IP address without whitespace')
+    dial_host = _tls_dial_host(host)
     if type(port) is not int or not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
     try:
-        with socket.create_connection((host, port), timeout=timeout):
+        with socket.create_connection((dial_host, port), timeout=timeout):
             return {'host': host, 'port': port, 'reachable': True}
     except (OSError, TimeoutError) as exc:
         return {'host': host, 'port': port, 'reachable': False, 'error': str(exc)}
