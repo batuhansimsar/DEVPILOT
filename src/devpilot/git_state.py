@@ -4,15 +4,24 @@ from __future__ import annotations
 
 
 def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
-    """Return True for changes, False for clean, and None for indeterminate status.
+    """Return True for changes, False for clean, None for incomplete output.
 
-    The caller must invoke ``git status --porcelain=v1 --branch``. The first
-    line starts with ``## `` and describes the branch, not a file change.
-    All subsequent nonempty lines represent staged, unstaged, untracked, or
-    unmerged entries. The answer remains conservative if a long status has
-    been truncated from the beginning by the command runner. Missing output
-    cannot prove a clean working tree, even if Git reports exit code zero.
+    The caller must invoke 'git status --porcelain=v1 --branch'. A clean
+    result has exactly one complete '## <branch>' header ending in a newline.
+    Truncated or malformed branch-only output is not proof of a clean tree.
+    Changes can still be identified from a tail missing its branch header.
     """
     if exit_code != 0 or not stdout.strip():
         return None
-    return any(line and not line.startswith('## ') for line in stdout.splitlines())
+
+    lines = stdout.splitlines(keepends=True)
+    # A torn branch marker is not a porcelain file-status record.
+    if any(line.startswith('##') and not line.startswith('## ') for line in lines):
+        return None
+    if any(line.strip() and not line.startswith('## ') for line in lines):
+        return True
+
+    if (len(lines) == 1 and lines[0].startswith('## ')
+            and lines[0].endswith('\n') and lines[0][3:].strip()):
+        return False
+    return None
