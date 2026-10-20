@@ -131,7 +131,6 @@ func Print(w io.Writer, tree Result) error {
 	return nil
 }
 
-
 // safeDisplayName prevents control sequences and bidirectional format characters
 // in repository-supplied filenames from changing terminal output.
 func safeDisplayName(name string) string {
