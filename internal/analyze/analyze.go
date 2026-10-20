@@ -116,6 +116,8 @@ func Inspect(path string) (Report, error) {
 			r.Manifests = append(r.Manifests, relative+" ("+eco+")")
 		} else if isDotnetManifest(entry.Name()) {
 			r.Manifests = append(r.Manifests, relative+" (.NET)")
+		} else if kind, ok := dockerManifestKind(entry.Name()); ok {
+			r.Manifests = append(r.Manifests, relative+" ("+kind+")")
 		}
 		if isCIConfig(relative) {
 			r.CI = append(r.CI, relative)
