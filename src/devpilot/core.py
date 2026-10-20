@@ -40,7 +40,9 @@ LANGUAGES = {
     '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
-    '.cc': 'C++', '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
+    '.cc': 'C++', '.cxx': 'C++', '.hpp': 'C++', '.hh': 'C++',
+    '.hxx': 'C++', '.ixx': 'C++', '.cppm': 'C++', '.ipp': 'C++',
+    '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
     '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
 }
