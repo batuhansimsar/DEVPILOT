@@ -57,6 +57,7 @@ type Report struct {
 	Languages []LanguageCount `json:"languages"`
 	Manifests []string        `json:"manifests"`
 	CI        []string        `json:"ci"`
+	Containers []string       `json:"containers"`
 	Warnings  []string        `json:"warnings"`
 }
 
@@ -75,7 +76,7 @@ func Inspect(path string) (Report, error) {
 		return Report{}, fmt.Errorf("not a directory: %s", root)
 	}
 
-	r := Report{Path: root, Languages: []LanguageCount{}, Manifests: []string{}, CI: []string{}, Warnings: []string{}}
+	r := Report{Path: root, Languages: []LanguageCount{}, Manifests: []string{}, CI: []string{}, Containers: []string{}, Warnings: []string{}}
 	counts := map[string]int{}
 	err = filepath.WalkDir(root, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -122,6 +123,9 @@ func Inspect(path string) (Report, error) {
 		if isCIConfig(relative) {
 			r.CI = append(r.CI, relative)
 		}
+		if isContainerConfig(entry.Name()) {
+			r.Containers = append(r.Containers, relative)
+		}
 		return nil
 	})
 	if err != nil && !errors.Is(err, filepath.SkipAll) {
@@ -138,6 +142,7 @@ func Inspect(path string) (Report, error) {
 	})
 	sort.Strings(r.Manifests)
 	sort.Strings(r.CI)
+	sort.Strings(r.Containers)
 	sort.Strings(r.Warnings)
 	return r, nil
 }

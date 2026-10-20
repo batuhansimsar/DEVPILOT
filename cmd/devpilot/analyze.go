@@ -52,6 +52,9 @@ func analyzeCommand(args []string, stdout, stderr io.Writer) int {
 		for _, ci := range report.CI {
 			fmt.Fprintln(stdout, "  CI:", ci)
 		}
+		for _, config := range report.Containers {
+			fmt.Fprintln(stdout, "  Container:", config)
+		}
 		for _, warning := range report.Warnings {
 			fmt.Fprintln(stderr, "Warning:", warning)
 		}

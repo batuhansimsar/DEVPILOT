@@ -28,3 +28,8 @@ and Docker Compose manifests (`compose.yml`, `compose.yaml`,
 `docker-compose.override.yml`) among the sorted manifest paths. Matching is
 case-insensitive. These are filename conventions only: analysis neither reads
 Compose values nor invokes Docker, and symlinks remain excluded.
+
+The `containers` field inventories Dockerfiles, Podman Containerfiles, and Docker
+Compose YAML files, including nested service directories. It stores relative
+paths only; files are never opened or executed. Backups and dependency/build
+trees are excluded from this list.
