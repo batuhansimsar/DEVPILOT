@@ -15,6 +15,7 @@ from .bounded_process import run_bounded
 from .envcheck import inspect_env
 from typing import Any
 
+from .container_manifests import is_container_manifest
 from .gradle import gradle_test_command
 from .maven import maven_test_command
 from .git_state import is_git_dirty
@@ -83,7 +84,7 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Java')
     if any(Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'} for name in names):
         types.add('.NET')
-    if names & {'Dockerfile', 'compose.yml', 'compose.yaml', 'docker-compose.yml', 'docker-compose.yaml'}:
+    if any(is_container_manifest(name) for name in names):
         types.add('Docker')
     return sorted(types)
 
@@ -121,7 +122,9 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if language:
                 languages[language] += 1
             rel = p.relative_to(root).as_posix()
-            if filename in KEY_FILES and (depth == 0 or rel.startswith('.github/workflows/')):
+            if (filename in KEY_FILES or is_container_manifest(filename)) and (
+                depth == 0 or rel.startswith('.github/workflows/')
+            ):
                 key_files.append(rel)
             if rel.startswith('.github/workflows/') and p.suffix.lower() in {'.yml', '.yaml'}:
                 key_files.append(rel)

@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .container_manifests import is_container_manifest
 from .core import SKIP_DIRS
 from .walk import walk_project
 
@@ -90,7 +91,7 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
             if path.is_symlink() or not path.is_file():
                 continue
             ecosystem = WORKSPACE_FILES.get(filename)
-            if not ecosystem and filename.startswith(('Dockerfile.', 'Containerfile.')):
+            if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
                 ecosystem = '.NET'
