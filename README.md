@@ -27,6 +27,7 @@ devpilot git --path /path/to/project
 devpilot docker
 devpilot check localhost 5432
 devpilot test --path /path/to/project           # discovery only
+devpilot test --path /path/to/project --ecosystem go  # select only Go tests
 # Review the proposed command first; test scripts execute project code:
 devpilot test --path /path/to/trusted/project --yes --timeout 120
 # JSON outputs for scripts and integrations:
@@ -41,7 +42,7 @@ devpilot doctor --path /path/to/project --json
 | `git` | Executes read-only `git status` with no shell. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
-| `test` | Discovers test commands for supported ecosystems. Dry-run by default; only `--yes` executes code, with per-command timeouts. |
+| `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. |
 
 ## Security and limits
 
