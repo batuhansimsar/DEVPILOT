@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 
 _MAVEN_NS = 'http://maven.apache.org/POM/4.0.0'
+# A dependency inventory reports *identifiers* only. Invalid coordinates may
+# contain terminal control sequences, URLs or credentials from untrusted POMs.
+# Leave unresolved Maven property references out of reports rather than
+# repeating arbitrary values that happen to appear in an XML element.
+_COORDINATE = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]*\Z')
 
 
 def _local_name(tag: str) -> str:
@@ -47,10 +53,15 @@ def parse_maven_dependencies(content: str) -> dict[str, list[str]]:
                 if field.tag in coordinates:
                     # Duplicate coordinates are ambiguous; never echo values.
                     raise ValueError('pom.xml dependency contains duplicate coordinates')
+                # Nested XML must not let a partial value pass as a package ID.
+                if len(field):
+                    raise ValueError('pom.xml dependency contains an invalid coordinate')
                 coordinates[field.tag] = (field.text or '').strip()
             group = coordinates.get(group_tag)
             artifact = coordinates.get(artifact_tag)
             if group and artifact:
+                if not _COORDINATE.fullmatch(group) or not _COORDINATE.fullmatch(artifact):
+                    raise ValueError('pom.xml dependency contains an invalid coordinate')
                 names.add(f'{group}:{artifact}')
 
     direct: set[str] = set()
