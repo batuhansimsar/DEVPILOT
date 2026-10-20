@@ -7,6 +7,7 @@ No installation hooks, network requests, or project scripts are invoked.
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import stat
@@ -172,7 +173,12 @@ def scan(path: str | Path) -> dict:
             except RecursionError:
                 warnings.append(f"{rel}: manifest nesting exceeds parser limits")
                 continue
-            except (OSError, UnicodeError, ValueError, ET.ParseError) as exc:
+            except OSError as exc:
+                # OSError can embed absolute filenames and private OS strerror.
+                # Expose only the stable errno mnemonic in inventory reports.
+                warnings.append(f"{rel}: {errno.errorcode.get(exc.errno, 'I/O error')}")
+                continue
+            except (UnicodeError, ValueError, ET.ParseError) as exc:
                 warnings.append(f"{rel}: {exc}")
                 continue
             manifests.append({"path": rel, "ecosystem": ecosystem, "groups": groups,
