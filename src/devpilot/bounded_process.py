@@ -61,11 +61,12 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     Windows). This is not a sandbox; run only trusted project scripts.
     """
     result = {'argv': argv, 'exit_code': None}
-    # Never hand an invalid command to Popen: empty sequences, embedded NULs,
-    # and non-string arguments can raise uncaught IndexError/ValueError/TypeError.
-    if (not isinstance(argv, list) or not argv
-            or any(not isinstance(arg, str) or not arg or '\x00' in arg for arg in argv)):
-        return {**result, 'error': 'argv must be a nonempty list of nonempty strings without NUL bytes'}
+    # Reject an empty executable, invalid types, and embedded NULs before Popen.
+    # Empty *positional arguments* are legal and must be forwarded unchanged.
+    if (not isinstance(argv, list) or not argv or not isinstance(argv[0], str)
+            or not argv[0] or any(not isinstance(arg, str) or '\x00' in arg
+                                    for arg in argv)):
+        return {**result, 'error': 'argv must contain a nonempty executable and string arguments without NUL bytes'}
     # Validate before Popen: subprocess.wait() can raise for NaN or invalid
     # timeouts after the child has started, leaving it running unsupervised.
     try:
