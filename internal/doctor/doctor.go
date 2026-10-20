@@ -176,7 +176,7 @@ func Inspect(root string) (Report, error) {
 		}
 		tool("cargo", "Cargo")
 	}
-	if hasMarker(abs, "requirements.txt") || hasMarker(abs, "pyproject.toml") || hasMarker(abs, "pytest.ini") {
+	if hasPythonProjectMarker(abs) {
 		language("Python")
 		if hasMarker(abs, "pytest.ini") || hasMarker(abs, "pyproject.toml") {
 			if r.Tests == nil {
