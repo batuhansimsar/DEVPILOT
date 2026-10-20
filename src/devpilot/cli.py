@@ -59,9 +59,10 @@ def build_parser() -> argparse.ArgumentParser:
     health.add_argument('--timeout', type=float, default=3, help='Socket timeout in seconds (0.1-30)')
     health.add_argument('--json', action='store_true')
     health.add_argument('--tls', action='store_true', help='Require a verified TLS handshake')
-    web_health = sub.add_parser('http', help='Probe an HTTP endpoint with a no-redirect HEAD request')
+    web_health = sub.add_parser('http', help='Probe an HTTP endpoint without following redirects')
     web_health.add_argument('url', help='Absolute http(s) endpoint URL')
     web_health.add_argument('--timeout', type=float, default=3, help='Request timeout in seconds (0.1-30)')
+    web_health.add_argument('--method', choices=('HEAD', 'GET'), default='HEAD', help='HTTP method (default: HEAD; GET is opt-in)')
     web_health.add_argument('--expect-status', action='append', type=int, metavar='CODE',
                             help='Treat only this HTTP status as healthy; repeat for more codes (100-599)')
     web_health.add_argument('--json', action='store_true', help='Print machine-readable JSON')
@@ -165,10 +166,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.expect_status is not None and any(not 100 <= code <= 599 for code in args.expect_status):
             parser.error('--expect-status must be an HTTP code between 100 and 599')
         try:
-            if args.expect_status is None:
-                result = http_check(args.url, args.timeout)
-            else:
-                result = http_check(args.url, args.timeout, expected_statuses=frozenset(args.expect_status))
+            options = {}
+            if args.method != 'HEAD':
+                options['method'] = args.method
+            if args.expect_status is not None:
+                options['expected_statuses'] = frozenset(args.expect_status)
+            result = http_check(args.url, args.timeout, **options)
         except ValueError as exc:
             parser.error(str(exc))
         success = result.get('healthy', False)
