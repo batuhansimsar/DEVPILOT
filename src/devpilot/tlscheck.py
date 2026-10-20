@@ -40,6 +40,9 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                         tz=datetime.timezone.utc,
                     )
                     result['expires_at'] = expires.isoformat().replace('+00:00', 'Z')
+                    result['expires_soon'] = expires <= (
+                        datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
+                    )
         except (ssl.SSLError, OSError, ValueError, OverflowError) as exc:
             result['error'] = str(exc)
     return result
