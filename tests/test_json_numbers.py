@@ -36,9 +36,7 @@ class FiniteJSONFloatTests(unittest.TestCase):
                    '1e', '1e+', '--1', '0x10', 'inf', 'nan')
         for value in invalid:
             with self.subTest(value=value):
-                with self.assertRaisesRegex(ValueError, '^invalid JSON number
-    unittest.main()
-) as caught:
+                with self.assertRaisesRegex(ValueError, '^invalid JSON number$') as caught:
                     parse_finite_json_float(value)
                 self.assertNotIn(value, str(caught.exception))
 
@@ -52,9 +50,7 @@ class FiniteJSONFloatTests(unittest.TestCase):
     def test_non_string_direct_input_is_safely_rejected(self):
         for value in (None, 1, True, b'1'):
             with self.subTest(value=value):
-                with self.assertRaisesRegex(ValueError, '^invalid JSON number
-    unittest.main()
-):
+                with self.assertRaisesRegex(ValueError, '^invalid JSON number$'):
                     parse_finite_json_float(value)
 
 
