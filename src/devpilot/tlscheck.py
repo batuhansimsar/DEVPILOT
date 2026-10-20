@@ -47,11 +47,13 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     result['tcp_reachable'] = True
     with connection:
         try:
-            remaining = timeout - tcp_elapsed
-            if remaining <= 0:
-                raise TimeoutError('TCP connection exhausted TLS timeout budget')
-            connection.settimeout(remaining)
             context = ssl.create_default_context()
+            # Certificate-store initialization also consumes the shared timeout.
+            # Recalculate immediately before negotiating TLS, not before SSL setup.
+            remaining = timeout - (time.perf_counter() - tcp_start)
+            if remaining <= 0:
+                raise TimeoutError('TLS handshake timeout exhausted before negotiation')
+            connection.settimeout(remaining)
             handshake_start = time.perf_counter()
             try:
                 secured_connection = context.wrap_socket(connection, server_hostname=host)
