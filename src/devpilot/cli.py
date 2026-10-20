@@ -78,7 +78,7 @@ def _human(command: str, output: dict[str, Any]) -> str:
         for item in output['manifests']:
             lines.append(f"  {item['ecosystem']}: {escape_terminal(item['path'])} ({item['count']} dependencies)")
             for group, names in item['groups'].items():
-                lines.append(f"    {group}: {escape_terminal(', '.join(names)) or '(none)'}")
+                lines.append(f"    {escape_terminal(group)}: {escape_terminal(', '.join(names)) or '(none)'}")
         lines.extend(f"  Warning: {escape_terminal(warning)}" for warning in output['warnings'])
         return '\n'.join(lines)
     if command == 'analyze':
