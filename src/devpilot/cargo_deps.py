@@ -85,6 +85,10 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
                 if _NAME.fullmatch(name):
                     found.setdefault(sections[-2], set()).add(name)
             continue
+        # An unsupported or malformed table ends the preceding dependency group.
+        if line.startswith('['):
+            active_group = ''
+            continue
         if active_group:
             match = _DEPENDENCY.match(line)
             if match:

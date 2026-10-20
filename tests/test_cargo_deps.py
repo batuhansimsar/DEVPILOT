@@ -93,5 +93,17 @@ private_setting = "secret"
         self.assertEqual(parse_cargo_dependencies(toml), {'dependencies': ['serde']})
 
 
+
+    def test_malformed_section_does_not_inherit_dependency_group(self):
+        content = '''
+[dependencies]
+serde = "1"
+[[invalid-table]]
+ghost_dependency = "secret"
+[package.metadata]
+another_ghost = "secret"
+'''
+        self.assertEqual(parse_cargo_dependencies(content), {'dependencies': ['serde']})
+
 if __name__ == '__main__':
     unittest.main()
