@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -33,7 +33,8 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
     display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')
-    opener = build_opener(HTTPHandler(), HTTPSHandler(), _NoRedirect())
+    # Health checks must measure the requested endpoint, not an ambient proxy.
+    opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     request = Request(url, method='HEAD', headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()
     try:
