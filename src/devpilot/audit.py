@@ -77,6 +77,10 @@ def _potential_secret(path: str) -> bool:
         and name.endswith(_ENV_TEMPLATE_SUFFIXES)
     ):
         return False
+    # Cloudflare Workers loads local secrets from .dev.vars[.environment].
+    # Example/template files are safe to track and should not trigger alerts.
+    if name == '.dev.vars' or name.startswith('.dev.vars.'):
+        return not name.endswith(_ENV_TEMPLATE_SUFFIXES)
     if (name == '.env' or name.startswith('.env.')
             or name.endswith('.env') or '.env.' in name):
         return True
