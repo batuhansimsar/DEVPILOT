@@ -14,6 +14,28 @@ except ModuleNotFoundError:  # Python 3.10
 
 _CRATE_NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]*\Z")
 _MAX_CRATE_NAME_LENGTH = 214
+_MAX_VERSION_LENGTH = 256
+# Cargo.lock contains resolved versions, not Cargo.toml version requirements.
+# Each package version must be SemVer with a full major.minor.patch triplet.
+_SEMVER = re.compile(
+    r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
+    r'(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
+    r'(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\Z'
+)
+
+
+def _valid_version(version: object) -> bool:
+    if not isinstance(version, str) or not 0 < len(version) <= _MAX_VERSION_LENGTH:
+        return False
+    if not _SEMVER.fullmatch(version):
+        return False
+    # Numeric prerelease identifiers must not have leading zeroes (SemVer 2.0).
+    pre_release = version.split('+', 1)[0].partition('-')[2]
+    return not any(
+        len(part) > 1 and part.startswith('0') and part.isascii() and part.isdecimal()
+        for part in pre_release.split('.') if part
+    )
+
 
 
 def parse_cargo_lock(content: str) -> list[str]:
@@ -42,9 +64,7 @@ def parse_cargo_lock(content: str) -> list[str]:
         # Every resolved Cargo.lock package has a version.  Do not turn
         # incomplete or corrupted records into seemingly valid dependencies.
         # Validate only the shape; never put version data into reports/errors.
-        version = package.get('version')
-        if (not isinstance(version, str) or not version
-                or any(char.isspace() or not char.isprintable() for char in version)):
+        if not _valid_version(package.get('version')):
             raise ValueError('Cargo.lock packages must have valid version strings')
         names.add(name)
     return sorted(names)
