@@ -39,6 +39,22 @@ class BackupClassificationTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIsNone(classify(path))
 
+    def test_deep_backup_chains_cannot_hide_credentials(self):
+        for sensitive in (
+            '.env.production', 'id_ed25519', 'credentials.json',
+            'production.tfvars', 'infra/prod.tfstate', '.aws/credentials',
+        ):
+            for depth in (4, 8, 20):
+                path = sensitive + '.bak.orig' * depth
+                with self.subTest(path=path):
+                    self.assertIsNotNone(classify(path))
+
+    def test_deep_template_backups_still_ignored(self):
+        for safe in ('.env.example', '.env.production.template',
+                     'vars.tfvars.json.example', 'README.md'):
+            with self.subTest(safe=safe):
+                self.assertIsNone(classify(safe + '.bak.old' * 8))
+
     @unittest.skipUnless(shutil.which('git'), 'Git is not installed')
     def test_git_index_reports_backups_without_reading_contents(self):
         with tempfile.TemporaryDirectory() as tmp:

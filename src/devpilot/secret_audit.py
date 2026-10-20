@@ -62,16 +62,15 @@ def classify(path: str) -> str | None:
     if not parts:
         return None
     name = parts[-1]
-    # Inspect a bounded number of editor/backup suffixes before classifying.
-    # This catches committed copies of credentials without treating copies of
-    # example templates as live secrets or recursing on hostile filenames.
-    for _ in range(3):
+    # Consume all nested backup suffixes so deeper copies cannot evade audit.
+    # The name strictly shrinks on every iteration, guaranteeing termination.
+    while True:
         suffix = next((suffix for suffix in BACKUP_SUFFIXES
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None:
             break
         name = name[:-len(suffix)]
-        parts = (*parts[:-1], name)
+    parts = (*parts[:-1], name)
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):

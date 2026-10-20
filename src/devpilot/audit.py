@@ -54,8 +54,9 @@ def _potential_secret(path: str) -> bool:
     if not parts:
         return False
     name = parts[-1]
-    # Inspect a bounded number of editor/backup suffixes before classification.
-    for _ in range(3):
+    # Consume every backup suffix: 4+ nested copies must not hide a secret.
+    # Each iteration removes characters, so even hostile names terminate.
+    while True:
         suffix = next((suffix for suffix in _BACKUP_SUFFIXES
                        if name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None:
