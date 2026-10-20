@@ -39,9 +39,18 @@ def _legacy_vcs_egg_name(target: str) -> str | None:
     except ValueError:
         return None
     eggs = [value for key, value in fields if key == 'egg']
-    if len(eggs) != 1 or len(eggs[0]) > 214 or not _NAME.fullmatch(eggs[0]):
+    if len(eggs) != 1 or len(eggs[0]) > 512:
         return None
-    return _canonical(eggs[0])
+    egg = eggs[0]
+    # Legacy pip fragments may append PEP 508 extras to a package name.
+    # Validate the complete suffix and return only the canonical base name,
+    # never any potentially credential-bearing URL or fragment contents.
+    name, bracket, rest = egg.partition('[')
+    if bracket and _EXTRAS.fullmatch('[' + rest) is None:
+        return None
+    if len(name) > 214 or _NAME.fullmatch(name) is None:
+        return None
+    return _canonical(name)
 
 
 def _logical_lines(content: str) -> Iterator[str]:
