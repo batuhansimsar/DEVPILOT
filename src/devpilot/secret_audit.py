@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 from threading import Thread
 from typing import Any
 
+from .age_credentials import is_age_identity_path
 from .firebase_credentials import is_firebase_service_account_key
 from .editor_backups import strip_editor_backups
 
@@ -129,6 +130,8 @@ def classify(path: str) -> str | None:
         return 'potential credential configuration'
     if len(parts) >= 3 and parts[-3:] in SENSITIVE_CLI_LOCATIONS:
         return 'potential credential configuration'
+    if is_age_identity_path(parts):
+        return 'potential age private identity file'
     if is_firebase_service_account_key(name):
         return 'potential Firebase service account key'
     if any(parts[-len(location):] == location for location in AGE_IDENTITY_LOCATIONS):
