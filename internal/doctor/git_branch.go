@@ -25,5 +25,19 @@ func parseGitHeadBranch(data []byte) (string, bool) {
 	}) >= 0 {
 		return "", false
 	}
+	// Enforce Git's refname constraints on the untrusted HEAD target. The
+	// printable text alone is not enough: traversal-like components, @{, and
+	// other reserved syntax must not be reported as legitimate branch names.
+	if strings.HasPrefix(branch, "-") || strings.ContainsAny(branch, "~^:?*[") ||
+		strings.Contains(branch, "..") || strings.Contains(branch, "@{") ||
+		strings.HasSuffix(branch, ".") {
+		return "", false
+	}
+	for _, component := range strings.Split(branch, "/") {
+		if component == "" || strings.HasPrefix(component, ".") ||
+			strings.HasSuffix(component, ".lock") {
+			return "", false
+		}
+	}
 	return branch, true
 }
