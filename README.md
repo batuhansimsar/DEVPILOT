@@ -55,3 +55,7 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+## Project structure overview
+
+Use `devpilot tree [--depth=4] [--json] [path]` for a safe, read-only directory tree. It excludes common generated directories and local `.env` files. See [tree documentation](docs/TREE.md).
