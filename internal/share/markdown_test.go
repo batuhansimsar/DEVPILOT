@@ -11,7 +11,7 @@ func TestMarkdownOmitsPathsAndSensitiveEnvironmentNames(t *testing.T) {
 	workspace := "/home/alice/private-company/top-secret"
 	s := Snapshot{Workspace: workspace, Languages: []string{"Go"}, Frameworks: []string{"React"}, PackageManager: "npm", TestCommand: "go test ./...", Findings: []Finding{
 		{Level: "warning", Code: "package-json-unreadable", Message: "cannot inspect " + workspace + "/package.json | invalid", Remedy: "Review " + workspace + "/package.json"},
-		{Level: "info", Code: "env-local-missing-keys", Message: "Missing PRIVATE_API_KEY and PAYMENT_TOKEN", Remedy: "Review private variables"},
+		{Level: "info", Code: "env-local-missing-keys", Message: "Missing PRIVATE_API_KEY and PAYMENT_TOKEN", Remedy: "Review PRIVATE_API_KEY privately"},
 		{Level: "info", Code: "git-branch", Message: "Git branch: customer-name/secret-release"},
 	}}
 	var out bytes.Buffer
