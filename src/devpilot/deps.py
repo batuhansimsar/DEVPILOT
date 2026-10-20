@@ -23,6 +23,7 @@ MAX_BYTES = 512_000
 MAX_DEPTH = 4
 MAX_FILES = 500
 PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|$))")
+PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
 GO_NAME = re.compile(r"^\s*([A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+)\s+v\S+")
 CARGO_NAME = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=')
 CARGO_DEP_NAME = re.compile(r'^[A-Za-z0-9_-]+
@@ -84,7 +85,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
                 continue
             match = PYTHON_NAME.match(line)
             if match:
-                matches.add(match.group(1).lower().replace("_", "-"))
+                matches.add(PYTHON_CANONICAL_SEPARATOR.sub("-", match.group(1)).lower())
         return "Python", {"requirements": sorted(matches)}
     if name == "go.mod":
         names = set()
