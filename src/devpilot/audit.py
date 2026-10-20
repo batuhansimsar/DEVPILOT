@@ -47,6 +47,10 @@ _SENSITIVE_LOCATIONS = frozenset({
     # Build-tool settings can contain plaintext package registry credentials.
     ('.m2', 'settings.xml'), ('.gradle', 'gradle.properties'),
     ('nuget', 'nuget.config'),
+    # Build-tool user settings may store repository tokens, encrypted passwords,
+    # and feed credentials. Keep detection scoped to conventional config folders.
+    ('.m2', 'settings.xml'), ('.m2', 'settings-security.xml'),
+    ('.gradle', 'gradle.properties'), ('nuget', 'nuget.config'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
     ('.streamlit', 'secrets.toml'),
 })

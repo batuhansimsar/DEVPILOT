@@ -74,6 +74,9 @@ SENSITIVE_LOCATIONS = frozenset({
     ('pip', 'pip.ini'),
     # These conventional build-tool settings may store registry passwords.
     ('.m2', 'settings.xml'),
+    # Maven's security settings contain the encrypted master password used to
+    # decrypt server credentials; protect them alongside settings.xml.
+    ('.m2', 'settings-security.xml'),
     ('.gradle', 'gradle.properties'),
     ('nuget', 'nuget.config'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
