@@ -124,6 +124,7 @@ def scan(path: str | Path) -> dict:
     walk_problems: list[str] = []
     found = 0
     depth_limited = False
+    file_limited = False
     for current, subdirs, filenames in walk_project(root, walk_problems):
         folder = Path(current)
         depth = len(folder.relative_to(root).parts)
@@ -145,6 +146,7 @@ def scan(path: str | Path) -> dict:
                 continue
             if found >= MAX_FILES:
                 warnings.append(f"Scan limited to {MAX_FILES} manifests")
+                file_limited = True
                 break
             found += 1
             rel = filepath.relative_to(root).as_posix()
@@ -158,14 +160,14 @@ def scan(path: str | Path) -> dict:
                 continue
             manifests.append({"path": rel, "ecosystem": ecosystem, "groups": groups,
                               "count": sum(len(items) for items in groups.values())})
-        if found >= MAX_FILES:
+        if file_limited:
             break
     warnings.extend(walk_problems)
     totals: dict[str, int] = {}
     for item in manifests:
         totals[item["ecosystem"]] = totals.get(item["ecosystem"], 0) + item["count"]
     return {"root": str(root), "manifests": manifests, "totals": dict(sorted(totals.items())),
-            "warnings": warnings, "truncated": found >= MAX_FILES or depth_limited or bool(walk_problems)}
+            "warnings": warnings, "truncated": file_limited or depth_limited or bool(walk_problems)}
 
 
 def main(argv: list[str] | None = None) -> int:
