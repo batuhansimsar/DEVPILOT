@@ -90,6 +90,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
     languages: Counter[str] = Counter()
     count = 0
     truncated = False
+    file_limit_hit = False
     key_files: list[str] = []
     problems: list[str] = []
     # Do not follow symlinks or recurse into generated/dependency folders.
@@ -97,7 +98,14 @@ def analyze_project(root: Path) -> dict[str, Any]:
         here = Path(current)
         relative = here.relative_to(root)
         depth = len(relative.parts)
-        dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS and not (here / d).is_symlink() and depth < MAX_DEPTH)
+        candidates = sorted(d for d in dirs if d not in SKIP_DIRS and not (here / d).is_symlink())
+        if depth >= MAX_DEPTH:
+            # Reaching the depth cap is incomplete only if subtrees were skipped.
+            if candidates:
+                truncated = True
+            dirs[:] = []
+        else:
+            dirs[:] = candidates
         for filename in sorted(files):
             p = here / filename
             if p.is_symlink() or not p.is_file():
@@ -105,6 +113,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
             count += 1
             if count > MAX_FILES:
                 truncated = True
+                file_limit_hit = True
                 break
             language = LANGUAGES.get(p.suffix.lower())
             if language:
@@ -114,7 +123,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
                 key_files.append(rel)
             if rel.startswith('.github/workflows/') and p.suffix.lower() in {'.yml', '.yaml'}:
                 key_files.append(rel)
-        if truncated:
+        if file_limit_hit:
             break
     package, error = _read_package_json(root)
     if error:
