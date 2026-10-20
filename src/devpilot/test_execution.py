@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
@@ -27,10 +28,18 @@ def execute_test_commands(
     for index, item in enumerate(commands):
         try:
             result = runner(item['argv'], root, timeout)
+        except subprocess.TimeoutExpired:
+            # TimeoutExpired may contain the command, output, or private paths;
+            # do not serialize exception contents into the JSON report.
+            result = {'exit_code': None, 'error': 'Test command timed out'}
         except OSError:
             # OS errors may reveal absolute paths or private test arguments.
             # Keep the failure in the report without echoing exception text.
             result = {'exit_code': None, 'error': 'Test command could not be executed (OS error)'}
+        if not isinstance(result, dict):
+            # Defensive boundary for custom test runners; never crash when a
+            # runner accidentally returns None or a non-mapping value.
+            result = {'exit_code': None, 'error': 'Test runner returned an invalid result'}
         item['result'] = result
         exit_code = result.get('exit_code')
         if type(exit_code) is not int or exit_code != 0:
