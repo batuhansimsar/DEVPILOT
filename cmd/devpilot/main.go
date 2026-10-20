@@ -119,7 +119,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			if result.Reachable {
 				status = "reachable"
 			}
-			fmt.Fprintf(stdout, "%s — %s\n", net.JoinHostPort(result.Host, strconv.Itoa(result.Port)), status)
+			fmt.Fprintf(stdout, "%s — %s (%.1f ms)\n", net.JoinHostPort(result.Host, strconv.Itoa(result.Port)), status, result.LatencyMS)
 			if result.Error != "" {
 				fmt.Fprintln(stderr, result.Error)
 			}
