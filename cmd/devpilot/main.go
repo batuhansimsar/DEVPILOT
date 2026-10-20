@@ -20,7 +20,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
-	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 	fmt.Fprintln(w, "Docker queries are read-only and have a 5-second timeout.")
@@ -85,6 +85,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
+		dryRun := flags.Bool("dry-run", false, "preview test command without executing it")
 		timeout := flags.Duration("timeout", 2*time.Minute, "test timeout (maximum 10 minutes)")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
@@ -93,8 +94,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stderr, "test accepts at most one path")
 			return 2
 		}
-		if !*trust {
-			fmt.Fprintln(stderr, "Refusing to execute untrusted project code. Pass --trust only for repositories you trust.")
+		if !*trust && !*dryRun {
+			fmt.Fprintln(stderr, "Refusing to execute untrusted project code. Pass --trust to execute or --dry-run to preview.")
 			return 2
 		}
 		if *timeout <= 0 || *timeout > 10*time.Minute {
@@ -113,6 +114,10 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		if report.Tests == nil {
 			fmt.Fprintln(stderr, "No supported test command discovered.")
 			return 2
+		}
+		if *dryRun {
+			printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			return 0
 		}
 		if _, err = exec.LookPath(report.Tests.Executable); err != nil {
 			fmt.Fprintln(stderr, "Test executable not installed:", report.Tests.Executable)
