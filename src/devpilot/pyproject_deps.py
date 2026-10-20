@@ -242,7 +242,16 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
         pdm = _mapping(tool['pdm'], 'tool.pdm')
         if 'dev-dependencies' in pdm:
             groups = _mapping(pdm['dev-dependencies'], 'tool.pdm.dev-dependencies')
+            normalized_groups: set[str] = set()
             for group, values in groups.items():
+                # Like PEP 735 and Poetry, PDM group aliases are compared
+                # case-insensitively with runs of '.', '_' and '-' normalized.
+                if not _NAME.fullmatch(group):
+                    raise ValueError('pyproject.toml contains an invalid dependency group name')
+                canonical = _canonical(group)
+                if canonical in normalized_groups:
+                    raise ValueError('pyproject.toml contains duplicate normalized PDM dependency groups')
+                normalized_groups.add(canonical)
                 collect(f'group:{group}', _requirements(values, 'tool.pdm.dev-dependencies'))
 
     if 'uv' in tool:
