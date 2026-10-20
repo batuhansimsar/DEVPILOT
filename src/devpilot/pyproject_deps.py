@@ -42,6 +42,10 @@ def _requirements(entries: object, label: str) -> set[str]:
         match = _REQUIREMENT.match(entry)
         if not match:
             raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
+        suffix = entry[match.end():].strip()
+        if (suffix and suffix[0] not in '[(@<>=!~;'
+                or suffix in ('@', ';', '[', '(')):
+            raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
         found.add(_canonical(match.group(1)))
     return found
 
