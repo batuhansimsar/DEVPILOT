@@ -1,73 +1,76 @@
-"""Node test discovery uses the project's package manager without executing code."""
+"""Regression tests for Node package-manager selection and ambiguity."""
 import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from devpilot import core
-from devpilot.node_manager import _node_test_manager
+from devpilot.node import package_manager
 
 
 class NodePackageManagerTests(unittest.TestCase):
-    def test_no_lockfile_uses_npm(self):
-        self.assertEqual(_node_test_manager({}, set()), 'npm')
+    def make_project(self, root: Path, manager=None, lockfiles=()):
+        package = {'scripts': {'test': 'echo hello'}}
+        if manager is not None:
+            package['packageManager'] = manager
+        (root / 'package.json').write_text(json.dumps(package), encoding='utf-8')
+        for name in lockfiles:
+            (root / name).write_text('', encoding='utf-8')
+        return package
 
-    def test_supported_lockfiles(self):
-        cases = [
-            ('package-lock.json', 'npm'), ('npm-shrinkwrap.json', 'npm'),
-            ('pnpm-lock.yaml', 'pnpm'), ('yarn.lock', 'yarn'),
-            ('bun.lock', 'bun'), ('bun.lockb', 'bun'),
-        ]
-        for name, expected in cases:
-            with self.subTest(name=name):
-                self.assertEqual(_node_test_manager({}, {name}), expected)
+    def test_default_npm(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_project(root)
+            self.assertEqual(core.test_commands(root)[0]['argv'], ['npm', 'test'])
 
-    def test_declared_manager_wins_over_lockfile(self):
-        self.assertEqual(_node_test_manager({'packageManager': 'pnpm@9.5.0'}, {'yarn.lock'}), 'pnpm')
-        self.assertEqual(_node_test_manager({'packageManager': 'yarn@4.6.0'}, set()), 'yarn')
-
-    def test_conflicting_lockfiles_avoid_guessing(self):
-        self.assertIsNone(_node_test_manager({}, {'package-lock.json', 'pnpm-lock.yaml'}))
-
-    def test_duplicate_markers_for_same_manager_are_safe(self):
-        self.assertEqual(_node_test_manager({}, {'bun.lock', 'bun.lockb'}), 'bun')
-
-    def test_unknown_manager_uses_lockfile_evidence(self):
-        self.assertEqual(_node_test_manager({'packageManager': 'other@1'}, {'yarn.lock'}), 'yarn')
-        self.assertIsNone(_node_test_manager({'packageManager': 'other@1'}, {'yarn.lock', 'pnpm-lock.yaml'}))
-
-    def test_discovered_test_commands_use_correct_manager(self):
+    def test_lockfile_runners(self):
         for marker, expected in (
+            ('package-lock.json', ['npm', 'test']),
+            ('npm-shrinkwrap.json', ['npm', 'test']),
             ('pnpm-lock.yaml', ['pnpm', 'test']),
             ('yarn.lock', ['yarn', 'test']),
             ('bun.lock', ['bun', 'run', 'test']),
+            ('bun.lockb', ['bun', 'run', 'test']),
         ):
             with self.subTest(marker=marker), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                (root / 'package.json').write_text(json.dumps({'scripts': {'test': 'echo hello'}}))
-                (root / marker).write_text('')
-                commands = core.test_commands(root)
-                self.assertEqual(commands[0]['argv'], expected)
+                self.make_project(root, lockfiles=(marker,))
+                self.assertEqual(core.test_commands(root)[0]['argv'], expected)
 
-    def test_conflicting_locks_warn_and_disable_node_test(self):
+    def test_explicit_manager_takes_precedence(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'package.json').write_text('{"scripts":{"test":"echo hello"}}')
-            (root / 'yarn.lock').write_text('')
-            (root / 'pnpm-lock.yaml').write_text('')
-            self.assertEqual(core.test_commands(root), [])
-            self.assertTrue(any('Conflicting Node.js lockfiles' in x for x in core.analyze_project(root)['problems']))
+            package = self.make_project(root, manager='pnpm@9.5.0', lockfiles=('yarn.lock',))
+            self.assertEqual(package_manager(root, package)[0], 'pnpm')
+            self.assertEqual(core.test_commands(root)[0]['argv'], ['pnpm', 'test'])
 
-    def test_symlink_lockfile_is_not_considered(self):
+    def test_conflicting_lockfiles_are_diagnostic(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_project(root, lockfiles=('yarn.lock', 'pnpm-lock.yaml'))
+            self.assertEqual(core.test_commands(root), [])
+            report = core.analyze_project(root)
+            self.assertTrue(any('Conflicting Node.js lockfiles' in warning for warning in report['problems']))
+            self.assertFalse(core.doctor_report(root)['ok'])
+
+    def test_two_bun_lockfiles_do_not_conflict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_project(root, lockfiles=('bun.lock', 'bun.lockb'))
+            self.assertEqual(core.test_commands(root)[0]['argv'], ['bun', 'run', 'test'])
+            self.assertFalse(core.analyze_project(root)['problems'])
+
+    def test_symlinked_lockfile_is_ignored(self):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             root = Path(directory)
-            (root / 'package.json').write_text('{"scripts":{"test":"echo hello"}}')
-            (root / 'package-lock.json').write_text('')
+            self.make_project(root, lockfiles=('package-lock.json',))
             try:
                 (root / 'yarn.lock').symlink_to(Path(outside) / 'lock')
             except (OSError, NotImplementedError):
-                self.skipTest('symlink support unavailable')
+                self.skipTest('symlinks unavailable')
             self.assertEqual(core.test_commands(root)[0]['argv'], ['npm', 'test'])
+            self.assertFalse(core.analyze_project(root)['problems'])
 
 
 if __name__ == '__main__':
