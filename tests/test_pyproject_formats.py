@@ -77,6 +77,8 @@ addopts = "--maxfail=1"
         for content in (
             '[project]\ndependencies = ["git+https://user:secret@example.test/repo"]',
             '[project]\ndependencies = "password=secret"',
+            '[project]\ndependencies = ["Flask unexpected"]',
+            '[project]\ndependencies = ["Requests @"]',
         ):
             with self.subTest(content=content):
                 with self.assertRaises(ValueError) as raised:
