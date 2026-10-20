@@ -91,7 +91,7 @@ The command defaults to HEAD, reports HTTP status and latency, and treats HTTP 3
 
 ## Dependency inventory
 
-`devpilot deps --path /path/to/repo` reports dependency names in Node.js `package.json`, Python `requirements*.txt`, Go `go.mod`, Rust `Cargo.toml`, and .NET project files. Use `--json` for machine-readable output. This is a bounded, read-only scan that does not execute project code or access the network. Version specifications and dependency URLs are deliberately omitted to avoid exposing credentials. This is **not** a vulnerability audit.
+`devpilot deps --path /path/to/repo` reports dependency names in Node.js `package.json`, Python `requirements*.txt`, Go `go.mod`, Rust `Cargo.toml`, and .NET project files. Use `--json` for machine-readable output. This is a bounded, read-only scan that does not execute project code or access the network. Version specifications and dependency URLs are deliberately omitted to avoid exposing credentials. If a directory cannot be inspected, the command reports a relative-path warning, marks the inventory as `truncated`, and exits with status 1 rather than silently claiming a complete scan. This is **not** a vulnerability audit.
 
 ## TLS certificate expiry warnings
 
