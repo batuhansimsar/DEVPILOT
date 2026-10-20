@@ -67,6 +67,8 @@ SENSITIVE_LOCATIONS = frozenset({
     ('pypoetry', 'auth.toml'),
     ('pip', 'pip.conf'),
     ('pip', 'pip.ini'),
+    # Streamlit project-local secrets are credential files, unlike generic TOML.
+    ('.streamlit', 'secrets.toml'),
 })
 # GitHub CLI stores OAuth tokens in this precise path.
 SENSITIVE_CLI_LOCATIONS = frozenset({

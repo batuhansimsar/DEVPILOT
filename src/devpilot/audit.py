@@ -40,6 +40,8 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('glab-cli', 'config.yml'), ('glab-cli', 'config.yaml'),
     # Python package manager authentication files are not ordinary manifests.
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
+    # Streamlit project-local secrets are credential files, unlike generic TOML.
+    ('.streamlit', 'secrets.toml'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 # Limit age identity detection to conventional private-key config paths.
