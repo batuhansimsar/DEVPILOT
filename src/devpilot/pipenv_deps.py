@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
@@ -11,6 +12,14 @@ _SEPARATOR = re.compile(r"[-_.]+")
 
 def _reject_nonfinite(_value: str) -> None:
     raise ValueError("Pipfile.lock must use finite JSON numbers")
+
+
+def _parse_finite_float(value: str) -> float:
+    """Reject JSON exponents that overflow a Python float to infinity."""
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("Pipfile.lock must use finite JSON numbers")
+    return number
 
 
 def _unique_object_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -30,6 +39,7 @@ def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
     source metadata nor per-package values should reach diagnostic reports.
     """
     lock = json.loads(content, parse_constant=_reject_nonfinite,
+                      parse_float=_parse_finite_float,
                       object_pairs_hook=_unique_object_keys)
     if not isinstance(lock, dict):
         raise ValueError("Pipfile.lock root must be an object")
