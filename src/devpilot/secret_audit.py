@@ -76,6 +76,13 @@ SENSITIVE_CLI_LOCATIONS = frozenset({
     ('.config', 'glab-cli', 'config.yaml'),
 })
 
+# Age identity files contain private encryption keys, but keys.txt is only
+# sensitive in these conventional configuration locations.
+AGE_IDENTITY_LOCATIONS = (
+    ('.config', 'sops', 'age', 'keys.txt'),
+    ('.config', 'age', 'keys.txt'),
+)
+
 # Token files in these AWS CLI directories have arbitrary JSON filenames.
 CLOUD_TOKEN_CACHE_DIRS = frozenset({('.aws', 'cli', 'cache'), ('.aws', 'sso', 'cache')})
 
@@ -127,6 +134,8 @@ def classify(path: str) -> str | None:
         return 'potential credential configuration'
     if is_firebase_service_account_key(name):
         return 'potential Firebase service account key'
+    if any(parts[-len(location):] == location for location in AGE_IDENTITY_LOCATIONS):
+        return 'potential age private identity'
     if name in EXACT_NAMES:
         return 'potential credential file'
     if name.endswith('.keytab'):

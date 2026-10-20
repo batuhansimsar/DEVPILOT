@@ -39,6 +39,11 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
+# Limit age identity detection to conventional private-key config paths.
+_AGE_IDENTITY_LOCATIONS = (
+    ('.config', 'sops', 'age', 'keys.txt'),
+    ('.config', 'age', 'keys.txt'),
+)
 # AWS CLI assumes-role and SSO caches contain reusable, short-lived tokens.
 _CLOUD_TOKEN_CACHE_DIRS = frozenset({('.aws', 'cli', 'cache'), ('.aws', 'sso', 'cache')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
@@ -98,6 +103,7 @@ def _potential_secret(path: str) -> bool:
             or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
             or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
+            or any(parts[-len(location):] == location for location in _AGE_IDENTITY_LOCATIONS)
             or (len(parts) >= 4 and parts[-4:-1] in _CLOUD_TOKEN_CACHE_DIRS
                 and name.endswith('.json')))
     # Vim adds an extra leading dot when creating swap copies of non-dotfiles.
