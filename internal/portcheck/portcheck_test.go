@@ -112,3 +112,25 @@ func TestCheckHonorsCanceledContext(t *testing.T) {
 	}
 	assertLatencyJSON(t, result)
 }
+
+// Reject Unicode formatting codepoints before performing any network I/O;
+// these characters can visually spoof endpoint hostnames in CLI output.
+func TestCheckRejectsInvisibleUnicodeFormatting(t *testing.T) {
+	cases := []struct {
+		name string
+		host string
+	}{
+		{"rtl-override", "example\u202e.org"},
+		{"ltr-isolate", "example\u2066.org"},
+		{"zero-width-space", "example\u200b.org"},
+		{"soft-hyphen", "example\u00ad.org"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := Check(context.Background(), tc.host, 443, time.Second)
+			if err == nil || result != (Result{}) {
+				t.Fatalf("invisible formatting character accepted: result=%+v err=%v", result, err)
+			}
+		})
+	}
+}
