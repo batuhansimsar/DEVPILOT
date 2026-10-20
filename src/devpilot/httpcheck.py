@@ -52,6 +52,10 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # can instead be encoded without changing the requested host.
     if not parts.netloc.isascii():
         raise ValueError('URL host must be ASCII (use IDNA for internationalized hostnames)')
+    # Percent-encoded authority bytes can be interpreted differently by URL
+    # parsers and DNS libraries. Require a literal, unambiguous hostname.
+    if '%' in parts.netloc:
+        raise ValueError('URL host must not contain percent escapes')
     if any(char.isspace() for char in parts.hostname) or '\\' in parts.hostname:
         raise ValueError('URL host must not contain whitespace or backslashes')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
