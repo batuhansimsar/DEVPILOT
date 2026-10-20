@@ -27,6 +27,9 @@ type Result struct {
 // The timeout applies to DNS resolution and dialing via the context.
 // LatencyMS measures the dial attempt, including DNS resolution when needed.
 func Check(ctx context.Context, host string, port int, timeout time.Duration) (Result, error) {
+	if ctx == nil {
+		return Result{}, fmt.Errorf("context must not be nil")
+	}
 	if host == "" || host != strings.TrimSpace(host) || strings.IndexFunc(host, func(r rune) bool {
 		return unicode.IsControl(r) || unicode.Is(unicode.Cf, r)
 	}) >= 0 {
