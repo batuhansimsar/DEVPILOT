@@ -16,6 +16,8 @@ class FirebaseCredentialTests(unittest.TestCase):
         names = (
             'serviceAccountKey.json', 'credentials/service_account_key.json',
             'service-account-key.json.bak',
+            'config/firebase-service-account.json',
+            'config/firebase_service_account_key.json.bak',
             'app/my-project-firebase-adminsdk-a1b2c-0123456789abcdef.json',
             'APP\\FIREBASE-ADMINSDK-A1B2C-0123456789.JSON.old',
         )
@@ -30,6 +32,8 @@ class FirebaseCredentialTests(unittest.TestCase):
             'firebase-adminsdk-ab123-short.json',
             'serviceAccountKey.json.example',
             'service_account_key.json.sample',
+            'firebase-service-account.json.example',
+            'firebase_service_account_key.json.sample',
             'project-firebase-adminsdk-abc12-0123456789.json.template',
         )
         for name in names:
@@ -50,6 +54,8 @@ class FirebaseCredentialTests(unittest.TestCase):
             tracked = (
                 'serviceAccountKey.json',
                 'config/demo-firebase-adminsdk-abc12-0123456789.json',
+                'config/firebase-service-account-key.json',
+                'config/firebase_service_account.json',
                 'google-services.json',
                 'serviceAccountKey.json.example',
             )
@@ -62,10 +68,12 @@ class FirebaseCredentialTests(unittest.TestCase):
             detailed = audit(root)
         expected = [
             'config/demo-firebase-adminsdk-abc12-0123456789.json',
+            'config/firebase-service-account-key.json',
+            'config/firebase_service_account.json',
             'serviceAccountKey.json',
         ]
         self.assertNotIn('error', simple)
-        self.assertEqual(simple['tracked_files'], 4)
+        self.assertEqual(simple['tracked_files'], 6)
         self.assertEqual(simple['candidates'], expected)
         self.assertEqual(sorted(finding['path'] for finding in detailed['findings']), expected)
         self.assertNotIn('DO_NOT_ECHO', str(simple))
