@@ -110,15 +110,31 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     try:
         result['exit_code'] = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        if os.name == 'posix':
+        # If signaling a POSIX process group is denied, still try to kill the
+        # direct child. Never wait indefinitely when termination has failed.
+        termination_failed = False
+        try:
+            if os.name == 'posix':
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass  # Process group has already exited.
+                except OSError:
+                    process.kill()
+            else:
+                process.kill()
+        except ProcessLookupError:
+            pass
+        except OSError:
+            termination_failed = True
+        if not termination_failed:
             try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass  # Process group has already exited.
-        else:
-            process.kill()
-        process.wait()
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                termination_failed = True
         result['error'] = f'Timed out after {timeout}s'
+        if termination_failed:
+            result['error'] += '; unable to confirm process termination'
     finally:
         # A child may leave grandchildren holding the pipe ends; never block
         # indefinitely waiting for EOF from those unrelated descendants.
