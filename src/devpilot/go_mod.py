@@ -16,8 +16,11 @@ _GO_QUOTED_CONTENT = re.compile(
 )
 _REQUIREMENT = re.compile(
     r'(?:(?P<plain>[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)|'
-    r'"(?P<quoted>(?:[^"\\]|\\.)*)")\s+'
-    r'(?P<version_quote>"?)v[^\s"]+(?P=version_quote)\Z'
+    r'"(?P<quoted>(?:[^"\\]|\\.)*)"|'
+    r'`(?P<raw>[^`\r\n]*)`)\s+'
+    r'(?:(?P<version_plain>v[^\s"`]+)|'
+    r'"(?P<version_quoted>v[^\s"`]+)"|'
+    r'`(?P<version_raw>v[^\s"`]+)`)\Z'
 )
 
 
@@ -36,7 +39,8 @@ def _valid_module_path(path: str) -> bool:
 def parse_go_requirements(content: str) -> list[str]:
     """Collect dependencies in single-line and parenthesized require blocks.
 
-    Go permits whitespace and double-quoted strings with Go-style escapes.
+    Go permits whitespace, double-quoted strings with Go-style escapes, and
+    backtick-delimited raw strings.
     Only require declarations are included: replace and exclude do not describe
     additional dependencies. Returned data contains names, no versions.
     """
@@ -62,6 +66,8 @@ def parse_go_requirements(content: str) -> list[str]:
         match = _REQUIREMENT.fullmatch(entry)
         if match:
             module = match.group('plain')
+            if module is None:
+                module = match.group('raw')
             if module is None:
                 quoted = match.group('quoted')
                 if not _GO_QUOTED_CONTENT.fullmatch(quoted):
