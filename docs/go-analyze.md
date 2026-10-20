@@ -19,3 +19,12 @@ intended for automation. This inventory is based on filename conventions and
 is not a dependency or security audit.
 
 Run checks: `go test ./...`, `go vet ./...`, and `gofmt -l cmd internal`.
+
+## Docker configuration discovery
+
+`analyze` reports Dockerfiles (including named variants such as `Dockerfile.dev`)
+and Docker Compose manifests (`compose.yml`, `compose.yaml`,
+`docker-compose.yml`, `docker-compose.yaml` and named variants like
+`docker-compose.override.yml`) among the sorted manifest paths. Matching is
+case-insensitive. These are filename conventions only: analysis neither reads
+Compose values nor invokes Docker, and symlinks remain excluded.
