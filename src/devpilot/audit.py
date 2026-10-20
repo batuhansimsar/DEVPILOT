@@ -16,6 +16,8 @@ _PRIVATE_NAMES = frozenset({
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
     '.terraformrc', 'credentials.tfrc.json',
+    # Package registry authentication files can store reusable access tokens.
+    'auth.json', '.yarnrc', '.yarnrc.yml',
     # Database client authentication files can embed reusable credentials.
     '.pgpass', '.my.cnf', '.mylogin.cnf',
 })
@@ -26,6 +28,8 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('.azure', 'accesstokens.json'), ('.azure', 'msal_token_cache.json'),
     ('.azure', 'msal_token_cache.bin'),
     ('gcloud', 'credentials.db'), ('gcloud', 'access_tokens.db'),
+    # Python package manager authentication files are not ordinary manifests.
+    ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
