@@ -13,6 +13,7 @@ WORKSPACE_FILES = {
     'pyproject.toml': 'Python',
     'requirements.txt': 'Python',
     'setup.py': 'Python',
+    'Pipfile': 'Python',
     'go.mod': 'Go',
     'Cargo.toml': 'Rust',
     'pom.xml': 'Java',
@@ -21,7 +22,7 @@ WORKSPACE_FILES = {
     'Gemfile': 'Ruby',
     'composer.json': 'PHP',
 }
-DOTNET_SUFFIXES = {'.csproj', '.fsproj', '.sln', '.slnx'}
+DOTNET_SUFFIXES = {'.csproj', '.fsproj', '.vbproj', '.sln', '.slnx'}
 
 
 def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5000) -> dict[str, Any]:
