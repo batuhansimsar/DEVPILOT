@@ -24,7 +24,10 @@ def parse_poetry_lock(content: str) -> list[str]:
     partial inventory. Errors must not echo raw TOML or untrusted package names.
     """
     try:
-        document = tomllib.loads(content)
+        # Direct callers may supply text decoded with UTF-8 rather than
+        # UTF-8-SIG. Match the scanner and the uv.lock parser by ignoring
+        # exactly one leading byte-order mark, never BOMs inside the file.
+        document = tomllib.loads(content.removeprefix('\ufeff'))
     except tomllib.TOMLDecodeError:
         raise ValueError("invalid poetry.lock TOML") from None
 
