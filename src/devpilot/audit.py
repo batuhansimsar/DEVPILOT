@@ -29,7 +29,7 @@ _PRIVATE_NAMES = frozenset({
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
 # Apple App Store Connect .p8 and PuTTY .ppk files can contain private keys.
-_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks', '.p8', '.ppk', '.keytab'})
+_PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks', '.p8', '.ppk', '.keytab', '.jceks', '.bks'})
 _SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
     ('gh', 'hosts.yml'), ('gh', 'hosts.yaml'),
