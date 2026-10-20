@@ -16,6 +16,7 @@ from .envcheck import inspect_env
 from typing import Any
 
 from .gradle import gradle_test_command
+from .git_state import is_git_dirty
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
 from .walk import walk_project
@@ -233,9 +234,12 @@ def git_status(root: Path) -> dict[str, Any]:
     # Disable it and avoid optional index writes in read-only inspections.
     result = command_result([
         'git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
-        'status', '--short', '--branch', '--untracked-files=normal',
+        'status', '--porcelain=v1', '--branch', '--untracked-files=normal',
     ], root)
-    return {'path': str(root), **result}
+    dirty = is_git_dirty(result.get('stdout', ''), result['exit_code'])
+    if result.get('stdout_truncated') and dirty is False:
+        dirty = True  # An incomplete status must never be treated as clean.
+    return {'path': str(root), **result, 'dirty': dirty}
 
 
 def docker_status(root: Path) -> dict[str, Any]:
