@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import os
-import unicodedata
 from pathlib import Path
 from typing import Iterator
 
 
 def _printable(text: str) -> str:
-    """Escape terminal controls and bidi formatting in untrusted scan errors."""
+    """Escape all nonprinting characters in untrusted scan errors."""
     return ''.join(
-        f'\\u{ord(char):04x}' if unicodedata.category(char).startswith('C') else char
+        (f'\\u{ord(char):04x}' if ord(char) <= 0xffff else f'\\U{ord(char):08x}')
+        if not char.isprintable() else char
         for char in text
     )
 
