@@ -45,7 +45,7 @@ KEY_FILES = frozenset({
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'build.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
-    'README.md', 'LICENSE', 'LICENSE.md', '.env.example',
+    'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -74,7 +74,7 @@ def detect_projects(root: Path) -> list[str]:
     types: set[str] = set()
     if 'package.json' in names:
         types.add('Node.js')
-    if names & {'pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile'}:
+    if names & {'pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile', 'Pipfile.lock'}:
         types.add('Python')
     if names & {'Cargo.toml'}:
         types.add('Rust')
@@ -179,7 +179,7 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if dotnet_target:
         commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test', dotnet_target],
                          'reason': 'unique .NET solution/project'})
-    if names & {'pyproject.toml', 'requirements.txt', 'setup.py'} and (root / 'tests').is_dir():
+    if names & {'pyproject.toml', 'requirements.txt', 'setup.py', 'Pipfile', 'Pipfile.lock'} and (root / 'tests').is_dir():
         if (root / 'tests').is_symlink():
             pass
         elif shutil.which('pytest'):
