@@ -35,6 +35,8 @@ EXACT_NAMES = frozenset({
     'credentials.tfrc.json',
     'secrets.yml', 'secrets.yaml', '.envrc',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
+    # s3cmd, Boto and rclone may persist storage credentials in these files.
+    '.s3cfg', '.boto', 'rclone.conf',
 })
 # Include Apple App Store Connect and PuTTY private-key formats.
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore', '.p8', '.ppk')
