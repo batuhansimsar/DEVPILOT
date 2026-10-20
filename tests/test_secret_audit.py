@@ -26,6 +26,16 @@ class ClassificationTests(unittest.TestCase):
     def test_windows_style_paths(self):
         self.assertIsNotNone(classify('nested\\secret.pem'))
 
+    def test_backed_up_secrets_are_flagged(self):
+        for name in ('id_rsa.bak', 'nested/id_ed25519.old.bak', '.npmrc~', 'service-account.json.backup', 'private.key.orig', '.env.example.production'):
+            with self.subTest(name=name):
+                self.assertIsNotNone(classify(name))
+
+    def test_template_backups_and_nonsecret_backups_are_ignored(self):
+        for name in ('.env.example.bak', '.env.defaults.old', 'id_rsa.pub.bak', 'README.md.backup', 'credentials.sample.json.orig'):
+            with self.subTest(name=name):
+                self.assertIsNone(classify(name))
+
 
 @unittest.skipUnless(shutil.which('git'), 'Git is not installed')
 class RepoTests(unittest.TestCase):
@@ -77,6 +87,17 @@ class RepoTests(unittest.TestCase):
     def test_missing_directory(self):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(main([str(self.root / 'missing')]), 2)
+
+    def test_audit_finds_backed_up_credentials(self):
+        self.add('keys/id_rsa.old', 'do_not_print')
+        self.add('.env.example.production', 'also_do_not_print')
+        self.add('.env.example.bak', 'template')
+        result = audit(self.root, redact_paths=True)
+        self.assertEqual(result['tracked_files_checked'], 3)
+        self.assertEqual(len(result['findings']), 2)
+        self.assertNotIn('do_not_print', json.dumps(result))
+        self.assertNotIn('also_do_not_print', json.dumps(result))
+        self.assertTrue(all('path' not in finding for finding in result['findings']))
 
 
 if __name__ == '__main__':

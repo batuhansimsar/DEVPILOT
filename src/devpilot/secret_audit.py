@@ -28,14 +28,24 @@ EXACT_NAMES = frozenset({
     '.npmrc', '.pypirc', '.netrc',
 })
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx')
+BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '~')
 
 
 def classify(path: str) -> str | None:
     """Classify paths, not file contents. All findings require human review."""
     name = PurePosixPath(path.replace('\\', '/')).name.lower()
+    # Backup copies of keys and credentials remain sensitive. Handle a limited
+    # number of chained suffixes (e.g. id_rsa.old.bak) without scanning content.
+    for _ in range(3):
+        suffix = next((s for s in BACKUP_SUFFIXES if name.endswith(s)), None)
+        if suffix is None:
+            break
+        name = name[:-len(suffix)]
+    # Only exact example/default dotenv names are excluded. A file such as
+    # .env.example.production is not a template and must be reviewed.
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template')):
         return None
-    if name == '.env' or (name.startswith('.env.') and not name.startswith(('.env.example', '.env.sample', '.env.template', '.env.defaults'))):
+    if name == '.env' or name.startswith('.env.'):
         return 'environment file'
     if name in EXACT_NAMES:
         return 'potential credential file'
