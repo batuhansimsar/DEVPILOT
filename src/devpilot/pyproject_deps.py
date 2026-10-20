@@ -102,37 +102,50 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
                 raise ValueError('pyproject.toml contains a duplicate normalized dependency group')
             groups[canonical] = entries
 
+        # Iterative DFS handles deeply nested group includes without Python's
+        # recursion limit, while keeping cycles and unknown references errors.
         resolved: dict[str, set[str]] = {}
         visiting: set[str] = set()
-
-        def resolve(group: str) -> set[str]:
-            canonical = _canonical(group)
-            if canonical in resolved:
-                return resolved[canonical]
-            if canonical in visiting:
-                raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
-            if canonical not in groups:
-                raise ValueError('pyproject.toml dependency-groups reference an unknown group')
-            # A valid but hostile include chain could otherwise overflow Python's
-            # recursion limit before the CLI can report a useful warning.
-            if len(visiting) >= 64:
-                raise ValueError('pyproject.toml dependency group includes exceed the depth limit')
-            visiting.add(canonical)
-            entries = groups[canonical]
-            if not isinstance(entries, list):
-                raise ValueError('pyproject.toml dependency-groups must contain lists')
-            names: set[str] = set()
-            for entry in entries:
-                if isinstance(entry, dict) and set(entry) == {'include-group'} and isinstance(entry['include-group'], str):
-                    names.update(resolve(entry['include-group']))
-                else:
-                    names.update(_requirements([entry], 'dependency-groups'))
-            visiting.remove(canonical)
-            resolved[canonical] = names
-            return names
+        for start in groups:
+            pending = [(start, False)]
+            while pending:
+                current, finish = pending.pop()
+                if current in resolved:
+                    continue
+                if finish:
+                    names: set[str] = set()
+                    for entry in groups[current]:
+                        if isinstance(entry, str):
+                            names.update(_requirements([entry], 'dependency-groups'))
+                        else:
+                            names.update(resolved[_canonical(entry['include-group'])])
+                    resolved[current] = names
+                    visiting.remove(current)
+                    continue
+                if current in visiting:
+                    raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
+                visiting.add(current)
+                pending.append((current, True))
+                entries = groups[current]
+                if not isinstance(entries, list):
+                    raise ValueError('pyproject.toml dependency-groups must contain lists')
+                for entry in reversed(entries):
+                    if isinstance(entry, str):
+                        _requirements([entry], 'dependency-groups')
+                        continue
+                    if (not isinstance(entry, dict) or set(entry) != {'include-group'}
+                            or not isinstance(entry['include-group'], str)):
+                        raise ValueError('pyproject.toml dependency-groups contain an invalid include')
+                    reference = _canonical(entry['include-group'])
+                    if reference not in groups:
+                        raise ValueError('pyproject.toml dependency-groups reference an unknown group')
+                    if reference in visiting:
+                        raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
+                    if reference not in resolved:
+                        pending.append((reference, False))
 
         for name in original_groups:
-            collect(f'group:{name}', resolve(name))
+            collect(f'group:{name}', resolved[_canonical(name)])
 
     tool = _mapping(data.get('tool', {}), 'tool')
     if 'poetry' in tool:
