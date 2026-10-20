@@ -13,7 +13,8 @@ class TerraformQualifiedFilesTests(unittest.TestCase):
     def test_sensitive_qualified_names(self):
         for path in (
             'production.tfvars.local', 'infra/prod.tfvars.json.production',
-            'terraform.tfstate.1680000000', 'prod.tfplan.json',
+            'terraform.tfstate.1680000000', 'terraform.tfstate.example.local',
+            'prod.tfplan.json', 'prod.tfplan.template.local',
             'tfplan.production', 'vars.tfvars.example.local',
             'vars.tfvars.json.sample.production', 'vars.tfvars.local.bak',
         ):
@@ -24,6 +25,8 @@ class TerraformQualifiedFilesTests(unittest.TestCase):
         for path in (
             'production.tfvars.example', 'vars.tfvars.json.template',
             'terraform.tfvars.defaults', 'tfplan.example',
+            'terraform.tfstate.example', 'terraform.tfstate.backup.sample',
+            'prod.tfplan.template', 'prod.tfstate.example.bak',
             'terraform.tf', 'README.md', 'vars.tfvars.example.old',
         ):
             with self.subTest(path=path):
@@ -35,14 +38,16 @@ class TerraformQualifiedFilesTests(unittest.TestCase):
             root = Path(directory)
             subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
             for name in ('prod.tfvars.local', 'prod.tfvars.example',
-                         'terraform.tfstate.1234', 'tfplan.json'):
+                         'terraform.tfstate.1234', 'tfplan.json',
+                         'terraform.tfstate.example'):
                 (root / name).write_text('placeholder\n', encoding='utf-8')
             subprocess.run(['git', 'add', 'prod.tfvars.local', 'prod.tfvars.example',
-                            'terraform.tfstate.1234', 'tfplan.json'],
+                            'terraform.tfstate.1234', 'tfplan.json',
+                            'terraform.tfstate.example'],
                            cwd=root, check=True)
             report = audit_tracked_files(root)
             self.assertNotIn('error', report)
-            self.assertEqual(report['tracked_files'], 4)
+            self.assertEqual(report['tracked_files'], 5)
             self.assertEqual(report['candidates'], [
                 'prod.tfvars.local', 'terraform.tfstate.1234', 'tfplan.json',
             ])
