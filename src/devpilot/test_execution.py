@@ -18,6 +18,11 @@ def execute_test_commands(
     """
     if not commands:
         return False
+    # A previously run plan may already contain results or fail-fast annotations.
+    # Clear them before every run so skipped commands cannot appear executed.
+    for item in commands:
+        item.pop('result', None)
+        item.pop('skipped_reason', None)
     passed = True
     for index, item in enumerate(commands):
         result = runner(item['argv'], root, timeout)
