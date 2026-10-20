@@ -27,7 +27,15 @@ def _reject_constant(_value: str) -> None:
 
 def _installed_name(path: str) -> str | None:
     """Extract a package ID, ignoring root/workspace metadata entries."""
+    if not path:
+        # The root project's metadata is stored under the empty key.
+        return None
     parts = path.split('/')
+    # npm serializes POSIX-style relative paths.  Without this guard,
+    # traversal, absolute, or malformed ancestors can masquerade as valid
+    # installed packages because only the final node_modules was inspected.
+    if ('\\' in path or any(part in ('', '.', '..') for part in parts)):
+        raise ValueError('npm lockfile contains an invalid installed package path')
     positions = [index for index, segment in enumerate(parts) if segment == 'node_modules']
     if not positions:
         return None
