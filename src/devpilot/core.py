@@ -46,6 +46,28 @@ def _root_files(root: Path) -> set[str]:
         return set()
 
 
+def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
+    """Select the package script runner without executing project-controlled code."""
+    declared = package.get('packageManager')
+    if isinstance(declared, str):
+        manager, separator, version = declared.partition('@')
+        if separator and version and manager in {'npm', 'pnpm', 'yarn', 'bun'}:
+            return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
+
+    names = _root_files(root)
+    for filename, manager in (
+        ('pnpm-lock.yaml', 'pnpm'),
+        ('yarn.lock', 'yarn'),
+        ('bun.lock', 'bun'),
+        ('bun.lockb', 'bun'),
+        ('npm-shrinkwrap.json', 'npm'),
+        ('package-lock.json', 'npm'),
+    ):
+        if filename in names:
+            return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
+    return ['npm', 'test']
+
+
 def detect_projects(root: Path) -> list[str]:
     names = _root_files(root)
     types: set[str] = set()
@@ -122,7 +144,7 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         if isinstance(scripts, dict) and isinstance(scripts.get('test'), str):
             if scripts['test'].strip():
                 # npm scripts execute project code. CLI requires explicit --yes.
-                commands.append({'ecosystem': 'Node.js', 'argv': ['npm', 'test'], 'reason': 'package.json test script'})
+                commands.append({'ecosystem': 'Node.js', 'argv': _node_test_argv(root, package), 'reason': 'package.json test script'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
