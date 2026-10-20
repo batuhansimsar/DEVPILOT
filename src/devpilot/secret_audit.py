@@ -172,7 +172,10 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print('Scanned ' + str(report['tracked_files_checked']) + ' tracked paths; ' + str(len(report['findings'])) + ' potential risks.')
         for item in report['findings']:
-            print('  [WARN] ' + item.get('path', '<redacted>') + ': ' + item['category'])
+            # Escape attacker-controlled filenames before writing terminal logs.
+            # JSON quoting prevents ANSI sequences and newline spoofing.
+            safe_path = json.dumps(item.get('path', '<redacted>'), ensure_ascii=True)
+            print('  [WARN] ' + safe_path + ': ' + item['category'])
         print(report['note'])
     return 0 if report['ok'] else 1
 
