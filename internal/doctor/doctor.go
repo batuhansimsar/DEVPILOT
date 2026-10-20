@@ -103,7 +103,6 @@ func namesFromEnv(data []byte) []string {
 	return names
 }
 
-
 // declaresPytest recognizes the standard pytest table in a TOML manifest.
 // Arbitrary pyproject.toml presence is not evidence that pytest is configured.
 func declaresPytest(data []byte) bool {
