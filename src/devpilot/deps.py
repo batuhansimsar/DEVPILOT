@@ -20,6 +20,7 @@ from .cargo_deps import parse_cargo_dependencies
 from .go_mod import parse_go_requirements
 from .composer_deps import parse_composer_dependencies
 from .maven_deps import parse_maven_dependencies
+from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .pipenv_deps import parse_pipfile_lock
 from .uv_lock import parse_uv_lock
@@ -131,16 +132,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
     if name == "Cargo.toml":
         return "Rust", parse_cargo_dependencies(content)
     if name.lower().endswith((".csproj", ".fsproj", ".vbproj")):
-        if "<!DOCTYPE" in content.upper() or "<!ENTITY" in content.upper():
-            raise ValueError("DTD and XML entities are not supported")
-        root = ET.fromstring(content)
-        names = set()
-        for node in root.iter():
-            if node.tag.split("}")[-1] == "PackageReference":
-                dep = node.attrib.get("Include") or node.attrib.get("Update")
-                if dep:
-                    names.add(dep)
-        return ".NET", {"PackageReference": sorted(names)}
+        return ".NET", parse_dotnet_dependencies(content)
     raise ValueError("unsupported manifest")
 
 
