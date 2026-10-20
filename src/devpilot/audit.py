@@ -82,7 +82,12 @@ def _potential_secret(path: str) -> bool:
         return True
     if name.endswith(_TERRAFORM_TEMPLATE_SUFFIXES):
         return False
-    if name.endswith(_TERRAFORM_SENSITIVE_SUFFIXES):
+    # Terraform files may have environment, timestamp, or format qualifiers
+    # after the sensitive extension (for example, prod.tfvars.local).
+    if (name == 'tfplan' or (
+            name.startswith('tfplan.') and not name.endswith(_ENV_TEMPLATE_SUFFIXES)
+        ) or any(name.endswith(suffix) or suffix + '.' in name
+                 for suffix in _TERRAFORM_SENSITIVE_SUFFIXES)):
         return True
     found = (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
