@@ -28,7 +28,7 @@ def parse_poetry_lock(content: str) -> list[str]:
         # UTF-8-SIG. Match the scanner and the uv.lock parser by ignoring
         # exactly one leading byte-order mark, never BOMs inside the file.
         document = tomllib.loads(content.removeprefix('\ufeff'))
-    except tomllib.TOMLDecodeError:
+    except (tomllib.TOMLDecodeError, RecursionError):
         raise ValueError("invalid poetry.lock TOML") from None
 
     packages = document.get("package", [])
