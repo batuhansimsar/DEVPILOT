@@ -9,10 +9,10 @@ import re
 
 from .pyproject_deps import _REQUIREMENT, _canonical, _valid_requirement_suffix
 
-# pip permits one or more hash options after a pinned requirement. Strip them
-# before validating the PEP 508 portion, while never interpreting the hash as
-# a second dependency or exposing it in reports.
-_HASH_OPTIONS = re.compile(r'(?:\s+--hash=(?:sha256|sha384|sha512):[0-9a-fA-F]+)+\s*\Z')
+# pip accepts both --hash=algorithm:digest and --hash algorithm:digest.
+# Strip one or more options before validating the PEP 508 declaration, while
+# keeping all hash material out of the dependency inventory.
+_HASH_OPTIONS = re.compile(r'(?:\s+--hash(?:=|\s+)(?:sha256|sha384|sha512):[0-9a-fA-F]+)+\s*\Z')
 
 
 def parse_requirements_dependencies(content: str) -> list[str]:
