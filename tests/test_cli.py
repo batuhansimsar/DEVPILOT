@@ -72,6 +72,21 @@ class CliTests(unittest.TestCase):
             self.assertEqual(json.loads(output)['commands'], [])
             run.assert_not_called()
 
+    def test_incomplete_workspace_scan_returns_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = {
+                'path': directory,
+                'workspaces': [],
+                'workspace_count': 0,
+                'truncated': True,
+                'problems': ['Cannot inspect private: Permission denied'],
+            }
+            with patch('devpilot.cli.discover_workspaces', return_value=report):
+                code, output = self.call(['workspaces', '--path', directory])
+        self.assertEqual(code, 1)
+        self.assertIn('workspace scan incomplete', output)
+        self.assertIn('Cannot inspect private', output)
+
     def test_empty_test_returns_1(self):
         with tempfile.TemporaryDirectory() as directory:
             code, output = self.call(['test', '--path', directory])
