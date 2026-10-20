@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .audit import audit_tracked_files
+from .httpcheck import http_check
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, select_test_commands
@@ -44,6 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
     health.add_argument('port', type=int, help='TCP port (1-65535)')
     health.add_argument('--timeout', type=float, default=3, help='Socket timeout in seconds (0.1-30)')
     health.add_argument('--json', action='store_true')
+    web_health = sub.add_parser('http', help='Probe an HTTP endpoint with a no-redirect HEAD request')
+    web_health.add_argument('url', help='Absolute http(s) endpoint URL')
+    web_health.add_argument('--timeout', type=float, default=3, help='Request timeout in seconds (0.1-30)')
+    web_health.add_argument('--json', action='store_true', help='Print machine-readable JSON')
     return parser
 
 
@@ -111,6 +116,8 @@ def _human(command: str, output: dict[str, Any]) -> str:
         if output.get('exit_code') != 0:
             return output.get('error') or output.get('stderr') or 'Docker failed'
         return '\n'.join(f"{x.get('Names')}: {x.get('Status')} ({x.get('Image')})" for x in output['containers']) or 'No running containers'
+    if command == 'http':
+        return f"{output['url']} — HTTP {output['status']}" + (' (healthy)' if output.get('healthy') else ' (unhealthy)') if output['reachable'] else f"{output['url']} — unreachable ({output.get('error', 'network error')})"
     if command == 'check':
         return f"{output['host']}:{output['port']} — {'reachable' if output['reachable'] else 'unreachable'}" + (f" ({output['error']})" if output.get('error') else '')
     return output.get('stdout') or output.get('error') or output.get('stderr') or 'No changes'
@@ -119,7 +126,13 @@ def _human(command: str, output: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.command == 'check':
+    if args.command == 'http':
+        try:
+            result = http_check(args.url, args.timeout)
+        except ValueError as exc:
+            parser.error(str(exc))
+        success = result.get('healthy', False)
+    elif args.command == 'check':
         if not 0.1 <= args.timeout <= 30:
             parser.error('--timeout must be between 0.1 and 30 seconds')
         if not 1 <= args.port <= 65535:
