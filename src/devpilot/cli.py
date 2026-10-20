@@ -11,6 +11,7 @@ from typing import Any
 
 from .audit import audit_tracked_files
 from .console import escape_terminal
+from .git_output import format_git_status
 from .httpcheck import http_check
 from .env_cli import environment_status, format_environment
 from .tlscheck import tls_check
@@ -165,6 +166,8 @@ def _human(command: str, output: dict[str, Any]) -> str:
                        f" (TLS verification failed: {escape_terminal(str(output.get('error', 'unknown error')))})")
             return f"{host}:{output['port']} — {status}" + details
         return f"{host}:{output['port']} — {status}" + (f" ({escape_terminal(str(output['error']))})" if output.get('error') else '')
+    if command == 'git':
+        return format_git_status(output)
     return output.get('stdout') or output.get('error') or output.get('stderr') or 'No changes'
 
 
