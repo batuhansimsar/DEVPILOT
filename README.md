@@ -55,3 +55,14 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+## Project structure map
+
+`devpilot map [--depth=3] [--json] [path]` prints a bounded, read-only directory map to help new contributors understand repository layout. It hides common generated directories (`.git`, `node_modules`, build outputs and similar), does not follow symlinks or read file contents, and caps output at 2,000 entries and 8 directory levels. File names are terminal-escaped. JSON includes entry types, skipped directories, warnings, and truncation status.
+
+```sh
+./devpilot map --depth=2 .
+./devpilot map --json /path/to/project
+```
+
+This feature is not a complete dependency or architecture graph. It is a quick, safe view of the visible directory structure.
