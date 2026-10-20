@@ -66,18 +66,19 @@ class DependencyTerminalSafetyTests(unittest.TestCase):
         self.assertNotIn('\u202e', error)
         self.assertIn(r'\u001b', error)
 
-    def test_real_manifest_dependency_name_is_escaped_in_text_output(self):
+    def test_real_manifest_dependency_name_is_rejected_without_echoing_it(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'package.json').write_text(
                 json.dumps({'dependencies': {self.hostile: '^1.0'}}), encoding='utf-8',
             )
             code, output, error = self._run('--path', directory)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 1)
         self.assertEqual(error, '')
         self.assertNotIn('\x1b', output)
         self.assertNotIn('\u202e', output)
-        self.assertIn(r'\u001b', output)
+        self.assertNotIn(self.hostile, output)
+        self.assertIn('invalid package name', output)
 
 
 if __name__ == '__main__':
