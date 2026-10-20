@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,6 +11,7 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -37,11 +39,13 @@ jobs:
         with:
           name: devpilot-python-wheel
           path: dist/*.whl
+          if-no-files-found: error
           retention-days: 1
 
   go:
     name: Go CLI quality checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -61,4 +65,5 @@ jobs:
         with:
           name: devpilot-go-linux-amd64
           path: devpilot-go
+          if-no-files-found: error
           retention-days: 1
