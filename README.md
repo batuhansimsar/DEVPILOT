@@ -55,3 +55,12 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+## Project tree outline
+
+```sh
+./devpilot tree /path/to/project
+./devpilot tree --depth=4 --json /path/to/project
+```
+
+`devpilot tree` produces a bounded, read-only directory outline; it never opens project file contents or runs scripts. It shows directories, regular files and symbolic link names **without following directory symlinks**. Build/dependency directories (including `.git`, `node_modules`, `vendor`, `dist` and `target`) are excluded. Depth must be between 1 and 6 (default 3), and output is capped at 4,000 entries with an explicit truncated flag. JSON output makes the structure available to other tools.
