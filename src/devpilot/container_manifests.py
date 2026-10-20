@@ -29,9 +29,10 @@ _IGNORED_SUFFIXES = (
 )
 
 
-# Vim may rotate through .swp, .swo, ..., .swa when previous swaps exist.
-# Such editor state files must not be interpreted as named build recipes.
-_VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z', re.IGNORECASE)
+# Vim rotates swap files through .swp .. .swa, then .svz .. .sva, down to
+# .saa when earlier names are taken. All these are temporary editor files,
+# not named Dockerfile/Containerfile variants. .swq and .swz are not swaps.
+_VIM_SWAP_SUFFIX = re.compile(r'\.s(?:w[a-p]|[a-v][a-z])\Z', re.IGNORECASE)
 
 
 def is_container_manifest(filename: str) -> bool:
