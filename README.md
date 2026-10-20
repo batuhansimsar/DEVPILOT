@@ -26,6 +26,7 @@ devpilot workspaces --path /path/to/monorepo --json
 devpilot workspaces --path /path/to/monorepo --max-depth 3 --max-directories 1000 --json
 devpilot doctor --path /path/to/project
 devpilot git --path /path/to/project
+devpilot git --path /path/to/project --fail-on-dirty --json  # CI-friendly dirty-tree gate
 devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
 devpilot docker
 devpilot check localhost 5432
@@ -45,7 +46,7 @@ devpilot doctor --path /path/to/project --json
 | `workspaces` | Discovers nested Python, Node.js, Go, Rust, Java, .NET, Ruby and PHP projects without following symlinks or reading file contents. | 
 | `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
-| `git` | Executes read-only `git status` with no shell. |
+| `git` | Executes read-only Git porcelain status with no shell; JSON includes `dirty` (`true`, `false`, or `null` on Git failure). `--fail-on-dirty` exits nonzero for changed files. |
 | `audit` | Warns about Git-tracked `.env`, private keys, and credential-like filenames without opening their contents. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
