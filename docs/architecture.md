@@ -12,3 +12,7 @@ The CLI entrypoint lives in `cmd/devpilot`; read-only manifest diagnostics live 
 ## Trust boundaries
 
 Manifest files and environment examples are untrusted. Inspection refuses symlinks and files over 1 MiB. `.env` values must never appear in findings. Repository-defined scripts require explicit user trust and use argument arrays rather than shell interpolation. Git HEAD is read without executing Git. Do not use DevPilot as a security sandbox: even trusted test commands can spawn child processes and access local credentials.
+
+## Tree viewer addition
+
+`internal/tree` provides a bounded, read-only traversal used by `devpilot tree`. It does not parse project source code or execute tools. Dependency/build directories are excluded, symlinks are represented but never followed, and depth/result limits prevent runaway output. The CLI supports text and JSON representations.
