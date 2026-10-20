@@ -17,6 +17,11 @@ def _identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
             metadata.st_mtime_ns, metadata.st_ctime_ns)
 
 
+def _reject_non_json_number(value: str) -> None:
+    """Python accepts NaN/Infinity by default, but JSON manifests must not."""
+    raise ValueError('Non-finite numbers are not valid JSON')
+
+
 def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
     """Read at most 256 KiB from a regular package.json without following links.
 
@@ -52,7 +57,7 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
                 return None, 'package.json exceeds the 256 KiB inspection limit'
             if _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None, 'package.json changed during inspection'
-        data = json.loads(content.decode('utf-8'))
+        data = json.loads(content.decode('utf-8'), parse_constant=_reject_non_json_number)
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'
         return data, None
@@ -64,4 +69,4 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
     except (RecursionError, ValueError):
         # A size-bounded JSON file can still exceed parser nesting or integer
         # conversion limits. Never let untrusted metadata crash diagnostics.
-        return None, 'Invalid package.json: JSON exceeds parser limits'
+        return None, 'Invalid package.json: JSON exceeds parser limits or contains invalid numbers'
