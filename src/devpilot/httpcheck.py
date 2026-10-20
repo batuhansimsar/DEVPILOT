@@ -15,8 +15,12 @@ class _NoRedirect(HTTPRedirectHandler):
 
 def http_check(url: str, timeout: float = 3.0) -> dict:
     """Probe an explicitly supplied URL using HEAD, without reading response bodies."""
+    # urlsplit silently strips certain control characters; reject them before parsing
+    # so the endpoint that is probed always matches the caller's supplied URL.
+    if any(ord(char) < 32 or ord(char) == 127 for char in url):
+        raise ValueError('URL must not contain control characters')
     parts = urlsplit(url)
-    if parts.scheme not in ('http', 'https') or not parts.hostname or parts.username or parts.password:
+    if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
     if not 0.1 <= timeout <= 30:
         raise ValueError('timeout must be between 0.1 and 30 seconds')
@@ -24,7 +28,11 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
         port = parts.port
     except ValueError as exc:
         raise ValueError('URL contains an invalid port') from exc
-    display = f'{parts.scheme}://{parts.hostname}' + (f':{port}' if port is not None else '') + (parts.path or '/')
+    if port == 0:
+        raise ValueError('URL port must be between 1 and 65535')
+    # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
+    host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
+    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')
     opener = build_opener(HTTPHandler(), HTTPSHandler(), _NoRedirect())
     request = Request(url, method='HEAD', headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()
@@ -38,5 +46,6 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
         return {'url': display, 'reachable': False, 'status': None,
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
-    return {'url': display, 'reachable': True, 'status': status, 'healthy': 200 <= status < 400,
+    # A redirect is reachable, but not healthy: following it is deliberately disabled.
+    return {'url': display, 'reachable': True, 'status': status, 'healthy': 200 <= status < 300,
             'latency_ms': round((time.monotonic() - start) * 1000, 1)}
