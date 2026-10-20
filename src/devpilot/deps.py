@@ -22,7 +22,8 @@ IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "
 MAX_BYTES = 512_000
 MAX_DEPTH = 4
 MAX_FILES = 500
-PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|$))")
+# Recognize PEP 508 "name @ URL" while retaining only the package name.
+PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|@\s*\S|$))")
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
 GO_NAME = re.compile(r"^\s*([A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+)\s+v\S+")
 CARGO_NAME = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=')
