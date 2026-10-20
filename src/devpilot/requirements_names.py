@@ -9,8 +9,10 @@ import re
 # dev-requirements.txt, test_requirements.in, and local.requirements.in are
 # also common. An arbitrary name like requirementsnotes.txt is not a manifest.
 _REQUIREMENTS_MANIFEST = re.compile(
-    r'(?:requirements(?:[._-][A-Za-z0-9][A-Za-z0-9_-]*)*|'
+    r'(?:requirements(?:[._-][A-Za-z0-9]+)*|'
     r'[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*[._-]requirements)\.(?:txt|in)\Z',
+    # Delimiter-separated components avoid exponential regex backtracking on
+    # filenames such as requirements-a-a-a-...!.txt.
     # Fold ASCII case only; Unicode casefold would accept long-s and Kelvin
     # sign lookalikes that are not valid pip manifest filenames.
     flags=re.IGNORECASE | re.ASCII,
