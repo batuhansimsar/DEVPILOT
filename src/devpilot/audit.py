@@ -13,11 +13,14 @@ _PRIVATE_NAMES = frozenset({
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore'})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
+_ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 
 
 def _potential_secret(path: str) -> bool:
     name = Path(path).name.lower()
-    if name in _ENV_EXAMPLES:
+    if name in _ENV_EXAMPLES or (
+        name.startswith('.env.') and name.endswith(_ENV_TEMPLATE_SUFFIXES)
+    ):
         return False
     if name == '.env' or name.startswith('.env.'):
         return True
@@ -32,8 +35,9 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
         return report
     try:
         completed = subprocess.run(
-            ['git', '-C', str(root), '--no-optional-locks', 'ls-files', '--cached', '-z'],
-            capture_output=True, timeout=10, check=False,
+            ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-C', str(root),
+             'ls-files', '--cached', '-z'],
+            capture_output=True, timeout=10, check=False, stdin=subprocess.DEVNULL,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         report['error'] = f'Cannot inspect Git index: {exc}'
