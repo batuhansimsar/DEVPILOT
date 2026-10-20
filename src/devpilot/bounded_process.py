@@ -19,7 +19,7 @@ MAX_OUTPUT_BYTES = 20_000
 _READ_BYTES = 8192
 
 
-def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int]) -> None:
+def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int], read_failed: list[bool]) -> None:
     """Always drain a pipe; retain only its last MAX_OUTPUT_BYTES bytes."""
     try:
         while chunk := os.read(stream.fileno(), _READ_BYTES):
@@ -28,7 +28,8 @@ def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int]) -> None:
             if len(tail) > MAX_OUTPUT_BYTES:
                 del tail[:-MAX_OUTPUT_BYTES]
     except (OSError, ValueError):
-        pass
+        # A failed reader must not look like a complete, empty stream.
+        read_failed[0] = True
     finally:
         # Close in the reader thread to avoid blocking on a read lock
         # held by a pipe with an inherited writer.
@@ -97,10 +98,12 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     stderr_tail = bytearray()
     stdout_total = [0]
     stderr_total = [0]
+    stdout_read_failed = [False]
+    stderr_read_failed = [False]
     assert process.stdout is not None and process.stderr is not None
     threads = [
-        Thread(target=_capture_tail, args=(process.stdout, stdout_tail, stdout_total), daemon=True),
-        Thread(target=_capture_tail, args=(process.stderr, stderr_tail, stderr_total), daemon=True),
+        Thread(target=_capture_tail, args=(process.stdout, stdout_tail, stdout_total, stdout_read_failed), daemon=True),
+        Thread(target=_capture_tail, args=(process.stderr, stderr_tail, stderr_total, stderr_read_failed), daemon=True),
     ]
     for thread in threads:
         thread.start()
@@ -129,6 +132,10 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     # Both streams remain bounded and subject to the same truncation flags.
     result['stdout'], stdout_trimmed = _decode_bounded(stdout_tail)
     result['stderr'], stderr_trimmed = _decode_bounded(stderr_tail)
-    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES or stdout_trimmed or incomplete_streams[0]
-    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES or stderr_trimmed or incomplete_streams[1]
+    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES or stdout_trimmed or incomplete_streams[0] or stdout_read_failed[0]
+    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES or stderr_trimmed or incomplete_streams[1] or stderr_read_failed[0]
+    if stdout_read_failed[0] or stderr_read_failed[0]:
+        # Exit code zero alone is not proof that diagnostics were captured.
+        # Never include the underlying OSError, which could contain a path.
+        result.setdefault('error', 'Cannot capture command output')
     return result
