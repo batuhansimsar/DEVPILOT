@@ -35,7 +35,9 @@ def parse_dotnet_dependencies(content: str, *, central: bool = False) -> dict[st
     item_group_tag = f'{prefix}ItemGroup'
     element = 'PackageVersion' if central else 'PackageReference'
     reference_tag = f'{prefix}{element}'
-    names: set[str] = set()
+    # NuGet IDs are case-insensitive; casing aliases must not inflate counts.
+    # Keep a deterministic spelling so manifest entry order does not matter.
+    names: dict[str, str] = {}
 
     # An explicit stack handles deeply nested but valid project XML without
     # depending on Python's recursion limit.
@@ -57,8 +59,11 @@ def parse_dotnet_dependencies(content: str, *, central: bool = False) -> dict[st
                     if not _PACKAGE_ID.fullmatch(name):
                         # Never interpolate untrusted attributes into a warning.
                         raise ValueError(f'.NET manifest contains an invalid {element} identifier')
-                    names.add(name)
+                    normalized = name.casefold()
+                    previous = names.get(normalized)
+                    if previous is None or name < previous:
+                        names[normalized] = name
             else:
                 stack.append((child, item_scope))
 
-    return {element: sorted(names)}
+    return {element: sorted(names.values())}
