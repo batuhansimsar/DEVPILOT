@@ -47,6 +47,37 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(report['tracked_files'], 0)
             self.assertEqual(report['candidates'], [])
 
+    def test_cloudflare_dev_vars_are_sensitive_but_templates_are_not(self):
+        # Cloudflare Workers' local secret files can include API keys and tokens.
+        for path in (
+            '.dev.vars', 'worker/.dev.vars.production', 'worker/.dev.vars.staging',
+            'worker\\.dev.vars', 'worker/.dev.vars.bak',
+            'worker/.dev.vars.production.old',
+        ):
+            with self.subTest(sensitive=path):
+                self.assertTrue(_potential_secret(path))
+        for path in (
+            '.dev.vars.example', '.dev.vars.sample',
+            'worker/.dev.vars.staging.template', '.dev.vars.dist.bak',
+            '.dev.vars.defaults', 'worker/wrangler.toml',
+        ):
+            with self.subTest(template=path):
+                self.assertFalse(_potential_secret(path))
+
+    @unittest.skipUnless(shutil.which('git'), 'Git not installed')
+    def test_tracked_cloudflare_dev_vars_reported_without_values(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+            (root / '.dev.vars').write_text('API_KEY=do-not-display\\n')
+            (root / '.dev.vars.example').write_text('API_KEY=placeholder\\n')
+            subprocess.run(['git', '-C', str(root), 'add', '.dev.vars', '.dev.vars.example'],
+                           check=True, capture_output=True)
+            result = audit_tracked_files(root)
+            self.assertEqual(result['tracked_files'], 2)
+            self.assertEqual(result['candidates'], ['.dev.vars'])
+            self.assertNotIn('do-not-display', str(result))
+
     def test_git_missing_returns_explanation(self):
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as temp, patch('devpilot.audit.shutil.which', return_value=None):
