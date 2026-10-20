@@ -48,12 +48,17 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.azure', 'msal_token_cache.json'),
     ('.azure', 'msal_token_cache.bin'),
     ('.terraform.d', 'credentials.tfrc.json'),
+    ('gcloud', 'credentials.db'),
+    ('gcloud', 'access_tokens.db'),
 })
 # GitHub CLI stores OAuth tokens in this precise path.
 SENSITIVE_CLI_LOCATIONS = frozenset({
     ('.config', 'gh', 'hosts.yml'),
     ('.config', 'gh', 'hosts.yaml'),
 })
+
+# Token files in these AWS CLI directories have arbitrary JSON filenames.
+CLOUD_TOKEN_CACHE_DIRS = frozenset({('.aws', 'cli', 'cache'), ('.aws', 'sso', 'cache')})
 
 
 def classify(path: str) -> str | None:
@@ -82,6 +87,8 @@ def classify(path: str) -> str | None:
         if name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
             return None
         return 'environment file'
+    if len(parts) >= 4 and parts[-4:-1] in CLOUD_TOKEN_CACHE_DIRS and name.endswith('.json'):
+        return 'potential cloud CLI token cache'
     if len(parts) >= 2 and parts[-2:] in SENSITIVE_LOCATIONS:
         return 'potential credential configuration'
     if len(parts) >= 3 and parts[-3:] in SENSITIVE_CLI_LOCATIONS:
