@@ -52,6 +52,9 @@ func discoverDotnet(root string) (dotnetInventory, error) {
 	sort.Strings(out.Languages)
 	sort.Strings(projects)
 	sort.Strings(solutions)
+	if out.Found && len(out.Languages) == 0 {
+		out.Languages = []string{".NET"}
+	}
 	// Prefer exactly one solution over project files; otherwise only select a
 	// project if it is the single project and there are no solutions.
 	switch {
