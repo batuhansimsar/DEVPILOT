@@ -27,7 +27,7 @@ def parse_pipfile_dependencies(content: str) -> dict[str, list[str]]:
     """
     try:
         manifest = tomllib.loads(content.removeprefix("\ufeff"))
-    except tomllib.TOMLDecodeError:
+    except (tomllib.TOMLDecodeError, RecursionError):
         raise ValueError("invalid Pipfile TOML") from None
 
     result: dict[str, list[str]] = {}
