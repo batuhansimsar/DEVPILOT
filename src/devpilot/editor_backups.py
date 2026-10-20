@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-_EMACS_NUMBERED_BACKUP = re.compile(r'\\.~[0-9]+~\\Z')
+_EMACS_NUMBERED_BACKUP = re.compile(r'\.~[0-9]+~\Z')
 
 
 def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, bool]:
