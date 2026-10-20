@@ -27,11 +27,13 @@ SKIP_DIRS = frozenset({
 })
 LANGUAGES = {
     '.py': 'Python', '.js': 'JavaScript', '.jsx': 'JavaScript',
-    '.ts': 'TypeScript', '.tsx': 'TypeScript', '.cs': 'C#',
+    '.mjs': 'JavaScript', '.cjs': 'JavaScript',
+    '.ts': 'TypeScript', '.tsx': 'TypeScript',
+    '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
     '.cc': 'C++', '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
-    '.svelte': 'Svelte', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
+    '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
 }
 KEY_FILES = frozenset({
