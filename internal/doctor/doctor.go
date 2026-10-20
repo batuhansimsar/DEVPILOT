@@ -215,7 +215,7 @@ func Inspect(root string) (Report, error) {
 				}
 				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
 					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
-					r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
+					r.Tests = &TestCommand{Executable: executable, Arguments: nodeTestArgs(executable)}
 				}
 				tool(executable, manager+" package manager")
 			}
