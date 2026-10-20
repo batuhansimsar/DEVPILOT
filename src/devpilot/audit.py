@@ -98,14 +98,22 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
              'ls-files', '--cached', '-z'],
             capture_output=True, timeout=10, check=False, stdin=subprocess.DEVNULL,
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        report['error'] = f'Cannot inspect Git index: {exc}'
+    except subprocess.TimeoutExpired:
+        report['error'] = 'Cannot inspect Git index: timed out'
+        return report
+    except OSError:
+        report['error'] = 'Cannot inspect Git index: command or I/O error'
         return report
     if completed.returncode:
         report['error'] = 'Not a readable Git worktree'
         return report
     if len(completed.stdout) > _MAX_INDEX_BYTES:
         report['error'] = 'Git index output exceeds 8 MiB safety limit'
+        return report
+    # ls-files -z terminates every filename with NUL. Missing the final
+    # terminator means incomplete output, not proof that the index is clean.
+    if completed.stdout and not completed.stdout.endswith(b'\0'):
+        report['error'] = 'Incomplete Git index output (missing record terminator)'
         return report
     paths = completed.stdout.split(b'\0')
     if len(paths) - (1 if paths[-1] == b'' else 0) > _MAX_TRACKED_PATHS:
