@@ -109,10 +109,14 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
         # indefinitely waiting for EOF from those unrelated descendants.
         for thread in threads:
             thread.join(timeout=0.5)
+    # A descendant can inherit a pipe and outlive the direct child. In that
+    # case the bounded join returns before EOF, so captured output is not
+    # complete even if it never reached the byte cap.
+    incomplete_streams = [thread.is_alive() for thread in threads]
     # Preserve diagnostic output even when a timeout killed the process.
     # Both streams remain bounded and subject to the same truncation flags.
     result['stdout'], stdout_trimmed = _decode_bounded(stdout_tail)
     result['stderr'], stderr_trimmed = _decode_bounded(stderr_tail)
-    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES or stdout_trimmed
-    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES or stderr_trimmed
+    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES or stdout_trimmed or incomplete_streams[0]
+    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES or stderr_trimmed or incomplete_streams[1]
     return result
