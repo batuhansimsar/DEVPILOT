@@ -133,6 +133,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Java", parse_maven_dependencies(content)
     if name == "Cargo.toml":
         return "Rust", parse_cargo_dependencies(content)
+    if name == "Directory.Packages.props":
+        return ".NET", parse_dotnet_dependencies(content, central=True)
     if name.lower().endswith((".csproj", ".fsproj", ".vbproj")):
         return ".NET", parse_dotnet_dependencies(content)
     raise ValueError("unsupported manifest")
@@ -162,6 +164,7 @@ def scan(path: str | Path) -> dict:
         for filename in sorted(filenames):
             if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock")
                     or _is_requirements_manifest(filename)
+                    or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
             filepath = folder / filename
