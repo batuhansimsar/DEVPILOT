@@ -37,6 +37,25 @@ class BoundedProcessTests(unittest.TestCase):
         self.assertTrue(result['stdout_truncated'])
         self.assertTrue(result['stderr_truncated'])
 
+    def test_invalid_utf8_cannot_expand_past_output_byte_limit(self):
+        # Each invalid byte decodes to U+FFFD (three UTF-8 bytes). Both
+        # reported streams must still respect MAX_OUTPUT_BYTES after decoding.
+        result = self.call_python(
+            "import os; os.write(1, b'\\xff'*20000 + b'OUT-END'); "
+            "os.write(2, b'\\xfe'*20000 + b'ERR-END')"
+        )
+        self.assertEqual(result['exit_code'], 0)
+        for stream, suffix in (('stdout', 'OUT-END'), ('stderr', 'ERR-END')):
+            with self.subTest(stream=stream):
+                self.assertLessEqual(len(result[stream].encode('utf-8')), MAX_OUTPUT_BYTES)
+                self.assertTrue(result[stream].endswith(suffix))
+                self.assertTrue(result[stream + '_truncated'])
+
+    def test_invalid_utf8_short_output_still_uses_replacement_character(self):
+        result = self.call_python("import os; os.write(1, b'\\xff' * 2)")
+        self.assertEqual(result['stdout'], '\ufffd' * 2)
+        self.assertFalse(result['stdout_truncated'])
+
     def test_nonzero_exit_preserved(self):
         result = self.call_python('import sys; sys.exit(7)')
         self.assertEqual(result['exit_code'], 7)

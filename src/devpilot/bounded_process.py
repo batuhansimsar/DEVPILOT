@@ -33,6 +33,19 @@ def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int]) -> None:
         stream.close()
 
 
+def _decode_bounded(tail: bytearray) -> tuple[str, bool]:
+    """Return UTF-8-safe output without expanding beyond the byte budget.
+
+    Replacing malformed input with U+FFFD can triple the encoded size. Trim
+    from the left *after* replacement to keep the latest diagnostic output.
+    A cut through a UTF-8 sequence is dropped rather than adding new bytes.
+    """
+    decoded = tail.decode('utf-8', errors='replace')
+    encoded = decoded.encode('utf-8')
+    if len(encoded) <= MAX_OUTPUT_BYTES:
+        return decoded, False
+    return encoded[-MAX_OUTPUT_BYTES:].decode('utf-8', errors='ignore'), True
+
 def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     """Execute argv without a shell and return bounded output from each pipe.
 
@@ -79,8 +92,8 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
             thread.join(timeout=0.5)
     # Preserve diagnostic output even when a timeout killed the process.
     # Both streams remain bounded and subject to the same truncation flags.
-    result['stdout'] = stdout_tail.decode('utf-8', errors='replace')
-    result['stderr'] = stderr_tail.decode('utf-8', errors='replace')
-    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES
-    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES
+    result['stdout'], stdout_trimmed = _decode_bounded(stdout_tail)
+    result['stderr'], stderr_trimmed = _decode_bounded(stderr_tail)
+    result['stdout_truncated'] = stdout_total[0] > MAX_OUTPUT_BYTES or stdout_trimmed
+    result['stderr_truncated'] = stderr_total[0] > MAX_OUTPUT_BYTES or stderr_trimmed
     return result
