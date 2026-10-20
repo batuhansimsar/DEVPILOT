@@ -78,11 +78,12 @@ func Markdown(w io.Writer, s Snapshot) error {
 		if strings.HasPrefix(f.Code, "git-") {
 			continue
 		}
-		message := f.Message
+		message, remedy := f.Message, f.Remedy
 		if strings.HasPrefix(f.Code, "env-") {
 			message = "Environment configuration observation (variable names and values redacted)."
+			remedy = "Review environment configuration privately."
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", clean(f.Level), clean(f.Code), clean(message), clean(f.Remedy))
+		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", clean(f.Level), clean(f.Code), clean(message), clean(remedy))
 		n++
 	}
 	if n == 0 {
