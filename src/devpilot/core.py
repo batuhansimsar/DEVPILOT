@@ -10,6 +10,8 @@ import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
+
+from .envcheck import inspect_env
 from typing import Any
 
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
@@ -177,6 +179,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
+    environment = inspect_env(root)
     if 'Node.js' in found:
         package, _ = _read_package_json(root)
         if package is not None:
@@ -189,7 +192,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
             tools.append({'name': manager, 'available': bool(shutil.which(manager)), 'required_by': ['Node.js']})
     missing = [t['name'] for t in tools if t['required_by'] and not t['available']]
     return {'path': str(root), 'project_types': found, 'tools': tools,
-            'warnings': issues + [f'Missing {name} required by detected project' for name in missing],
+            'environment': environment, 'warnings': issues + [f'Missing {name} required by detected project' for name in missing],
             'ok': not issues and not missing}
 
 
