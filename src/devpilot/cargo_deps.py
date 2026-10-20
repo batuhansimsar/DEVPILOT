@@ -9,6 +9,56 @@ _DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za
 _NAME = re.compile(r'[A-Za-z0-9_-]+\Z')
 
 
+def _without_multiline_strings(line: str, multiline: str | None) -> tuple[str, str | None]:
+    """Mask TOML multiline string contents, including fake table headers.
+
+    Keep the text outside the string so a dependency assigned a multiline
+    string remains visible. An opening delimiter may occur anywhere in the
+    line, including after an assignment or in an unrelated metadata value.
+    """
+    result: list[str] = []
+    quote = ''
+    escaped = False
+    index = 0
+    while index < len(line):
+        if multiline:
+            if line.startswith(multiline, index) and not escaped:
+                multiline = None
+                index += 3
+                continue
+            if multiline == '"""' and line[index] == '\\':
+                escaped = not escaped
+            else:
+                escaped = False
+            index += 1
+            continue
+        char = line[index]
+        if quote:
+            result.append(char)
+            if quote == '"' and escaped:
+                escaped = False
+            elif quote == '"' and char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = ''
+            index += 1
+            continue
+        delimiter = next((item for item in ('"""', "'''") if line.startswith(item, index)), None)
+        if delimiter:
+            multiline = delimiter
+            escaped = False
+            index += 3
+            continue
+        if char == '#':
+            result.append(line[index:])
+            break
+        result.append(char)
+        if char in ('"', "'"):
+            quote = char
+        index += 1
+    return ''.join(result), multiline
+
+
 def _without_comment(line: str) -> str:
     """Ignore TOML comments, retaining hashes inside quoted table names.
 
@@ -99,12 +149,16 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
 
     Supports ``[dependencies]``/``[dependencies.foo]`` and equivalent
     target-specific, workspace, build and dev dependency sections. Bare and
-    quoted TOML keys are accepted. Never includes version specifications or credentials in the output.
+    quoted TOML keys are accepted. Multiline string bodies are ignored, so
+    embedded table-like text cannot invent dependency names. Never includes
+    version specifications or credentials in the output.
     """
     found: dict[str, set[str]] = {}
     active_group = ''
+    multiline: str | None = None
     for raw in content.splitlines():
-        line = _without_comment(raw).strip()
+        masked, multiline = _without_multiline_strings(raw, multiline)
+        line = _without_comment(masked).strip()
         if line.startswith('['):
             header = _table_header(line)
             # An unrecognized table must not keep the previous active group.
