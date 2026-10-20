@@ -121,8 +121,9 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
         report['error'] = 'Git index output exceeds 8 MiB safety limit'
         return report
     # Treat incomplete records as errors instead of reporting a clean index.
-    if output and not output.endswith(b'\0'):
-        report['error'] = 'Incomplete Git index output (missing record terminator)'
+    if output and (not output.endswith(b'\0')
+                   or output.startswith(b'\0') or b'\0\0' in output):
+        report['error'] = 'Malformed Git index output (unterminated or empty record)'
         return report
     paths = output.split(b'\0')
     if len(paths) - (1 if paths[-1] == b'' else 0) > _MAX_TRACKED_PATHS:
