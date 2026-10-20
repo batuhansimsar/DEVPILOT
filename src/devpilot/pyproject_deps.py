@@ -161,6 +161,7 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
         # Iterative DFS handles deeply nested group includes without Python's
         # recursion limit, while keeping cycles and unknown references errors.
         resolved: dict[str, set[str]] = {}
+        include_depth: dict[str, int] = {}
         visiting: set[str] = set()
         for start in groups:
             pending = [(start, False)]
@@ -170,11 +171,19 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
                     continue
                 if finish:
                     names: set[str] = set()
+                    longest_chain = 0
                     for entry in groups[current]:
                         if isinstance(entry, str):
                             names.update(_requirements([entry], 'dependency-groups'))
                         else:
-                            names.update(resolved[_canonical(entry['include-group'])])
+                            reference = _canonical(entry['include-group'])
+                            names.update(resolved[reference])
+                            longest_chain = max(longest_chain, include_depth[reference] + 1)
+                    # Track the longest nested include chain regardless of
+                    # declaration order or already-cached child groups.
+                    if longest_chain > 64:
+                        raise ValueError('pyproject.toml dependency-groups include depth too deep')
+                    include_depth[current] = longest_chain
                     resolved[current] = names
                     visiting.remove(current)
                     continue
