@@ -118,11 +118,10 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
         # The scanner decodes UTF-8-SIG; direct callers may supply text with
         # one leading BOM. Do not strip embedded or repeated BOMs.
         data = tomllib.loads(content.removeprefix('\ufeff'))
-    except (tomllib.TOMLDecodeError, RecursionError):
-        # Keep untrusted TOML and parser diagnostics out of traceback causes.
-        raise ValueError('Invalid pyproject.toml TOML') from None
-    except RecursionError:
-        # Untrusted deeply nested TOML must not crash direct parser callers.
+    except (tomllib.TOMLDecodeError, ValueError, OverflowError, RecursionError):
+        # TOML numeric conversion can raise ValueError for very large integers
+        # (or OverflowError in alternate parsers). Neither the raw parser
+        # diagnostic nor potentially private manifest content should escape.
         raise ValueError('Invalid pyproject.toml TOML') from None
 
     found: dict[str, set[str]] = {}
