@@ -24,6 +24,7 @@ from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .pipenv_deps import parse_pipfile_lock
+from .gemfile_lock import parse_gemfile_lock
 from .node_deps import parse_node_dependency_groups
 from .uv_lock import parse_uv_lock
 
@@ -123,6 +124,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
             if match:
                 matches.add(PYTHON_CANONICAL_SEPARATOR.sub("-", match.group(1)).lower())
         return "Python", {"requirements": sorted(matches)}
+    if name == "Gemfile.lock":
+        return "Ruby", {"locked": parse_gemfile_lock(content)}
     if name == "Pipfile.lock":
         return "Python", parse_pipfile_lock(content)
     if name == "uv.lock":
@@ -162,7 +165,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock")
+            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "Gemfile.lock")
                     or _is_requirements_manifest(filename)
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
