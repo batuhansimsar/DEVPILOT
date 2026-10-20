@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/outputguard"
 )
 
 func usage(w io.Writer) {
@@ -116,10 +117,20 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		defer cancel()
 		cmd := exec.CommandContext(cctx, report.Tests.Executable, report.Tests.Arguments...)
 		cmd.Dir = report.Path
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
+		// Buffer before printing: raw test output can include credentials.
+		outGuard, errGuard := &outputguard.Buffer{}, &outputguard.Buffer{}
+		cmd.Stdout, cmd.Stderr = outGuard, errGuard
 		fmt.Fprintf(stderr, "Running trusted project tests: %s %s\n", report.Tests.Executable, strings.Join(report.Tests.Arguments, " "))
-		if err := cmd.Run(); err != nil {
+		runErr := cmd.Run()
+		if err := outGuard.Flush(stdout); err != nil {
+			fmt.Fprintln(stderr, "Cannot write sanitized test output:", err)
+			return 1
+		}
+		if err := errGuard.Flush(stderr); err != nil {
+			fmt.Fprintln(stderr, "Cannot write sanitized test errors:", err)
+			return 1
+		}
+		if err := runErr; err != nil {
 			if errors.Is(cctx.Err(), context.DeadlineExceeded) {
 				fmt.Fprintln(stderr, "Test timed out.")
 			} else {
