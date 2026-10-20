@@ -3,6 +3,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
+from urllib.error import URLError
 
 from devpilot.httpcheck import http_check
 
@@ -101,11 +102,19 @@ class HTTPCheckTests(unittest.TestCase):
         self.assertTrue(result['reachable'], result)
         self.assertEqual(result['status'], 204)
 
+    def test_network_failure_has_consistent_health_field(self):
+        with patch('devpilot.httpcheck.build_opener') as opener:
+            opener.return_value.open.side_effect = URLError('unreachable')
+            result = http_check(self.url('/health'))
+        self.assertFalse(result['reachable'])
+        self.assertFalse(result['healthy'])
+        self.assertIsNone(result['status'])
+
     def test_invalid_urls_rejected(self):
         for value in (
             'file:///etc/passwd', 'http://user:pass@example.org/',
             'http://@example.org/', 'http://', 'http://example.org:99999',
-            'http://example.org:0', 'http://example.org/\npath',
+            'http://example.org:', 'http://example.org:0', 'http://example.org/\npath',
             'http://example.org/\x1b[31m',
         ):
             with self.subTest(value=value), self.assertRaises(ValueError):
