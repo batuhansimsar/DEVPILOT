@@ -35,8 +35,8 @@ def _without_go_comments(content: str) -> str:
     A comment is whitespace to the Go lexer, not arbitrary string removal:
     preserving line breaks prevents a declaration after a multiline comment
     from joining an incomplete requirement on the preceding line. Quoted and
-    raw Go strings retain literal comment delimiters. An unclosed block comment
-    invalidates the file, so fail closed rather than reporting a partial scan.
+    raw Go strings retain literal comment delimiters. Unclosed block comments or string literals invalidate the file, so fail
+    closed rather than reporting a partial scan.
     """
     output: list[str] = []
     index = 0
@@ -45,6 +45,8 @@ def _without_go_comments(content: str) -> str:
     while index < len(content):
         character = content[index]
         if quote:
+            if quote == '"' and character in '\r\n':
+                raise ValueError('go.mod contains unterminated string literal')
             output.append(character)
             if character in '\r\n':
                 # go.mod requirements are line-oriented. An unterminated
@@ -84,6 +86,8 @@ def _without_go_comments(content: str) -> str:
             continue
         output.append(character)
         index += 1
+    if quote:
+        raise ValueError('go.mod contains unterminated string literal')
     return ''.join(output)
 
 
