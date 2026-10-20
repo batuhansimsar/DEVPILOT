@@ -17,6 +17,7 @@ from pathlib import Path
 
 from .walk import walk_project, _printable
 from .cargo_deps import parse_cargo_dependencies
+from .go_mod import parse_go_requirements
 from .composer_deps import parse_composer_dependencies
 from .maven_deps import parse_maven_dependencies
 
@@ -27,7 +28,6 @@ MAX_FILES = 500
 # Recognize PEP 508 "name @ URL" while retaining only the package name.
 PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|@\s*\S|$))")
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
-GO_NAME = re.compile(r"^\s*([A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+)\s+v\S+")
 
 
 def _reject_nonfinite_number(_value: str) -> None:
@@ -94,28 +94,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
                 matches.add(PYTHON_CANONICAL_SEPARATOR.sub("-", match.group(1)).lower())
         return "Python", {"requirements": sorted(matches)}
     if name == "go.mod":
-        names = set()
-        inside = False
-        for line in content.splitlines():
-            line = line.split("//", 1)[0].strip()
-            if inside and line == ")":
-                inside = False
-                continue
-            # Go permits spaces or tabs between the require keyword and its argument.
-            declaration = re.match(r"^require[ \t]+(.+)$", line)
-            if declaration:
-                line = declaration.group(1).strip()
-                if line == "(":
-                    inside = True
-                    continue
-            elif not inside:
-                continue
-            match = GO_NAME.match(line)
-            if match:
-                names.add(match.group(1))
-        return "Go", {"require": sorted(names)}
-    if name == "pom.xml":
-        return "Java", parse_maven_dependencies(content)
+        return "Go", {"require": parse_go_requirements(content)}
     if name == "composer.json":
         return "PHP", parse_composer_dependencies(content)
     if name == "Cargo.toml":
