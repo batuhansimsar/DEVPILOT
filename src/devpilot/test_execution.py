@@ -19,6 +19,8 @@ def execute_test_commands(
     annotate those not executed rather than representing them as executed.
     Each result is a snapshot: a runner may reuse or mutate its return value
     while executing subsequent commands, but earlier reports must not change.
+    Pass independent argument lists so a custom runner cannot corrupt the
+    discovered command plan, including when it raises an exception.
     """
     if not commands:
         return False
@@ -30,7 +32,8 @@ def execute_test_commands(
     passed = True
     for index, item in enumerate(commands):
         try:
-            result = runner(item['argv'], root, timeout)
+            # The runner owns this copy, never the command plan used in reports.
+            result = runner(list(item['argv']), root, timeout)
         except subprocess.TimeoutExpired:
             # TimeoutExpired may contain the command, output, or private paths;
             # do not serialize exception contents into the JSON report.
