@@ -110,15 +110,22 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                         result['tls_cipher'] = cipher_name
                     if type(cipher_bits) is int and cipher_bits > 0:
                         result['tls_cipher_bits'] = cipher_bits
-                if certificate and certificate.get('notAfter'):
-                    expires = datetime.datetime.fromtimestamp(
-                        ssl.cert_time_to_seconds(certificate['notAfter']),
-                        tz=datetime.timezone.utc,
-                    )
-                    result['expires_at'] = expires.isoformat().replace('+00:00', 'Z')
-                    remaining_seconds = (expires - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
-                    result['expires_in_days'] = max(0, int(remaining_seconds // 86400))
-                    result['expires_soon'] = remaining_seconds <= 30 * 86400
+                # Optional certificate expiry metadata must not invalidate an
+                # otherwise successfully verified TLS connection.
+                expiry_text = certificate.get('notAfter') if isinstance(certificate, dict) else None
+                if isinstance(expiry_text, str) and expiry_text:
+                    try:
+                        expires = datetime.datetime.fromtimestamp(
+                            ssl.cert_time_to_seconds(expiry_text),
+                            tz=datetime.timezone.utc,
+                        )
+                    except (ValueError, TypeError, OverflowError, OSError):
+                        pass
+                    else:
+                        result['expires_at'] = expires.isoformat().replace('+00:00', 'Z')
+                        remaining_seconds = (expires - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+                        result['expires_in_days'] = max(0, int(remaining_seconds // 86400))
+                        result['expires_soon'] = remaining_seconds <= 30 * 86400
         except (ssl.SSLError, OSError, ValueError, OverflowError) as exc:
             result['error'] = str(exc)
     result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
