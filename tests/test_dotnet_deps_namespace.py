@@ -29,6 +29,29 @@ class DotnetDependencyNamespaceTests(unittest.TestCase):
         </Project>'''
         self.assertEqual(parse_dotnet_dependencies(content), {'PackageReference': ['Serilog']})
 
+    def test_foreign_wrapper_cannot_smuggle_unnamespaced_references(self):
+        content = '''<Project xmlns:ext="urn:plugin">
+          <ext:Wrapper><ItemGroup><PackageReference Include="Smuggled"/>
+          </ItemGroup></ext:Wrapper>
+          <ItemGroup>
+            <ext:Wrapper><PackageReference Include="AlsoSmuggled"/></ext:Wrapper>
+            <PackageReference Include="Genuine"/>
+          </ItemGroup>
+        </Project>'''
+        self.assertEqual(parse_dotnet_dependencies(content), {'PackageReference': ['Genuine']})
+
+    def test_package_reference_outside_itemgroup_is_ignored(self):
+        content = '''<Project>
+          <PropertyGroup><PackageReference Include="NotAnItem"/></PropertyGroup>
+          <PackageReference Include="TopLevelFake"/>
+          <ItemGroup><PackageReference Include="Actual"/>
+            <When Condition="true"><PackageReference Include="Conditional"/></When>
+          </ItemGroup>
+        </Project>'''
+        self.assertEqual(parse_dotnet_dependencies(content), {
+            'PackageReference': ['Actual', 'Conditional'],
+        })
+
     def test_foreign_project_root_is_rejected(self):
         content = '''<other:Project xmlns:other="urn:external">
             <other:PackageReference Include="fake"/>
