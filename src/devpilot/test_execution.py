@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable
 
@@ -16,6 +17,8 @@ def execute_test_commands(
 
     When failing fast, retain all discovered commands for the JSON report and
     annotate those not executed rather than representing them as executed.
+    Each result is a snapshot: a runner may reuse or mutate its return value
+    while executing subsequent commands, but earlier reports must not change.
     """
     if not commands:
         return False
@@ -44,11 +47,13 @@ def execute_test_commands(
             # Defensive boundary for custom test runners; never crash when a
             # runner accidentally returns None or a non-mapping value.
             result = {'exit_code': None, 'error': 'Test runner returned an invalid result'}
-        item['result'] = result
-        exit_code = result.get('exit_code')
+        # Keep each command's report independent of a custom runner's mutable
+        # buffer, including nested metadata such as captured output chunks.
+        item['result'] = deepcopy(result)
+        exit_code = item['result'].get('exit_code')
         # Runner-reported errors invalidate the run even when a subprocess
         # happens to return zero (e.g. a failed output-capture stage).
-        if type(exit_code) is not int or exit_code != 0 or result.get('error'):
+        if type(exit_code) is not int or exit_code != 0 or item['result'].get('error'):
             passed = False
             if fail_fast:
                 for skipped in commands[index + 1:]:
