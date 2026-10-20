@@ -12,6 +12,8 @@ from .walk import walk_project
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
     'pnpm-workspace.yaml': 'Node.js',
+    'deno.json': 'Deno',
+    'deno.jsonc': 'Deno',
     'pyproject.toml': 'Python',
     'requirements.txt': 'Python',
     'setup.py': 'Python',
