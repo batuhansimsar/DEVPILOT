@@ -24,6 +24,7 @@ EXAMPLE_NAMES = frozenset({
 })
 EXACT_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519',
+    'id_ecdsa_sk', 'id_ed25519_sk',
     'credentials.json', 'secrets.json', 'service-account.json',
     'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
