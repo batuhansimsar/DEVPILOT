@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # Python 3.10
 
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _SEPARATOR = re.compile(r"[-_.]+")
+_MAX_PACKAGE_NAME_LENGTH = 214
 
 
 def parse_uv_lock(content: str) -> list[str]:
@@ -38,7 +39,8 @@ def parse_uv_lock(content: str) -> list[str]:
         if not isinstance(package, dict):
             raise ValueError("uv.lock packages must be tables with valid names")
         name = package.get("name")
-        if not isinstance(name, str) or not _PACKAGE_NAME.fullmatch(name):
+        if (not isinstance(name, str) or len(name) > _MAX_PACKAGE_NAME_LENGTH
+                or not _PACKAGE_NAME.fullmatch(name)):
             raise ValueError("uv.lock packages must be tables with valid names")
         names.add(_SEPARATOR.sub("-", name).lower())
     return sorted(names)
