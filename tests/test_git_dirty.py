@@ -23,6 +23,11 @@ class GitDirtyTests(unittest.TestCase):
         self.assertIsNone(is_git_dirty('', 128))
         self.assertIsNone(is_git_dirty('## main\n', None))
 
+    def test_missing_status_output_is_unknown_not_clean(self):
+        for output in ('', '\n', '   \n'):
+            with self.subTest(output=output):
+                self.assertIsNone(is_git_dirty(output, 0))
+
     def test_output_tail_still_detects_changes(self):
         self.assertTrue(is_git_dirty('ile\n M path.py\n', 0))
 

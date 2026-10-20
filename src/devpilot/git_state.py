@@ -4,14 +4,15 @@ from __future__ import annotations
 
 
 def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
-    """Return True for changes, False for clean, and None when Git failed.
+    """Return True for changes, False for clean, and None for indeterminate status.
 
     The caller must invoke ``git status --porcelain=v1 --branch``. The first
     line starts with ``## `` and describes the branch, not a file change.
     All subsequent nonempty lines represent staged, unstaged, untracked, or
     unmerged entries. The answer remains conservative if a long status has
-    been truncated from the beginning by the command runner.
+    been truncated from the beginning by the command runner. Missing output
+    cannot prove a clean working tree, even if Git reports exit code zero.
     """
-    if exit_code != 0:
+    if exit_code != 0 or not stdout.strip():
         return None
     return any(line and not line.startswith('## ') for line in stdout.splitlines())
