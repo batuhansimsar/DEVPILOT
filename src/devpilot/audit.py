@@ -44,6 +44,9 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('glab-cli', 'config.yml'), ('glab-cli', 'config.yaml'),
     # Python package manager authentication files are not ordinary manifests.
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
+    # Build-tool settings can contain plaintext package registry credentials.
+    ('.m2', 'settings.xml'), ('.gradle', 'gradle.properties'),
+    ('nuget', 'nuget.config'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
     ('.streamlit', 'secrets.toml'),
 })
