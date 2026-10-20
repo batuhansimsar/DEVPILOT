@@ -12,7 +12,7 @@ class ManifestBOMTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "package.json").write_bytes(
-                b'\\xef\\xbb\\xbf{"name":"example","scripts":{"test":"node --test"}}'
+                b'\xef\xbb\xbf{"name":"example","scripts":{"test":"node --test"}}'
             )
             package, error = read_package_json(root)
             self.assertIsNone(error)
@@ -22,7 +22,7 @@ class ManifestBOMTests(unittest.TestCase):
     def test_invalid_utf8_still_rejected_without_dumping_bytes(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            (root / "package.json").write_bytes(b'\\xef\\xbb\\xbf{"secret":"\\xff"}')
+            (root / "package.json").write_bytes(b'\xef\xbb\xbf{"secret":"\xff"}')
             package, error = read_package_json(root)
             self.assertIsNone(package)
             self.assertEqual(error, "Invalid package.json: must be UTF-8")
