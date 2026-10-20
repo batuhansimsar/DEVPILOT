@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import unicodedata
+import re
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,16 @@ LOCKFILES = {
     'npm-shrinkwrap.json': 'npm',
 }
 SUPPORTED = frozenset({'npm', 'pnpm', 'yarn', 'bun'})
+# Corepack's packageManager field names a fixed release, not a range, tag,
+# arbitrary URL or command. SemVer prereleases/builds and integrity suffixes
+# are permitted. An invalid declaration must not defeat lockfile detection.
+_VERSION = re.compile(
+    r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
+    r'(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
+    r'(?:\+(?:[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*|'
+    r'sha(?:224|256|384|512)\.[A-Za-z0-9+/=]+))?\Z'
+)
+
 
 
 def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str], str | None]:
@@ -30,12 +40,9 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
     declared = None
     if isinstance(declaration, str):
         candidate, separator, version = declaration.partition('@')
-        # Metadata comes from a repository: reject malformed/visually hidden
-        # version strings before allowing them to override lockfile detection.
-        valid_version = (
-            0 < len(version) <= 128
-            and not any(ch.isspace() or unicodedata.category(ch).startswith('C') for ch in version)
-        )
+        # Reject malformed Corepack versions rather than treating arbitrary
+        # non-whitespace strings as explicit package-manager declarations.
+        valid_version = 0 < len(version) <= 128 and _VERSION.fullmatch(version) is not None
         if separator and candidate in SUPPORTED and valid_version:
             declared = candidate
     families = {LOCKFILES[name] for name in locks}
