@@ -13,6 +13,7 @@ _PRIVATE_NAMES = frozenset({
     'application_default_credentials.json',
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
+    '.terraformrc', 'credentials.tfrc.json',
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
 _SENSITIVE_LOCATIONS = frozenset({
@@ -20,6 +21,7 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('gh', 'hosts.yml'), ('gh', 'hosts.yaml'),
     ('.azure', 'accesstokens.json'), ('.azure', 'msal_token_cache.json'),
     ('.azure', 'msal_token_cache.bin'),
+    ('gcloud', 'credentials.db'), ('gcloud', 'access_tokens.db'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 _ENV_EXAMPLES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
