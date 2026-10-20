@@ -313,10 +313,9 @@ func Inspect(root string) (Report, error) {
 		if err != nil {
 			add("info", "git-head-unreadable", "Cannot inspect Git HEAD", "Inspect Git metadata manually.")
 		} else if found {
-			value := strings.TrimSpace(string(head))
 			if branch, ok := parseGitHeadBranch(head); ok {
 				add("info", "git-branch", "Git branch: "+branch+" (working-tree status not inspected)", "Run git status yourself in a trusted workspace.")
-			} else if len(value) == 40 || len(value) == 64 {
+			} else if isGitDetachedHead(head) {
 				add("info", "git-detached", "Git HEAD is detached", "Run git status in a trusted workspace.")
 			}
 		}
