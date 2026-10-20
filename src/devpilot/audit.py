@@ -6,6 +6,7 @@ from pathlib import Path, PurePosixPath
 import shutil
 from typing import Any
 
+from .firebase_credentials import is_firebase_service_account_key
 from .secret_audit import _tracked_paths
 
 _PRIVATE_NAMES = frozenset({
@@ -93,7 +94,8 @@ def _potential_secret(path: str) -> bool:
         ) or any(name.endswith(suffix) or suffix + '.' in name
                  for suffix in _TERRAFORM_SENSITIVE_SUFFIXES)):
         return True
-    found = (name in _PRIVATE_NAMES or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
+    found = (name in _PRIVATE_NAMES or is_firebase_service_account_key(name)
+            or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
             or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
             or (len(parts) >= 4 and parts[-4:-1] in _CLOUD_TOKEN_CACHE_DIRS
