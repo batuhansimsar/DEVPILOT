@@ -8,7 +8,10 @@ import re
 # dots, underscores and hyphens. Go's modfile syntax is broader than package
 # identifiers; excluding these characters drops valid dependencies.
 # Paths with just one element (e.g. example.com) are valid too.
-_REQUIREMENT = re.compile(r"([A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)\s+(v\S+)\Z")
+# Go also permits double-quoted module paths in require declarations.
+_REQUIREMENT = re.compile(
+    r'(?P<quote>"?)(?P<module>[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)(?P=quote)\s+(v\S+)\Z'
+)
 
 
 def parse_go_requirements(content: str) -> list[str]:
@@ -39,5 +42,5 @@ def parse_go_requirements(content: str) -> list[str]:
                 continue
         match = _REQUIREMENT.fullmatch(entry)
         if match:
-            names.add(match.group(1))
+            names.add(match.group('module'))
     return sorted(names)
