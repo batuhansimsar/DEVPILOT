@@ -13,10 +13,13 @@ def gradle_test_command(root: Path, names: set[str], platform: str) -> tuple[lis
     additional checks here keep this helper safe when used independently.
     """
     if platform == 'nt':
-        # Windows file names are case-insensitive, so preserve the on-disk
-        # casing from discovery instead of requiring lowercase gradlew.bat.
-        for name in sorted(names):
-            if name.casefold() == 'gradlew.bat':
+        # Windows accepts both .bat and .cmd wrappers. Preserve the actual
+        # casing of root files, preferring Gradle's standard .bat launcher.
+        # Never accept arbitrary batch files or symlinks from a workspace.
+        for suffix in ('.bat', '.cmd'):
+            for name in sorted(names):
+                if name.casefold() != f'gradlew{suffix}':
+                    continue
                 wrapper = root / name
                 if wrapper.is_file() and not wrapper.is_symlink():
                     return [f'.\\{name}', 'test'], 'Gradle Windows wrapper'
