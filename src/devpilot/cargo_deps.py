@@ -50,6 +50,8 @@ def _without_multiline_strings(line: str, multiline: str | None) -> tuple[str, s
             continue
         delimiter = next((item for item in ('"""', "'''") if line.startswith(item, index)), None)
         if delimiter:
+            # Mask the contents, but preserve a safe nonempty value marker.
+            result.append('""')
             multiline = delimiter
             escaped = False
             index += 3
@@ -160,9 +162,15 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     found: dict[str, set[str]] = {}
     active_group = ''
     multiline: str | None = None
+    pending_dependency: tuple[str, str] | None = None
     # Mirror scanner decoding for direct UTF-8-SIG text callers.
     for raw in content.removeprefix('\ufeff').splitlines():
+        was_multiline = multiline is not None
         masked, multiline = _without_multiline_strings(raw, multiline)
+        if was_multiline and multiline is None and pending_dependency is not None:
+            group, name = pending_dependency
+            found.setdefault(group, set()).add(name)
+            pending_dependency = None
         line = _without_comment(masked).strip()
         if line.startswith('['):
             header = _table_header(line)
@@ -197,5 +205,10 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
         if active_group:
             match = _DEPENDENCY.match(line)
             if match:
-                found.setdefault(active_group, set()).add(next(part for part in match.groups() if part is not None))
+                name = next(part for part in match.groups() if part is not None)
+                if multiline is not None and not was_multiline:
+                    # An unterminated TOML string must not invent a dependency.
+                    pending_dependency = (active_group, name)
+                else:
+                    found.setdefault(active_group, set()).add(name)
     return {group: sorted(names) for group, names in found.items()}
