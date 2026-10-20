@@ -19,7 +19,9 @@ def parse_gemfile_lock(content: str) -> list[str]:
     names: set[str] = set()
     in_source = False
     in_specs = False
-    for line in content.splitlines():
+    # Some direct callers decode UTF-8 without stripping the file BOM.
+    # Only the initial BOM is a signature; interior BOMs remain untrusted data.
+    for line in content.removeprefix('\ufeff').splitlines():
         if line and not line[0].isspace():
             in_source = line.strip() in {'GEM', 'GIT', 'PATH'}
             in_specs = False
