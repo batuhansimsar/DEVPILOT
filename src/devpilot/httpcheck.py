@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from http.client import HTTPException
 import time
@@ -59,6 +60,18 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL contains an invalid authority') from None
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
+    # urlsplit accepts IPvFuture literals in square brackets, but urllib's
+    # transport does not support them, and the report would omit brackets.
+    # Reject trailing authority garbage as well, before any networking.
+    if parts.netloc.startswith('['):
+        try:
+            ipaddress.IPv6Address(parts.hostname)
+        except ValueError:
+            raise ValueError('URL host must be a valid bracketed IPv6 address') from None
+        closing = parts.netloc.find(']')
+        remainder = parts.netloc[closing + 1:]
+        if remainder and not remainder.startswith(':'):
+            raise ValueError('URL host contains an invalid bracketed IPv6 authority')
     # urllib needs an ASCII authority; internationalized paths and queries
     # can instead be encoded without changing the requested host.
     if not parts.netloc.isascii():
