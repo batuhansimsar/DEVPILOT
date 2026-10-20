@@ -42,10 +42,12 @@ def _potential_secret(path: str) -> bool:
         return False
     name = parts[-1]
     if name in _ENV_EXAMPLES or (
-        name.startswith('.env.') and name.endswith(_ENV_TEMPLATE_SUFFIXES)
+        (name.startswith('.env.') or '.env.' in name)
+        and name.endswith(_ENV_TEMPLATE_SUFFIXES)
     ):
         return False
-    if name == '.env' or name.startswith('.env.'):
+    if (name == '.env' or name.startswith('.env.')
+            or name.endswith('.env') or '.env.' in name):
         return True
     if name.endswith(_TERRAFORM_TEMPLATE_SUFFIXES):
         return False

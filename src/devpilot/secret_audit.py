@@ -68,7 +68,8 @@ def classify(path: str) -> str | None:
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
         return None
-    if name == '.env' or name.startswith('.env.'):
+    if (name == '.env' or name.startswith('.env.')
+            or name.endswith('.env') or '.env.' in name):
         # Example/template names are safe only when the template suffix is final.
         # A later .local or .production suffix may contain actual credentials.
         if name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
