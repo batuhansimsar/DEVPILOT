@@ -3,11 +3,33 @@
 from __future__ import annotations
 
 import datetime
+import errno
 import ipaddress
 import socket
 import ssl
 import time
 from typing import Any
+
+
+class _TLSBudgetExhausted(TimeoutError):
+    """A local timeout decision, distinct from external exception messages."""
+
+
+def _safe_tls_error(error: BaseException) -> str:
+    """Classify failures without echoing untrusted OS or TLS error details."""
+    if isinstance(error, _TLSBudgetExhausted):
+        return 'TLS handshake timeout budget exhausted before negotiation'
+    if isinstance(error, ssl.SSLCertVerificationError):
+        return 'certificate verification failed'
+    if isinstance(error, ssl.SSLError):
+        return 'TLS handshake failed'
+    if isinstance(error, TimeoutError):
+        return 'TLS handshake timed out'
+    if isinstance(error, ConnectionRefusedError):
+        return 'refused'
+    if isinstance(error, OSError):
+        return errno.errorcode.get(error.errno, 'network I/O error')
+    return 'TLS validation failed'
 
 
 def _tls_dial_host(host: str) -> str:
@@ -77,7 +99,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         connection = socket.create_connection((dial_host, port), timeout=timeout)
     except (OSError, TimeoutError) as exc:
         result['tcp_latency_ms'] = round((time.perf_counter() - tcp_start) * 1000, 1)
-        result['error'] = str(exc)
+        result['error'] = _safe_tls_error(exc)
         result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
         return result
 
@@ -93,7 +115,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
             # Recalculate immediately before negotiating TLS, not before SSL setup.
             remaining = timeout - (time.perf_counter() - tcp_start)
             if remaining <= 0:
-                raise TimeoutError('TLS handshake timeout exhausted before negotiation')
+                raise _TLSBudgetExhausted
             connection.settimeout(remaining)
             handshake_start = time.perf_counter()
             try:
@@ -135,6 +157,6 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                         result['expires_in_days'] = max(0, int(remaining_seconds // 86400))
                         result['expires_soon'] = remaining_seconds <= 30 * 86400
         except (ssl.SSLError, OSError, ValueError, OverflowError) as exc:
-            result['error'] = str(exc)
+            result['error'] = _safe_tls_error(exc)
     result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
     return result
