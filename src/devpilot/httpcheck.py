@@ -64,6 +64,12 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL host must not contain percent escapes')
     if any(char.isspace() for char in parts.hostname) or '\\' in parts.hostname:
         raise ValueError('URL host must not contain whitespace or backslashes')
+    # Reject malformed/overlong DNS labels before urllib starts a request.
+    # Otherwise socket IDNA encoding can raise an uncaught UnicodeError.
+    try:
+        parts.hostname.encode('idna')
+    except UnicodeError:
+        raise ValueError('URL host contains an invalid IDNA hostname') from None
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
