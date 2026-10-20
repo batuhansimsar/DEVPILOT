@@ -15,19 +15,25 @@ class PrefixedRequirementsTests(unittest.TestCase):
         for filename in (
             'requirements.txt', 'requirements.in', 'requirements-dev.txt',
             'dev-requirements.txt', 'test-requirements.in',
+            'dev_requirements.txt', 'local.requirements.in',
+            'dev_test-requirements.txt',
         ):
             with self.subTest(filename=filename):
                 self.assertTrue(is_requirements_manifest(filename))
         for filename in (
             'dev-requirements.md', 'requirements.md',
             'notrequirements.md', 'myrequirements.txt',
-            'dev-requirements.txt.bak',
+            'dev-requirements.txt.bak', 'dev--requirements.txt',
+            'dev__requirements.in', 'dev_-requirements.txt',
         ):
             with self.subTest(filename=filename):
                 self.assertFalse(is_requirements_manifest(filename))
 
     def test_prefixed_file_is_visible_in_deps_doctor_detection_and_workspaces(self):
-        for filename in ('dev-requirements.txt', 'test-requirements.in'):
+        for filename in (
+            'dev-requirements.txt', 'test-requirements.in',
+            'dev_requirements.txt', 'local.requirements.in',
+        ):
             with self.subTest(filename=filename), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
                 (root / filename).write_text('Requests>=2\n', encoding='utf-8')
