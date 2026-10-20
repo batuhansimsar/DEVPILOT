@@ -55,10 +55,14 @@ def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
         # The message must not reflect potentially secret-containing lockfile keys.
         if any(not _PACKAGE_NAME.fullmatch(name) for name in entries):
             raise ValueError(f"Pipfile.lock {group} contains invalid package names")
-        names = sorted({
-            _SEPARATOR.sub("-", name).lower()
-            for name in entries
-        })
-        if names:
-            groups[group] = names
+        normalized: set[str] = set()
+        for raw_name in entries:
+            name = _SEPARATOR.sub("-", raw_name).lower()
+            if name in normalized:
+                # Pip treats these spellings as one package. Silently merging
+                # them would conceal conflicting entries in the lockfile.
+                raise ValueError(f"Pipfile.lock {group} contains duplicate normalized package names")
+            normalized.add(name)
+        if normalized:
+            groups[group] = sorted(normalized)
     return groups
