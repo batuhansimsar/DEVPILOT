@@ -29,6 +29,11 @@ def parse_node_dependency_groups(manifest: dict[str, object]) -> dict[str, list[
             raise ValueError(f"package.json {group} contains an invalid package name")
         if any(not isinstance(version, str) for version in entries.values()):
             raise ValueError(f"package.json {group} versions must be strings")
+        # npm identifiers are case-insensitive in registry resolution. Distinct
+        # JSON keys differing only by case would silently report the same
+        # dependency twice (possibly with conflicting version requirements).
+        if len({name.casefold() for name in entries}) != len(entries):
+            raise ValueError(f"package.json {group} contains duplicate case-insensitive package names")
         if entries:
             groups[group] = sorted(entries)
     return groups
