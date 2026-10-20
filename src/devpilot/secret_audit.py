@@ -55,6 +55,8 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.terraform.d', 'credentials.tfrc.json'),
     ('gcloud', 'credentials.db'),
     ('gcloud', 'access_tokens.db'),
+    # GitLab CLI config may hold plaintext tokens without an OS keyring.
+    ('glab-cli', 'config.yml'),
     # Only flag ambiguous package-manager config names in credential locations.
     ('pypoetry', 'auth.toml'),
     ('pip', 'pip.conf'),
