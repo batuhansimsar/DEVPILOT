@@ -36,6 +36,10 @@ def execute_test_commands(
             # OS errors may reveal absolute paths or private test arguments.
             # Keep the failure in the report without echoing exception text.
             result = {'exit_code': None, 'error': 'Test command could not be executed (OS error)'}
+        except Exception:
+            # Custom runners may raise unexpectedly. Never leak exception text,
+            # which can contain credentials, local paths, or captured output.
+            result = {'exit_code': None, 'error': 'Test runner failed unexpectedly'}
         if not isinstance(result, dict):
             # Defensive boundary for custom test runners; never crash when a
             # runner accidentally returns None or a non-mapping value.
