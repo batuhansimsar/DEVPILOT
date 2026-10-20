@@ -21,10 +21,10 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     """
     if method not in ('HEAD', 'GET'):
         raise ValueError('method must be HEAD or GET')
-    # urlsplit silently strips certain control characters; reject them before parsing
-    # so the endpoint that is probed always matches the caller's supplied URL.
-    if any(ord(char) < 32 or ord(char) == 127 for char in url):
-        raise ValueError('URL must not contain control characters')
+    # urlsplit silently strips leading spaces and certain control characters;
+    # reject raw whitespace and controls so the target matches the supplied URL.
+    if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
+        raise ValueError('URL must not contain whitespace or control characters')
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')

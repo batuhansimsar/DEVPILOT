@@ -140,6 +140,8 @@ class HTTPCheckTests(unittest.TestCase):
             'http://@example.org/', 'http://', 'http://example.org:99999',
             'http://example.org:', 'http://example.org:0', 'http://example.org/\npath',
             'http://example.org/\x1b[31m',
+            ' http://example.org/', 'http://example.org/ ',
+            'http://exa mple.org/', 'http://example.org/\u00a0',
         ):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 http_check(value)
