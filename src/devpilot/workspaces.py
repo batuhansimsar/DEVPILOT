@@ -21,6 +21,7 @@ WORKSPACE_FILES = {
     'Pipfile': 'Python',
     'Pipfile.lock': 'Python',
     'uv.lock': 'Python',
+    'poetry.lock': 'Python',
     'go.mod': 'Go',
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
