@@ -10,7 +10,7 @@ _CONTAINER_MANIFESTS = frozenset({
     'docker-compose.yml', 'docker-compose.yaml',
 })
 _BUILD_FILE_PREFIXES = ('Dockerfile.', 'Containerfile.')
-_IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '~', '.dockerignore')
+_IGNORED_SUFFIXES = ('.bak', '.backup', '.tmp', '.swp', '.swo', '.old', '.orig', '.save', '~', '.dockerignore')
 
 
 def is_container_manifest(filename: str) -> bool:
