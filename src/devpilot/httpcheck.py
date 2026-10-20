@@ -51,7 +51,12 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         if invalid_host and any(char.isspace() for char in invalid_host):
             raise ValueError('URL host must not contain whitespace or backslashes')
         raise ValueError('URL must not contain whitespace or control characters')
-    parts = urlsplit(url)
+    try:
+        # urlsplit may echo untrusted host text for malformed IPv6 brackets or
+        # authorities containing Unicode characters that normalize to delimiters.
+        parts = urlsplit(url)
+    except ValueError:
+        raise ValueError('URL contains an invalid authority') from None
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
     # urllib needs an ASCII authority; internationalized paths and queries
