@@ -6,6 +6,7 @@ access local files or launch child processes.
 
 from __future__ import annotations
 
+import errno
 import math
 import os
 import signal
@@ -47,6 +48,12 @@ def _decode_bounded(tail: bytearray) -> tuple[str, bool]:
         return decoded, False
     return encoded[-MAX_OUTPUT_BYTES:].decode('utf-8', errors='ignore'), True
 
+def _safe_spawn_error(error: OSError) -> str:
+    """Expose only an errno name, never sensitive filenames or OS messages."""
+    code = errno.errorcode.get(error.errno, 'I/O error')
+    return f'Cannot start command: {code}'
+
+
 def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     """Execute argv without a shell and return bounded output from each pipe.
 
@@ -79,7 +86,7 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
             start_new_session=(os.name == 'posix'),
         )
     except OSError as exc:
-        return {**result, 'error': str(exc)}
+        return {**result, 'error': _safe_spawn_error(exc)}
 
     stdout_tail = bytearray()
     stderr_tail = bytearray()
