@@ -24,6 +24,8 @@ WORKSPACE_FILES = {
     'pom.xml': 'Java',
     'build.gradle': 'Java',
     'build.gradle.kts': 'Java',
+    'settings.gradle': 'Java',
+    'settings.gradle.kts': 'Java',
     'CMakeLists.txt': 'C/C++',
     'CMakePresets.json': 'C/C++',
     'meson.build': 'C/C++',
