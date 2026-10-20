@@ -37,6 +37,8 @@ WORKSPACE_FILES = {
     'Package.swift': 'Swift',
     'pubspec.yaml': 'Dart',
     'mix.exs': 'Elixir',
+    'Directory.Packages.props': '.NET',
+    'global.json': '.NET',
     'Dockerfile': 'Docker',
     'Containerfile': 'Docker',
     'compose.yml': 'Docker',
