@@ -8,6 +8,7 @@ from typing import Any
 # Stable, case-independent CLI choices, separate from user-facing ecosystem labels.
 ECOSYSTEMS = {
     'node': 'Node.js',
+    'deno': 'Deno',
     'python': 'Python',
     'go': 'Go',
     'rust': 'Rust',

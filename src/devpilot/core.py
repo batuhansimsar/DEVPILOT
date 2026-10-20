@@ -42,7 +42,7 @@ LANGUAGES = {
     '.sh': 'Shell', '.ps1': 'PowerShell',
 }
 KEY_FILES = frozenset({
-    'package.json', 'pyproject.toml', 'requirements.txt', 'setup.py',
+    'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py',
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'build.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
@@ -83,6 +83,8 @@ def detect_projects(root: Path) -> list[str]:
     types: set[str] = set()
     if 'package.json' in names:
         types.add('Node.js')
+    if names & {'deno.json', 'deno.jsonc'}:
+        types.add('Deno')
     if _has_python_manifest(names):
         types.add('Python')
     if names & {'Cargo.toml'}:
@@ -175,6 +177,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
                 argv = _node_test_argv(root, package)
                 if argv:
                     commands.append({'ecosystem': 'Node.js', 'argv': argv, 'reason': 'package.json test script'})
+    if names & {'deno.json', 'deno.jsonc'}:
+        commands.append({'ecosystem': 'Deno', 'argv': ['deno', 'test'],
+                         'reason': 'Deno configuration'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
@@ -207,7 +212,7 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
 def doctor_report(root: Path) -> dict[str, Any]:
     found = detect_projects(root)
     tool_map = {
-        'Node.js': 'node', 'Python': 'python', 'Rust': 'cargo',
+        'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', '.NET': 'dotnet', 'Docker': 'docker',
     }
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
