@@ -11,7 +11,11 @@ _CONTAINER_MANIFESTS = frozenset({
     'compose.yml', 'compose.yaml',
     'docker-compose.yml', 'docker-compose.yaml',
 })
-_BUILD_FILE_PREFIXES = ('Dockerfile.', 'Containerfile.')
+# Named build recipes use non-empty, filename-safe variant components. The
+# previous prefix-only check accepted malformed names like Dockerfile..dev.
+_NAMED_BUILD = re.compile(
+    r'(?:Dockerfile|Containerfile)\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\Z'
+)
 # Require non-empty name segments: compose.dev..yaml is not a valid layer.
 _NAMED_COMPOSE = re.compile(
     r'(?:docker-)?compose\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.ya?ml\Z'
@@ -29,5 +33,4 @@ def is_container_manifest(filename: str) -> bool:
         return False
     return (filename in _CONTAINER_MANIFESTS
             or _NAMED_COMPOSE.fullmatch(filename) is not None
-            or any(filename.startswith(prefix) and len(filename) > len(prefix)
-                   for prefix in _BUILD_FILE_PREFIXES))
+            or _NAMED_BUILD.fullmatch(filename) is not None)
