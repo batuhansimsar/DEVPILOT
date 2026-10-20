@@ -59,6 +59,41 @@ def _table_header(line: str) -> str | None:
     return None
 
 
+def _header_sections(header: str) -> list[str] | None:
+    """Split table keys on unquoted dots (e.g. cfg(feature = "a.b"))."""
+    sections: list[str] = []
+    quote = ''
+    escaped = False
+    start = 0
+    for index, char in enumerate(header):
+        if quote:
+            if escaped:
+                escaped = False
+            elif quote == '"' and char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = ''
+        elif char in ('"', "'"):
+            quote = char
+        elif char == '.':
+            section = header[start:index].strip()
+            if not section:
+                return None
+            if len(section) >= 2 and section[0] == section[-1] and section[0] in ('"', "'"):
+                section = section[1:-1]
+            sections.append(section)
+            start = index + 1
+    if quote:
+        return None
+    section = header[start:].strip()
+    if not section:
+        return None
+    if len(section) >= 2 and section[0] == section[-1] and section[0] in ('"', "'"):
+        section = section[1:-1]
+    sections.append(section)
+    return sections
+
+
 def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     """List Cargo dependency names from inline and table-style declarations.
 
@@ -76,14 +111,29 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
             if header is None:
                 active_group = ''
                 continue
-            sections = header.split('.')
-            allowed_scope = len(sections) == 1 or sections[0] in ('target', 'workspace')
-            active_group = sections[-1] if allowed_scope and sections[-1] in _GROUPS else ''
-            if len(sections) > 1 and sections[-2] in _GROUPS and (
-                    len(sections) == 2 or sections[0] in ('target', 'workspace')):
-                name = sections[-1].strip('"\'')
+            sections = _header_sections(header)
+            active_group = ''
+            if not sections:
+                continue
+            group = ''
+            name = ''
+            if sections[0] in _GROUPS and len(sections) in (1, 2):
+                group = sections[0]
+                if len(sections) == 2:
+                    name = sections[1]
+            elif sections[0] == 'workspace' and len(sections) in (2, 3) and sections[1] in _GROUPS:
+                group = sections[1]
+                if len(sections) == 3:
+                    name = sections[2]
+            elif sections[0] == 'target' and len(sections) in (3, 4) and sections[2] in _GROUPS:
+                group = sections[2]
+                if len(sections) == 4:
+                    name = sections[3]
+            if name:
                 if _NAME.fullmatch(name):
-                    found.setdefault(sections[-2], set()).add(name)
+                    found.setdefault(group, set()).add(name)
+            elif group:
+                active_group = group
             continue
         # An unsupported or malformed table ends the preceding dependency group.
         if line.startswith('['):
