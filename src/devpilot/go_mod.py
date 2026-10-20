@@ -29,6 +29,57 @@ _REQUIREMENT = re.compile(
 )
 
 
+def _without_go_comments(content: str) -> str:
+    """Mask Go line and block comments without changing line boundaries.
+
+    A comment is whitespace to the Go lexer, not arbitrary string removal:
+    preserving line breaks prevents a declaration after a multiline comment
+    from joining an incomplete requirement on the preceding line. Quoted and
+    raw Go strings retain literal comment delimiters. An unclosed block comment
+    invalidates the file, so fail closed rather than reporting a partial scan.
+    """
+    output: list[str] = []
+    index = 0
+    quote = ''
+    escaped = False
+    while index < len(content):
+        character = content[index]
+        if quote:
+            output.append(character)
+            if quote == '"' and escaped:
+                escaped = False
+            elif quote == '"' and character == '\\':
+                escaped = True
+            elif character == quote:
+                quote = ''
+            index += 1
+            continue
+        if character in ('"', '`'):
+            quote = character
+            output.append(character)
+            index += 1
+            continue
+        if content.startswith('//', index):
+            end = content.find('\n', index)
+            if end == -1:
+                output.append(' ' * (len(content) - index))
+                break
+            output.append(' ' * (end - index))
+            index = end
+            continue
+        if content.startswith('/*', index):
+            end = content.find('*/', index + 2)
+            if end == -1:
+                return ''
+            comment = content[index:end + 2]
+            output.append(''.join(char if char in '\r\n' else ' ' for char in comment))
+            index = end + 2
+            continue
+        output.append(character)
+        index += 1
+    return ''.join(output)
+
+
 def _valid_module_path(path: str) -> bool:
     """Reject unsafe Go path elements, including Windows device names.
 
@@ -55,13 +106,14 @@ def parse_go_requirements(content: str) -> list[str]:
 
     Go permits whitespace, double-quoted strings with Go-style escapes, and
     backtick-delimited raw strings.
+    Go line and block comments are ignored, including multiline comments.
     Only require declarations are included: replace and exclude do not describe
     additional dependencies. Returned data contains names, no versions.
     """
     names: set[str] = set()
     in_require_block = False
-    for raw in content.splitlines():
-        line = raw.split('//', 1)[0].strip()
+    for raw in _without_go_comments(content).splitlines():
+        line = raw.strip()
         if not line:
             continue
         if in_require_block:
