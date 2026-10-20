@@ -40,10 +40,17 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         result['latency_ms'] = round((time.monotonic() - start) * 1000, 1)
         return result
 
-    result['tcp_latency_ms'] = round((time.perf_counter() - tcp_start) * 1000, 1)
+    # Preserve a single socket timeout budget across TCP connect and TLS handshake.
+    # Otherwise both stages can consume the full user-specified timeout.
+    tcp_elapsed = time.perf_counter() - tcp_start
+    result['tcp_latency_ms'] = round(tcp_elapsed * 1000, 1)
     result['tcp_reachable'] = True
     with connection:
         try:
+            remaining = timeout - tcp_elapsed
+            if remaining <= 0:
+                raise TimeoutError('TCP connection exhausted TLS timeout budget')
+            connection.settimeout(remaining)
             context = ssl.create_default_context()
             handshake_start = time.perf_counter()
             try:
