@@ -5,7 +5,12 @@ from __future__ import annotations
 import re
 
 _GROUPS = frozenset({'dependencies', 'dev-dependencies', 'build-dependencies'})
-_DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za-z0-9_-]+))\s*=\s*(?=\S)''')
+# Cargo also supports TOML dotted keys (e.g. serde.version = "1").
+# Only the first key represents the dependency package name.
+_DEPENDENCY = re.compile(
+    r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za-z0-9_-]+))'''
+    r'''(?:\s*\.\s*(?:"[A-Za-z0-9_-]+"|'[A-Za-z0-9_-]+'|[A-Za-z0-9_-]+))*\s*=\s*(?=\S)'''
+)
 _NAME = re.compile(r'[A-Za-z0-9_-]+\Z')
 
 
@@ -148,8 +153,7 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     """List Cargo dependency names from inline and table-style declarations.
 
     Supports ``[dependencies]``/``[dependencies.foo]`` and equivalent
-    target-specific, workspace, build and dev dependency sections. Bare and
-    quoted TOML keys are accepted. Multiline string bodies are ignored, so
+    target-specific, workspace, build and dev dependency sections. Bare, quoted and TOML dotted keys are accepted. Multiline string bodies are ignored, so
     embedded table-like text cannot invent dependency names. Never includes
     version specifications or credentials in the output.
     """
