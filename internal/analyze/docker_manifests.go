@@ -23,10 +23,22 @@ func dockerManifestKind(name string) (string, bool) {
 		return "Containerfile", true
 	}
 	for _, prefix := range []string{"compose", "docker-compose"} {
-		if lower == prefix+".yml" || lower == prefix+".yaml" ||
-			(strings.HasPrefix(lower, prefix+".") &&
-				(strings.HasSuffix(lower, ".yml") || strings.HasSuffix(lower, ".yaml"))) {
+		if lower == prefix+".yml" || lower == prefix+".yaml" {
 			return "Docker Compose", true
+		}
+		if !strings.HasPrefix(lower, prefix+".") {
+			continue
+		}
+		for _, extension := range []string{".yml", ".yaml"} {
+			if !strings.HasSuffix(lower, extension) {
+				continue
+			}
+			qualifier := strings.TrimSuffix(strings.TrimPrefix(lower, prefix+"."), extension)
+			// Empty or dot-terminated qualifiers are not meaningful Compose
+			// variants (e.g. compose..yml or compose.prod..yaml).
+			if qualifier != "" && !strings.HasSuffix(qualifier, ".") {
+				return "Docker Compose", true
+			}
 		}
 	}
 	return "", false
