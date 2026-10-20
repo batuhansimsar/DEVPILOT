@@ -12,12 +12,12 @@ def _local_name(tag: str) -> str:
 
 
 def parse_maven_dependencies(content: str) -> dict[str, list[str]]:
-    """List direct project dependencies without versions or managed/plugin entries.
+    """List direct and conditional profile dependencies, without versions.
 
     Maven's dependencyManagement declares versions rather than dependencies;
-    plugin dependencies run in a different classpath. Both are intentionally
-    excluded to avoid falsely reporting them as project dependencies.
-    Elements from extension namespaces are not Maven dependency declarations.
+    plugin dependencies run in a different classpath. Both are excluded.
+    Profile dependencies are reported separately because activation is unknown.
+    Extension namespaces cannot contribute Maven dependency declarations.
     """
     upper = content.upper()
     if '<!DOCTYPE' in upper or '<!ENTITY' in upper:
@@ -33,12 +33,11 @@ def parse_maven_dependencies(content: str) -> dict[str, list[str]]:
     dependency_tag = f'{namespace}dependency'
     group_tag = f'{namespace}groupId'
     artifact_tag = f'{namespace}artifactId'
+    profiles_tag = f'{namespace}profiles'
+    profile_tag = f'{namespace}profile'
 
-    names: set[str] = set()
-    for children in root:
-        if children.tag != dependencies_tag:
-            continue
-        for dependency in children:
+    def collect(container: ET.Element, names: set[str]) -> None:
+        for dependency in container:
             if dependency.tag != dependency_tag:
                 continue
             coordinates: dict[str, str] = {}
@@ -46,11 +45,28 @@ def parse_maven_dependencies(content: str) -> dict[str, list[str]]:
                 if field.tag not in (group_tag, artifact_tag):
                     continue
                 if field.tag in coordinates:
-                    # Duplicate coordinates are ambiguous; do not log private values.
+                    # Duplicate coordinates are ambiguous; never echo values.
                     raise ValueError('pom.xml dependency contains duplicate coordinates')
                 coordinates[field.tag] = (field.text or '').strip()
             group = coordinates.get(group_tag)
             artifact = coordinates.get(artifact_tag)
             if group and artifact:
                 names.add(f'{group}:{artifact}')
-    return {'dependencies': sorted(names)}
+
+    direct: set[str] = set()
+    conditional: set[str] = set()
+    for child in root:
+        if child.tag == dependencies_tag:
+            collect(child, direct)
+        elif child.tag == profiles_tag:
+            for profile in child:
+                if profile.tag != profile_tag:
+                    continue
+                for section in profile:
+                    if section.tag == dependencies_tag:
+                        collect(section, conditional)
+
+    result = {'dependencies': sorted(direct)}
+    if conditional:
+        result['profile-dependencies'] = sorted(conditional)
+    return result
