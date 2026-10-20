@@ -149,6 +149,9 @@ def classify(path: str) -> str | None:
         return 'potential age private identity'
     if name in EXACT_NAMES:
         return 'potential credential file'
+    # Named kubeconfig exports often embed cluster certificates and bearer tokens.
+    if name.endswith(('.kubeconfig', '.kubeconfig.yml', '.kubeconfig.yaml')):
+        return 'potential Kubernetes credential configuration'
     if name.endswith('.keytab'):
         return 'potential Kerberos credential file'
     if name.endswith(PRIVATE_SUFFIXES):
