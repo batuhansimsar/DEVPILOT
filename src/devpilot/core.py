@@ -15,6 +15,7 @@ from pathlib import Path
 from .envcheck import inspect_env
 from typing import Any
 
+from .gradle import gradle_test_command
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
 
@@ -171,10 +172,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if 'pom.xml' in names:
         commands.append({'ecosystem': 'Java', 'argv': ['mvn', 'test'], 'reason': 'pom.xml'})
     elif names & {'build.gradle', 'build.gradle.kts'}:
-        if 'gradlew' in names:
-            commands.append({'ecosystem': 'Java', 'argv': ['./gradlew', 'test'] if os.name != 'nt' else ['gradlew.bat', 'test'], 'reason': 'Gradle wrapper'})
-        else:
-            commands.append({'ecosystem': 'Java', 'argv': ['gradle', 'test'], 'reason': 'Gradle project'})
+        argv, reason = gradle_test_command(root, names, os.name)
+        commands.append({'ecosystem': 'Java', 'argv': argv, 'reason': reason})
     return commands
 
 
