@@ -40,5 +40,25 @@ class WalkErrorTerminalSafetyTests(unittest.TestCase):
         self.assertEqual(problems, ['Cannot inspect private: failed\\u001b[0m\\u000dupdate'])
 
 
+    def test_nonprinting_unicode_separators_are_escaped(self):
+        root = Path.cwd() / 'example'
+        problems = []
+        # Line separator, nonbreaking space, and supplementary tag character.
+        hostile = 'data\u2028\u00a0\U000e0001'
+
+        def fake_walk(path, *, followlinks, onerror):
+            onerror(PermissionError(errno.EACCES, 'Permission denied', str(root / hostile)))
+            return iter(())
+
+        with patch('devpilot.walk.os.walk', side_effect=fake_walk):
+            list(walk_project(root, problems))
+        self.assertEqual(
+            problems,
+            ['Cannot inspect data\\u2028\\u00a0\\U000e0001: Permission denied'],
+        )
+        self.assertNotIn('\u2028', problems[0])
+        self.assertNotIn('\U000e0001', problems[0])
+
+
 if __name__ == '__main__':
     unittest.main()
