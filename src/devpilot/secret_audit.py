@@ -30,6 +30,7 @@ EXACT_NAMES = frozenset({
     'application_default_credentials.json',
     '.npmrc', '.pypirc', '.netrc', '.git-credentials',
     'secrets.yml', 'secrets.yaml', '.envrc',
+    'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
 })
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
