@@ -47,10 +47,17 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
         if visited > max_directories:
             truncated = True
             break
-        folders[:] = sorted(
+        candidates = sorted(
             d for d in folders
-            if d not in SKIP_DIRS and depth < max_depth and not (current / d).is_symlink()
+            if d not in SKIP_DIRS and not (current / d).is_symlink()
         )
+        if depth >= max_depth:
+            # Only report truncation when a traversable subtree was excluded.
+            if candidates:
+                truncated = True
+            folders[:] = []
+        else:
+            folders[:] = candidates
         manifests: list[dict[str, str]] = []
         for filename in sorted(files):
             path = current / filename
