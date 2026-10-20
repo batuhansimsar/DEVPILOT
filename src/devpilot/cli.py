@@ -92,7 +92,8 @@ def _human(command: str, output: dict[str, Any]) -> str:
         lines = [f"Workspaces in {output['path']}: {output['workspace_count']}"]
         lines += [f"  {item['path']}: {', '.join(item['ecosystems'])}" for item in output['workspaces']]
         if output['truncated']:
-            lines.append('  Warning: directory scan limit reached')
+            lines.append('  Warning: workspace scan incomplete (scan limit or unreadable directory)')
+        lines += [f"  Warning: {problem}" for problem in output.get('problems', [])]
         return '\n'.join(lines)
     if command == 'doctor':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
@@ -207,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error('--max-directories must be between 1 and 100000')
             result = discover_workspaces(root, max_depth=args.max_depth,
                                          max_directories=args.max_directories)
-            success = True
+            success = not result.get('problems')
         elif args.command == 'audit':
             result = audit_tracked_files(root)
             success = not result.get('error') and not result['candidates']
