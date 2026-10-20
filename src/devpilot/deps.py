@@ -97,14 +97,16 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         inside = False
         for line in content.splitlines():
             line = line.split("//", 1)[0].strip()
-            if line == "require (":
-                inside = True
-                continue
             if inside and line == ")":
                 inside = False
                 continue
-            if line.startswith("require "):
-                line = line.removeprefix("require ").strip()
+            # Go permits spaces or tabs between the require keyword and its argument.
+            declaration = re.match(r"^require[ \t]+(.+)$", line)
+            if declaration:
+                line = declaration.group(1).strip()
+                if line == "(":
+                    inside = True
+                    continue
             elif not inside:
                 continue
             match = GO_NAME.match(line)

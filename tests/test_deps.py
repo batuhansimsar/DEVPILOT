@@ -33,6 +33,15 @@ class DependencyTests(unittest.TestCase):
         (self.root / "go.mod").write_text("module example.org/x\nrequire (\n example.org/a v1.2.3\n example.com/b v0.2.0 // indirect\n)\nrequire example.net/c v1.0.0\n")
         self.assertEqual(scan(self.root)["totals"]["Go"], 3)
 
+    def test_go_require_directives_with_tabs(self):
+        (self.root / "go.mod").write_text(
+            "module example.org/project\n"
+            "require\t(\n example.org/alpha v1.0.0\n)\n"
+            "require\texample.org/beta v2.0.0\n"
+        )
+        groups = scan(self.root)["manifests"][0]["groups"]
+        self.assertEqual(groups["require"], ["example.org/alpha", "example.org/beta"])
+
     def test_cargo_groups(self):
         (self.root / "Cargo.toml").write_text('[dependencies]\nserde = "1"\n[dev-dependencies]\ntokio = "1"\n')
         self.assertEqual(scan(self.root)["totals"]["Rust"], 2)
