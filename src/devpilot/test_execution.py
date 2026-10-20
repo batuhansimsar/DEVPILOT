@@ -56,9 +56,16 @@ def execute_test_commands(
             # Treat the result as a failed command without exposing private data.
             item['result'] = {'exit_code': None, 'error': 'Test runner returned an uncopyable result'}
         exit_code = item['result'].get('exit_code')
+        # A custom runner may omit exit_code or return a bool/string. Normalize
+        # it before rendering the report, whose human format requires this key.
+        if type(exit_code) is not int:
+            item['result']['exit_code'] = None
+            if not item['result'].get('error'):
+                item['result']['error'] = 'Test runner returned an invalid exit code'
+            exit_code = None
         # Runner-reported errors invalidate the run even when a subprocess
         # happens to return zero (e.g. a failed output-capture stage).
-        if type(exit_code) is not int or exit_code != 0 or item['result'].get('error'):
+        if exit_code != 0 or item['result'].get('error'):
             passed = False
             if fail_fast:
                 for skipped in commands[index + 1:]:

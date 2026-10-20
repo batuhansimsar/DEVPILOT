@@ -63,5 +63,28 @@ class TestExecutionTests(unittest.TestCase):
         self.assertIn('fail-fast', self.commands[1]['skipped_reason'])
 
 
+
+    def test_runner_without_exit_code_is_reported_as_failure(self):
+        runner = Mock(return_value={'stdout': 'completed but status unknown'})
+        self.assertFalse(execute_test_commands(self.commands, self.root, 10, runner, fail_fast=True))
+        self.assertIsNone(self.commands[0]['result']['exit_code'])
+        self.assertEqual(self.commands[0]['result']['error'], 'Test runner returned an invalid exit code')
+        self.assertIn('fail-fast', self.commands[1]['skipped_reason'])
+
+    def test_runner_invalid_exit_codes_never_succeed(self):
+        for invalid in (True, False, '0', 0.0, None):
+            with self.subTest(invalid=invalid):
+                self.assertFalse(execute_test_commands(
+                    self.commands, self.root, 10, Mock(return_value={'exit_code': invalid})))
+                self.assertIsNone(self.commands[0]['result']['exit_code'])
+                self.assertEqual(self.commands[0]['result']['error'], 'Test runner returned an invalid exit code')
+
+    def test_runner_error_is_preserved_when_exit_code_invalid(self):
+        self.assertFalse(execute_test_commands(
+            self.commands, self.root, 10, Mock(return_value={'exit_code': None, 'error': 'timeout'})))
+        self.assertIsNone(self.commands[0]['result']['exit_code'])
+        self.assertEqual(self.commands[0]['result']['error'], 'timeout')
+
+
 if __name__ == '__main__':
     unittest.main()
