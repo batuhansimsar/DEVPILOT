@@ -208,16 +208,23 @@ func Inspect(root string) (Report, error) {
 			}
 		}
 	}
-	matches, err := filepath.Glob(filepath.Join(abs, "*.csproj"))
-	if err == nil {
-		for _, match := range matches {
-			if hasMarker(abs, filepath.Base(match)) {
-				language("C#")
-				break
-			}
+	dotnet, err := discoverDotnet(abs)
+	if err != nil {
+		add("warning", "dotnet-discovery-failed", "Cannot inspect .NET project entries: "+err.Error(), "Check directory access.")
+	} else if dotnet.Found {
+		for _, name := range dotnet.Languages {
+			language(name)
+		}
+		framework(".NET")
+		tool("dotnet", ".NET SDK")
+		if r.Tests == nil && dotnet.TestTarget != "" {
+			r.Tests = &TestCommand{Executable: "dotnet", Arguments: []string{"test", dotnet.TestTarget}}
+		}
+		if dotnet.Ambiguous {
+			add("info", "dotnet-ambiguous-target", "Multiple .NET project or solution files found; cannot choose a test target safely", "Run dotnet test with an explicit project or solution path.")
 		}
 	}
-	if len(r.Languages) == 0 {
+	if len(r.Languages) == 0 && len(r.Frameworks) == 0 {
 		add("info", "unknown-project", "No supported project manifest was found at the project root", "Open the directory containing a go.mod, package.json, Cargo.toml or similar manifest.")
 	}
 	if r.Tests == nil {

@@ -1,60 +1,62 @@
 # DevPilot
 
-**A local, AI-optional control center for diagnosing developer projects.**
+**DevPilot is a local-first, cross-platform Developer Control Center CLI.** Inspect unfamiliar repositories, discover tool requirements, see Git and Docker status, check TCP services, and identify test commands before deciding to execute them. No API key or account required.
 
-The first working milestone is a small Go CLI that inspects project manifests, detects language/framework and package-manager hints, checks for missing tools, discovers a test command, compares `.env` *names* (never values), and reads Git branch metadata. It does not execute repository code during inspection.
+> Early release (v0.1.0). This is a working CLI foundation, not yet a desktop dashboard or autonomous agent.
 
-## Install / run
+## Install
 
-Requires Go 1.23+ for building. On macOS, Linux or Windows:
+Requires Python 3.10+ on Windows, macOS, or Linux.
 
-```sh
+```bash
 git clone https://github.com/batuhansimsar/DEVPILOT.git
 cd DEVPILOT
-go build -o devpilot ./cmd/devpilot
-./devpilot doctor /path/to/your/project
-./devpilot doctor --json /path/to/your/project
+python -m pip install .
+devpilot --help
 ```
 
-On Windows, run `devpilot.exe` instead of `./devpilot`.
+For local source development without installing: `PYTHONPATH=src python -m devpilot --help` (macOS/Linux), or use `set PYTHONPATH=src` on Windows CMD.
 
 ## Commands
 
-- `devpilot doctor [--json] [path]` — **read-only** root-level project diagnostics. Exit 0 for no warnings, 1 for warnings, 2 for invalid input.
-- `devpilot test --trust [--timeout=2m] [path]` — run a discovered test command with a default 2-minute timeout (maximum 10 minutes). **Only use with repositories you trust.** Project test scripts can execute arbitrary code. There is no automatic testing in `doctor`.
-
-Examples:
-
-```sh
-./devpilot doctor .
-./devpilot doctor --json ../my-project
-./devpilot test --trust ../my-trusted-go-project
+```bash
+devpilot analyze --path /path/to/project
+devpilot doctor --path /path/to/project
+devpilot git --path /path/to/project
+devpilot docker
+devpilot check localhost 5432
+devpilot test --path /path/to/project           # discovery only
+# Review the proposed command first; test scripts execute project code:
+devpilot test --path /path/to/trusted/project --yes --timeout 120
+# JSON outputs for scripts and integrations:
+devpilot doctor --path /path/to/project --json
 ```
 
-## Supported detection
+| Command | Behavior |
+| --- | --- |
+| `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
+| `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
+| `git` | Executes read-only `git status` with no shell. |
+| `docker` | Executes read-only `docker ps`; reports running containers. |
+| `check` | Attempts a TCP connection to a supplied hostname and port. |
+| `test` | Discovers test commands for supported ecosystems. Dry-run by default; only `--yes` executes code, with per-command timeouts. |
 
-Manifest-driven detection of Go (`go.mod`), JavaScript/TypeScript (`package.json`), Python (`pyproject.toml`, `requirements.txt`, `pytest.ini`), Rust (`Cargo.toml`), and top-level C# (`*.csproj`). JS frameworks detected from `package.json` dependencies include React, Next.js, Vue, Angular, Express and Vite. Test commands are discovered for Go, Cargo, pytest (if configured), and JavaScript projects with a test script.
+## Security and limits
 
-`.env.example`, `.env.sample` and `.env.template` are compared with local `.env` on **variable names only**; values are never included in the report. Missing `.env` keys are informational because variables can be supplied outside the file.
+DevPilot is designed to **inspect before acting**. Analysis skips symlinked files and folders, dependency/build directories, and caps scans at 10,000 files / 12 directory levels. It never reads `.env` contents or executes project scripts during `doctor` or `analyze`. External tools such as Git and Docker are invoked with argument arrays, **not shell interpolation**. CLI stdout/stderr may contain sensitive project data; do not publish `--json` output blindly. `test --yes` runs untrusted repository code and should only be used with projects you trust. The `check` command opens a network connection only to the host explicitly supplied. No telemetry is collected.
 
-## Safety and limitations
-
-- Project content is untrusted; inspection reads a limited set of root-level files, refuses symlinked manifests, and limits inspected file size to 1 MiB.
-- `doctor` does not run dependency installation, project test scripts, shells, repair commands, or AI agents.
-- `test --trust` grants code execution to the inspected workspace. Test output may include secrets exposed by those scripts; never run it on untrusted projects or with sensitive credentials.
-- `.env` checks do not validate runtime environment variables or whether values are valid.
-- Git inspection reads `.git/HEAD` only; it deliberately does not invoke Git or inspect tracked/untracked changes in untrusted workspaces. No recursive architecture scan, GUI, or container integration is implemented yet.
-- A missing `go`, `python`, `cargo` or JS package manager on PATH is reported as a warning when needed.
+The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
 ## Development
 
-```sh
-go test ./...
-go vet ./...
-gofmt -w cmd internal
+```bash
+python -m pip install .
+python -m unittest discover -s tests -v
 ```
 
-See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+Contributions are welcome. Please add regression tests for bug fixes. For security reports, do not publish credentials, exploit data, or private logs in public issues; reach out to the maintainers privately first.
+
+Licensed under the MIT License.
 
 ## Project structure map
 

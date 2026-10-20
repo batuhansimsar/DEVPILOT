@@ -1,8 +1,14 @@
-# Local binaries and test artifacts
-/devpilot
-/devpilot.exe
-*.test
-coverage.out
-# Local secrets
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
 .env
-.env.*.local
+.env.*
+!.env.example
+.DS_Store
