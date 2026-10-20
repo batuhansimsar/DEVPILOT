@@ -20,6 +20,17 @@ class AuditTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertFalse(_potential_secret(path))
 
+    def test_package_manager_credential_files_and_backups(self):
+        for path in ('auth.json', 'frontend/.yarnrc.yml', '.yarnrc',
+                     '.config/pypoetry/auth.toml', 'config/pip/pip.conf',
+                     'AppData/pip/pip.ini', 'frontend\\.yarnrc.yml.bak'):
+            with self.subTest(path=path):
+                self.assertTrue(_potential_secret(path))
+        for path in ('auth.toml', '.yarnrc.yml.example', 'config/pip.conf',
+                     'frontend/yarn.lock', 'composer.json'):
+            with self.subTest(path=path):
+                self.assertFalse(_potential_secret(path))
+
     def test_git_missing_returns_explanation(self):
         from unittest.mock import patch
         with tempfile.TemporaryDirectory() as temp, patch('devpilot.audit.shutil.which', return_value=None):
@@ -39,6 +50,20 @@ class AuditTests(unittest.TestCase):
             self.assertEqual(result['tracked_files'], 3)
             self.assertEqual(result['candidates'], ['.env', 'credentials.json'])
             self.assertNotIn('error', result)
+
+    @unittest.skipUnless(shutil.which('git'), 'Git not installed')
+    def test_tracked_package_registry_credentials_are_flagged_without_values(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+            (root / 'auth.json').write_text('{"http-basic": {"example.invalid": "dummy-secret"}}')
+            (root / '.yarnrc.yml').write_text('npmAuthToken: dummy-secret\n')
+            (root / 'composer.json').write_text('{}')
+            subprocess.run(['git', '-C', str(root), 'add', 'auth.json', '.yarnrc.yml', 'composer.json'], check=True, capture_output=True)
+            report = audit_tracked_files(root)
+            self.assertEqual(report['tracked_files'], 3)
+            self.assertEqual(report['candidates'], ['.yarnrc.yml', 'auth.json'])
+            self.assertNotIn('dummy-secret', str(report))
 
     @unittest.skipUnless(shutil.which('git'), 'Git not installed')
     def test_non_repo_is_friendly_error(self):
