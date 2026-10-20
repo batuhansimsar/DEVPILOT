@@ -14,6 +14,6 @@ Additional path-sensitive checks cover Azure CLI token cache files (`.azure/acce
 
 The command **never reads file contents**, does not access the network, and does not change the repository. It skips untracked files; it is not a full secrets scanner or proof of compromise. All findings are heuristics and need human review.
 
-Exit status: 0 means no suspicious tracked filenames, 1 means potential risks found, 2 means invocation or Git inspection failed. The --redact-paths option excludes filenames from the finding list for safer automation logs.
+Exit status: 0 means no suspicious tracked filenames, 1 means potential risks found, 2 means invocation or Git inspection failed. The --redact-paths option excludes filenames from findings **and masks the absolute repository path** with `<redacted>` in JSON reports for safer automation logs.
 
 If a sensitive file was committed, removing it from the current version is not enough: assess exposure, revoke/rotate credentials and, if appropriate, coordinate history cleanup with repository maintainers.
