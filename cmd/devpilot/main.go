@@ -19,6 +19,7 @@ import (
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "       devpilot map [--depth=3] [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
@@ -78,6 +79,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		return 0
+	case "map":
+		return runMap(args[1:], stdout, stderr)
 	case "test":
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)

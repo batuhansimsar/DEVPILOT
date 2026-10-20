@@ -59,3 +59,14 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+## Project structure map
+
+`devpilot map [--depth=3] [--json] [path]` prints a bounded, read-only directory map to help new contributors understand repository layout. It hides common generated directories (`.git`, `node_modules`, build outputs and similar), does not follow symlinks or read file contents, and caps output at 2,000 entries and 8 directory levels. File names are terminal-escaped. JSON includes entry types, skipped directories, warnings, and truncation status.
+
+```sh
+./devpilot map --depth=2 .
+./devpilot map --json /path/to/project
+```
+
+This feature is not a complete dependency or architecture graph. It is a quick, safe view of the visible directory structure.

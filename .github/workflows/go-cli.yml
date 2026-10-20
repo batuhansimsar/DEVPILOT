@@ -1,0 +1,28 @@
+name: Go CLI checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  go-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Check Go formatting
+        run: test -z "$(gofmt -l ./cmd ./internal)"
+      - name: Vet Go packages
+        run: go vet ./...
+      - name: Test Go packages with race detector
+        run: go test -race ./...
+      - name: Build CLI
+        run: go build -o devpilot-go ./cmd/devpilot
+      - name: Cross-compile Windows and macOS binaries
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o /tmp/devpilot-windows.exe ./cmd/devpilot
+          GOOS=darwin GOARCH=arm64 go build -o /tmp/devpilot-darwin ./cmd/devpilot
