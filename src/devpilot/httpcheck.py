@@ -27,6 +27,14 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # urlsplit silently strips leading spaces and certain control characters;
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
+        # Keep this raw-input guard: urlsplit may silently strip controls.
+        # Differentiate an invalid hostname from a malformed path/query.
+        try:
+            invalid_host = urlsplit(url).hostname
+        except ValueError:
+            invalid_host = None
+        if invalid_host and any(char.isspace() for char in invalid_host):
+            raise ValueError('URL host must not contain whitespace or backslashes')
         raise ValueError('URL must not contain whitespace or control characters')
     parts = urlsplit(url)
     if parts.scheme not in ('http', 'https') or not parts.hostname or '@' in parts.netloc:
