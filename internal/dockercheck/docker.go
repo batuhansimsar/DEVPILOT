@@ -39,6 +39,9 @@ func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "docker", args...)
+	// A child process may exit while descendants keep stdout/stderr open.
+	// Bound the time Cmd.Wait can spend waiting for inherited pipe EOF.
+	cmd.WaitDelay = 250 * time.Millisecond
 	var out bytes.Buffer
 	limited := &boundedWriter{remaining: maxOutput, dest: &out}
 	cmd.Stdout = limited
@@ -46,6 +49,9 @@ func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 	err := cmd.Run()
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return nil, errors.New("Docker command timed out after 5 seconds")
+	}
+	if errors.Is(err, exec.ErrWaitDelay) {
+		return nil, errors.New("Docker output pipe stayed open after command exit")
 	}
 	if errors.Is(err, errLimit) {
 		return nil, fmt.Errorf("Docker output exceeded %d bytes", maxOutput)
