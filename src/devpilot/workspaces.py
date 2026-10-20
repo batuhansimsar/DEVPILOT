@@ -25,6 +25,7 @@ WORKSPACE_FILES = {
     'go.mod': 'Go',
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
+    'Cargo.lock': 'Rust',
     'pom.xml': 'Java',
     'build.gradle': 'Java',
     'build.gradle.kts': 'Java',

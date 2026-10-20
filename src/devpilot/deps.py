@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .walk import walk_project, _printable
 from .cargo_deps import parse_cargo_dependencies
+from .cargo_lock import parse_cargo_lock
 from .go_mod import parse_go_requirements
 from .composer_deps import parse_composer_dependencies
 from .maven_deps import parse_maven_dependencies
@@ -125,6 +126,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Java", parse_maven_dependencies(content)
     if name == "Cargo.toml":
         return "Rust", parse_cargo_dependencies(content)
+    if name == "Cargo.lock":
+        return "Rust", {"locked": parse_cargo_lock(content)}
     if name == "Directory.Packages.props":
         return ".NET", parse_dotnet_dependencies(content, central=True)
     if name.lower().endswith((".csproj", ".fsproj", ".vbproj")):
@@ -154,7 +157,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
+            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
                     or _is_requirements_manifest(filename)
                     or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
