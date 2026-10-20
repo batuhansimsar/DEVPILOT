@@ -6,7 +6,7 @@ import "strings"
 // filename only. No manifest contents are opened, parsed, or executed.
 func isContainerConfig(name string) bool {
 	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~", ".dockerignore"} {
-		if strings.HasSuffix(name, suffix) {
+		if strings.HasSuffix(strings.ToLower(name), suffix) {
 			return false
 		}
 	}
