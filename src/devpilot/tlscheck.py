@@ -44,6 +44,9 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                         tz=datetime.timezone.utc,
                     )
                     result['expires_at'] = expires.isoformat().replace('+00:00', 'Z')
+                    remaining_seconds = (expires - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+                    result['expires_in_days'] = max(0, int(remaining_seconds // 86400))
+                    result['expires_soon'] = remaining_seconds <= 30 * 86400
                     result['expires_soon'] = expires <= (
                         datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
                     )
