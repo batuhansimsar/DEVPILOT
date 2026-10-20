@@ -58,6 +58,7 @@ func TestTrustAndPreviewAreExclusive(t *testing.T) {
 }
 
 type brokenWriter struct{}
+
 func (brokenWriter) Write(p []byte) (int, error) { return 0, errors.New("broken pipe") }
 
 func TestJSONPreviewPreservesArgumentBoundariesAndPropagatesErrors(t *testing.T) {
