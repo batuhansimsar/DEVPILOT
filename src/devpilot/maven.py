@@ -13,10 +13,13 @@ def maven_test_command(root: Path, names: set[str], platform: str) -> tuple[list
     the CLI's explicit approval for executing commands in a trusted project.
     """
     if platform == 'nt':
-        # Windows wrapper names are case-insensitive. Preserve the exact name
-        # provided by discovery so mixed-case scripts are executable as found.
-        for name in sorted(names):
-            if name.casefold() == 'mvnw.cmd':
+        # Maven normally ships mvnw.cmd, but custom Windows projects may use
+        # mvnw.bat. Prefer the standard launcher when both are available.
+        # Preserve actual casing on case-sensitive development hosts.
+        for suffix in ('.cmd', '.bat'):
+            for name in sorted(names):
+                if name.casefold() != f'mvnw{suffix}':
+                    continue
                 wrapper = root / name
                 if wrapper.is_file() and not wrapper.is_symlink():
                     return [f'.\\{name}', 'test'], 'Maven Windows wrapper'
