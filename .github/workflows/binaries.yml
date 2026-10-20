@@ -1,0 +1,38 @@
+name: Native CLI snapshots
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/package.sh'
+      - '.github/workflows/binaries.yml'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Unit tests
+        run: go test ./...
+      - name: Package native snapshots
+        run: bash scripts/package.sh snapshot dist
+      - name: Verify checksums
+        run: cd dist && sha256sum -c SHA256SUMS
+      - name: Verify Linux AMD64 executable
+        run: |
+          mkdir -p smoke
+          tar -xzf dist/devpilot_snapshot_linux_amd64.tar.gz -C smoke
+          ./smoke/devpilot help
+      - name: Upload build artifacts (not a public release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: devpilot-snapshots
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
