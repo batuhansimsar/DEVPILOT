@@ -6,6 +6,8 @@ access local files or launch child processes.
 
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 from pathlib import Path
 from threading import Thread
@@ -32,14 +34,15 @@ def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int]) -> None:
 def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     """Execute argv without a shell and return bounded output from each pipe.
 
-    Killing a timed-out child does not guarantee termination of processes
-    spawned by that child; do not run test scripts from untrusted projects.
+    Timeouts kill the spawned process group on POSIX (the direct child on
+    Windows). This is not a sandbox; run only trusted project scripts.
     """
     result = {'argv': argv, 'exit_code': None}
     try:
         process = subprocess.Popen(
             argv, cwd=root, stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False,
+            start_new_session=(os.name == 'posix'),
         )
     except OSError as exc:
         return {**result, 'error': str(exc)}
@@ -58,7 +61,13 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     try:
         result['exit_code'] = process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        process.kill()
+        if os.name == 'posix':
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass  # Process group has already exited.
+        else:
+            process.kill()
         process.wait()
         result['error'] = f'Timed out after {timeout}s'
     finally:
