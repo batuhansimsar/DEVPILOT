@@ -42,6 +42,16 @@ class EnvironmentIndexTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as other:
             self.assertEqual(tracked_environment_files(Path(other)), [])
 
+    def test_index_query_ignores_fsmonitor_and_disables_stdin(self):
+        with patch('devpilot.security.subprocess.run') as run:
+            run.return_value = subprocess.CompletedProcess([], 0, b'')
+            self.assertEqual(tracked_environment_files(self.root), [])
+        argv = run.call_args.args[0]
+        self.assertIn(['-c', 'core.fsmonitor=false'], [argv[i:i + 2] for i in range(len(argv) - 1)])
+        self.assertIn('--no-optional-locks', argv)
+        self.assertIs(run.call_args.kwargs['stdin'], subprocess.DEVNULL)
+
+
 
 if __name__ == '__main__':
     unittest.main()
