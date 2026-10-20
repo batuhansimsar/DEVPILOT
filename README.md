@@ -61,3 +61,14 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+## Project structure view
+
+The read-only `tree` command provides a bounded, local overview of an unfamiliar repository:
+
+```sh
+devpilot tree --depth=3 /path/to/project
+devpilot tree --json --max=500 /path/to/project
+```
+
+It skips common dependency/build folders (including `node_modules` and `.git`), never follows symlinks and does not read source files. Increase `--depth` (1–10) or `--max` (1–2000) for larger repositories. JSON includes path, depth, entry kind and a truncation flag. The CLI quotes filenames containing terminal control characters.
