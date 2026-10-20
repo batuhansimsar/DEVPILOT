@@ -47,16 +47,16 @@ DevPilot is designed to **inspect before acting**. Analysis skips symlinked file
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
-## Experimental Go CLI and project tree
+## Experimental Go project tree
 
-The repository also contains a Go 1.23 CLI implementation, separate from the Python package. To try its bounded, read-only project tree listing:
+The Go CLI (alongside the Python package) includes a read-only, bounded project tree command:
 
 ```sh
 go run ./cmd/devpilot tree --depth=3 --max-entries=250 /path/to/project
 go run ./cmd/devpilot tree --json /path/to/project
 ```
 
-This lists relative paths and file types without reading file contents or executing scripts. It does not follow symlinks and skips common generated directories and secret-like filenames. Defaults are 3 directory levels and 250 entries; an explicit truncation flag is included in JSON output. The Go CLI's `doctor` and `test` commands remain available; the two CLIs are not yet unified.
+The command lists relative paths and file types without reading file contents, following symlinks, or executing project code. Generated directories and common secret-like filenames are hidden by default. JSON output includes a `truncated` indicator when the entry limit is reached. The Python and Go CLIs are separate entrypoints at this stage.
 
 ## Development
 
@@ -68,3 +68,5 @@ python -m unittest discover -s tests -v
 Contributions are welcome. Please add regression tests for bug fixes. For security reports, do not publish credentials, exploit data, or private logs in public issues; reach out to the maintainers privately first.
 
 Licensed under the MIT License.
+
+JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.

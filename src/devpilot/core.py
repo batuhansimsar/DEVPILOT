@@ -74,7 +74,7 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Go')
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts'}:
         types.add('Java')
-    if any(p.suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj'} for p in root.iterdir() if p.is_file()):
+    if any(Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'} for name in names):
         types.add('.NET')
     if names & {'Dockerfile', 'compose.yml', 'compose.yaml', 'docker-compose.yml', 'docker-compose.yaml'}:
         types.add('Docker')
@@ -142,8 +142,15 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
-    if any(p.suffix.lower() in {'.sln', '.slnx', '.csproj', '.fsproj'} for p in root.iterdir() if p.is_file()):
-        commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test'], 'reason': '.NET solution/project'})
+    # Prefer a unique solution, otherwise a unique project. Do not guess in
+    # directories with multiple candidate build targets.
+    solutions = sorted(name for name in names if Path(name).suffix.lower() in {'.sln', '.slnx'})
+    projects = sorted(name for name in names if Path(name).suffix.lower() in {'.csproj', '.fsproj', '.vbproj'})
+    dotnet_target = (solutions[0] if len(solutions) == 1 else
+                     projects[0] if not solutions and len(projects) == 1 else None)
+    if dotnet_target:
+        commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test', dotnet_target],
+                         'reason': 'unique .NET solution/project'})
     if names & {'pyproject.toml', 'requirements.txt', 'setup.py'} and (root / 'tests').is_dir():
         if (root / 'tests').is_symlink():
             pass

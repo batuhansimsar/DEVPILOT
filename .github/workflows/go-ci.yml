@@ -1,12 +1,16 @@
-name: Go CLI
+name: Go CI
+
 on:
-  pull_request:
   push:
     branches: [main]
+  pull_request:
+
 permissions:
   contents: read
+
 jobs:
-  verify:
+  go:
+    name: Go ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -18,12 +22,18 @@ jobs:
         with:
           go-version-file: go.mod
           cache: false
-      - name: Format
+      - name: Check formatting
         shell: bash
-        run: test -z "$(gofmt -l cmd internal)"
+        run: |
+          unformatted="$(gofmt -l cmd internal)"
+          if [ -n "$unformatted" ]; then
+            echo "Go files require gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
       - name: Vet
         run: go vet ./...
       - name: Test
-        run: go test ./...
+        run: go test -count=1 ./...
       - name: Build
         run: go build ./cmd/devpilot
