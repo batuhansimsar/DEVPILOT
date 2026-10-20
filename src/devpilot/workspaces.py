@@ -101,6 +101,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 ecosystem = 'Python'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'
+            if not ecosystem and path.suffix.lower() == '.gemspec':
+                ecosystem = 'Ruby'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
                 ecosystem = '.NET'
             if ecosystem:
