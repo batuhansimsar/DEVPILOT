@@ -8,11 +8,18 @@ from .console import escape_terminal
 
 
 def format_git_status(report: dict[str, Any]) -> str:
-    """Escape untrusted terminal controls while preserving Git's record lines.
+    """Render Git porcelain records safely without allowing diagnostic line spoofing.
 
-    Git porcelain uses LF to separate records and prints quoted filenames.
-    Preserve those structural newlines, but escape controls *within* lines.
-    JSON reports deliberately retain the original, unmodified command output.
+    Git porcelain uses LF to separate records. Preserve structural LF only for
+    status stdout; arbitrary error messages are not records and must escape
+    embedded line breaks as well as terminal controls. JSON reports deliberately
+    retain the original, unmodified command output.
     """
-    message = report.get('stdout') or report.get('error') or report.get('stderr') or 'No changes'
-    return '\n'.join(escape_terminal(line) for line in str(message).split('\n'))
+    stdout = report.get('stdout')
+    if stdout:
+        return '\n'.join(escape_terminal(line) for line in str(stdout).split('\n'))
+
+    diagnostic = report.get('error') or report.get('stderr')
+    if diagnostic:
+        return escape_terminal(str(diagnostic))
+    return 'No changes'
