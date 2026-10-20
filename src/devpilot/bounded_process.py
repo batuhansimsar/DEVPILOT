@@ -12,7 +12,7 @@ import os
 import signal
 import subprocess
 from pathlib import Path
-from threading import Thread
+from threading import TIMEOUT_MAX, Thread
 from typing import BinaryIO
 
 MAX_OUTPUT_BYTES = 20_000
@@ -73,12 +73,12 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
             not isinstance(timeout, bool)
             and isinstance(timeout, (int, float))
             and math.isfinite(timeout)
-            and timeout > 0
+            and 0 < timeout <= TIMEOUT_MAX
         )
     except (OverflowError, TypeError, ValueError):
         valid_timeout = False
     if not valid_timeout:
-        return {**result, 'error': 'timeout must be a positive finite number of seconds'}
+        return {**result, 'error': 'timeout must be a positive finite number of seconds within the platform limit'}
     try:
         process = subprocess.Popen(
             argv, cwd=root, stdin=subprocess.DEVNULL,
