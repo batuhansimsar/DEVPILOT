@@ -15,9 +15,43 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10
 
 _NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _REQUIREMENT = re.compile(
-    r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|@\s*\S|$))"
+    r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?=\s|\[|\(|[<>=!~;@]|$)"
 )
 _SEPARATORS = re.compile(r"[-_.]+")
+
+_EXTRA_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+_EXTRAS = re.compile(r"\[\s*" + _EXTRA_NAME + r"(?:\s*,\s*" + _EXTRA_NAME + r")*\s*\]")
+_VERSION_PART = r"(?:===|~=|==|!=|<=|>=|<|>)\s*[^\s,;()]+"
+_VERSION_LIST = _VERSION_PART + r"(?:\s*,\s*" + _VERSION_PART + r")*"
+_VERSIONS = re.compile(r"(?:\(\s*" + _VERSION_LIST + r"\s*\)|" + _VERSION_LIST + r")\Z")
+
+
+def _valid_requirement_suffix(suffix: str) -> bool:
+    """Reject malformed tails instead of silently accepting a package-name prefix.
+
+    This checks the declaration structure without exposing versions, URLs or
+    markers to callers. It deliberately does not resolve or execute requirements.
+    """
+    suffix = suffix.strip()
+    if suffix.startswith('['):
+        extras = _EXTRAS.match(suffix)
+        if extras is None:
+            return False
+        suffix = suffix[extras.end():].strip()
+    if not suffix:
+        return True
+    if suffix.startswith('@'):
+        # An unescaped semicolon can belong to the URL path. A marker after
+        # a direct reference is separated by whitespace before the semicolon.
+        parts = re.split(r'\s+;', suffix[1:].strip(), maxsplit=1)
+        return (bool(parts[0]) and not any(char.isspace() for char in parts[0])
+                and (len(parts) == 1 or bool(parts[1].strip())))
+    version, marker_sep, marker = suffix.partition(';')
+    if marker_sep and not marker.strip():
+        return False
+    if not version.strip():
+        return bool(marker_sep and marker.strip())
+    return _VERSIONS.fullmatch(version.strip()) is not None
 
 
 def _canonical(name: str) -> str:
@@ -40,7 +74,7 @@ def _requirements(entries: object, label: str) -> set[str]:
         if not isinstance(entry, str):
             raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
         match = _REQUIREMENT.match(entry)
-        if not match:
+        if not match or not _valid_requirement_suffix(entry[match.end():]):
             raise ValueError(f"pyproject.toml {label} contains an invalid requirement")
         suffix = entry[match.end():].strip()
         if (suffix and suffix[0] not in '[(@<>=!~;'
