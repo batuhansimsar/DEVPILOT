@@ -27,6 +27,23 @@ class EnvironmentIndexTests(unittest.TestCase):
         self.stage('.env.sample')
         self.assertEqual(tracked_environment_files(self.root), ['.env', 'backend/.env.production'])
 
+    def test_nested_environment_templates(self):
+        for name in (
+            '.env.defaults',
+            'backend/.env.production.example',
+            'backend/.env.production.sample',
+            'backend/.env.production.template',
+            'backend/.env.production.dist',
+            'backend/.env.production.defaults',
+        ):
+            self.stage(name)
+        self.stage('backend/.env.production')
+        self.stage('backend/.env.production.example.local')
+        self.assertEqual(
+            tracked_environment_files(self.root),
+            ['backend/.env.production', 'backend/.env.production.example.local'],
+        )
+
     def test_does_not_read_contents(self):
         self.stage('.env.local')
         with patch('pathlib.Path.read_text', side_effect=AssertionError('must not open .env')):
