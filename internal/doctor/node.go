@@ -18,7 +18,7 @@ func selectNodePackageManager(declared, detected string, lockfiles []string) (st
 		return detected, []Finding{{
 			Level: "warning", Code: "package-manager-invalid",
 			Message: "package.json has an unsupported or malformed packageManager declaration",
-			Remedy: "Use npm@version, pnpm@version, yarn@version, or bun@version.",
+			Remedy:  "Use npm@version, pnpm@version, yarn@version, or bun@version.",
 		}}
 	}
 
@@ -44,6 +44,6 @@ func selectNodePackageManager(declared, detected string, lockfiles []string) (st
 	return name, []Finding{{
 		Level: "warning", Code: "package-manager-lock-mismatch",
 		Message: fmt.Sprintf("packageManager selects %s but incompatible lockfiles exist: %s", name, strings.Join(mismatched, ", ")),
-		Remedy: "Regenerate lockfiles using the declared package manager and remove stale ones.",
+		Remedy:  "Regenerate lockfiles using the declared package manager and remove stale ones.",
 	}}
 }
