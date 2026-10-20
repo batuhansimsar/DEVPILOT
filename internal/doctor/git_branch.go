@@ -20,7 +20,7 @@ func parseGitHeadBranch(data []byte) (string, bool) {
 		return "", false
 	}
 	branch := strings.TrimPrefix(value, prefix)
-	if branch == "" || strings.Contains(branch, "\\") || strings.IndexFunc(branch, func(r rune) bool {
+	if branch == "" || branch == "HEAD" || strings.Contains(branch, "\\") || strings.IndexFunc(branch, func(r rune) bool {
 		return unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || unicode.IsSpace(r)
 	}) >= 0 {
 		return "", false
