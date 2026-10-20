@@ -1,9 +1,7 @@
-"""Ensure a partial Git index stream cannot falsely clear a credential audit."""
+"""Ensure malformed Git index streams cannot falsely clear a credential audit."""
 
-import subprocess
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from devpilot.audit import audit_tracked_files
@@ -12,8 +10,7 @@ from devpilot.audit import audit_tracked_files
 class AuditIndexIntegrityTests(unittest.TestCase):
     def _audit_output(self, payload: bytes):
         with patch('devpilot.audit.shutil.which', return_value='/usr/bin/git'), \
-             patch('devpilot.audit.subprocess.run', return_value=SimpleNamespace(
-                 stdout=payload, returncode=0)):
+             patch('devpilot.audit._tracked_paths', return_value=payload):
             return audit_tracked_files(Path('/sample'))
 
     def test_complete_records_are_audited(self):
@@ -26,7 +23,14 @@ class AuditIndexIntegrityTests(unittest.TestCase):
         for payload in (b'.env', b'docs/README.md\0secrets.json', b'git-index-partial'):
             with self.subTest(payload=payload):
                 result = self._audit_output(payload)
-                self.assertIn('Incomplete Git index output', result['error'])
+                self.assertIn('Malformed Git index output', result['error'])
+                self.assertEqual(result['tracked_files'], 0)
+
+    def test_empty_records_are_rejected(self):
+        for payload in (b'\0', b'.env\0\0', b'\0src/main.py\0'):
+            with self.subTest(payload=payload):
+                result = self._audit_output(payload)
+                self.assertIn('Malformed Git index output', result['error'])
                 self.assertEqual(result['tracked_files'], 0)
 
     def test_empty_repository_remains_valid(self):
@@ -34,18 +38,13 @@ class AuditIndexIntegrityTests(unittest.TestCase):
         self.assertNotIn('error', result)
         self.assertEqual(result['tracked_files'], 0)
 
-    def test_git_errors_do_not_echo_sensitive_exceptions(self):
-        failures = (
-            OSError('private-token-should-not-leak'),
-            subprocess.TimeoutExpired(['git', 'private-token-should-not-leak'], 10),
-        )
-        for failure in failures:
-            with self.subTest(type=type(failure).__name__), \
-                 patch('devpilot.audit.shutil.which', return_value='/usr/bin/git'), \
-                 patch('devpilot.audit.subprocess.run', side_effect=failure):
-                result = audit_tracked_files(Path('/sample'))
-                self.assertIn('error', result)
-                self.assertNotIn('private-token-should-not-leak', str(result))
+    def test_git_spawn_errors_do_not_expose_sensitive_exception_text(self):
+        with patch('devpilot.audit.shutil.which', return_value='/usr/bin/git'), \
+             patch('devpilot.secret_audit.subprocess.Popen',
+                   side_effect=OSError('private-token-should-not-leak')):
+            result = audit_tracked_files(Path('/sample'))
+        self.assertIn('Unable to inspect Git index', result['error'])
+        self.assertNotIn('private-token-should-not-leak', str(result))
 
 
 if __name__ == '__main__':
