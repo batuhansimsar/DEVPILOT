@@ -21,6 +21,7 @@ from .cargo_deps import parse_cargo_dependencies
 from .cargo_lock import parse_cargo_lock
 from .go_mod import parse_go_requirements
 from .composer_deps import parse_composer_dependencies
+from .composer_lock import parse_composer_lock
 from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
@@ -121,6 +122,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Go", {"require": parse_go_requirements(content)}
     if name == "composer.json":
         return "PHP", parse_composer_dependencies(content)
+    if name == "composer.lock":
+        return "PHP", parse_composer_lock(content)
     if name == "pom.xml":
         return "Java", parse_maven_dependencies(content)
     if name == "Cargo.toml":
@@ -156,7 +159,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "pom.xml", "Pipfile", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
+            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "composer.lock", "pom.xml", "Pipfile", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
                     or _is_requirements_manifest(filename)
                     or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
