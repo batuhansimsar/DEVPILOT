@@ -57,7 +57,7 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
                 return None, 'package.json exceeds the 256 KiB inspection limit'
             if _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None, 'package.json changed during inspection'
-        data = json.loads(content.decode('utf-8'), parse_constant=_reject_non_json_number)
+        data = json.loads(content.decode('utf-8-sig'), parse_constant=_reject_non_json_number)
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'
         return data, None
