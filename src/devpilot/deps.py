@@ -18,6 +18,7 @@ from pathlib import Path
 from .walk import walk_project, _printable
 from .cargo_deps import parse_cargo_dependencies
 from .composer_deps import parse_composer_dependencies
+from .maven_deps import parse_maven_dependencies
 
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
 MAX_BYTES = 512_000
@@ -113,6 +114,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
             if match:
                 names.add(match.group(1))
         return "Go", {"require": sorted(names)}
+    if name == "pom.xml":
+        return "Java", parse_maven_dependencies(content)
     if name == "composer.json":
         return "PHP", parse_composer_dependencies(content)
     if name == "Cargo.toml":
@@ -152,7 +155,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("package.json", "go.mod", "Cargo.toml", "composer.json")
+            if not (filename in ("package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml")
                     or filename.startswith("requirements") and filename.endswith(".txt")
                     or filename.endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
