@@ -66,3 +66,14 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+
+### HTTP health checks
+
+Probe an explicitly supplied HTTP endpoint without reading the response body or following redirects:
+
+```bash
+devpilot http http://localhost:8080/health --json
+```
+
+The command uses HEAD, reports HTTP status and latency, and returns an unsuccessful exit code for HTTP 4xx/5xx or network failures. Credentials in URLs are rejected; query parameters are omitted from diagnostics. Use `--timeout 5` to adjust the deadline (0.1–30 seconds).
