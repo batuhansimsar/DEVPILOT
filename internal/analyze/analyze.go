@@ -35,12 +35,12 @@ var languages = map[string]string{
 }
 
 var markers = map[string]string{
-	"go.mod": "Go", "Cargo.toml": "Rust", "package.json": "Node.js",
-	"pyproject.toml": "Python", "requirements.txt": "Python",
+	"go.mod": "Go", "go.work": "Go", "Cargo.toml": "Rust", "package.json": "Node.js",
+	"pyproject.toml": "Python", "requirements.txt": "Python", "Pipfile.lock": "Python",
 	"Pipfile": "Python", "Pipfile.lock": "Python", "pom.xml": "Maven", "build.gradle": "Gradle",
 	"build.gradle.kts": "Gradle", "Gemfile": "Ruby",
 	"composer.json": "PHP", "pubspec.yaml": "Dart",
-	"deno.json": "Deno",
+	"deno.json": "Deno", "deno.jsonc": "Deno", "bun.lock": "Bun", "bun.lockb": "Bun",
 }
 
 // LanguageCount is one language and its file count.
