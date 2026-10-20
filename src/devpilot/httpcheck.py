@@ -108,8 +108,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         expected_statuses = frozenset(statuses)
     try:
         port = parts.port
-    except ValueError as exc:
-        raise ValueError('URL contains an invalid port') from exc
+    except ValueError:
+        # urllib's port error can include the raw, potentially sensitive text.
+        raise ValueError('URL contains an invalid port') from None
     if port == 0 or (port is None and parts.netloc.endswith(':')):
         raise ValueError('URL port must be between 1 and 65535')
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
