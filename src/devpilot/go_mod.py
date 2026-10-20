@@ -11,6 +11,11 @@ import re
 # Paths with just one element (e.g. example.com) are valid too.
 # Go also permits double-quoted module paths and versions in require declarations.
 _MODULE_PATH = re.compile(r'[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*\Z')
+# File paths reserved by Windows also cannot be Go module path elements.
+# Compare the stem before the first dot (CON.txt is reserved too).
+_WINDOWS_RESERVED = frozenset({'con', 'prn', 'aux', 'nul'} | {
+    f'{kind}{digit}' for kind in ('com', 'lpt') for digit in range(1, 10)
+})
 _GO_QUOTED_CONTENT = re.compile(
     r'(?:[^"\\]|\\(?:[abfnrtv\\"]|[0-7]{3}|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}))*\Z'
 )
@@ -25,15 +30,24 @@ _REQUIREMENT = re.compile(
 
 
 def _valid_module_path(path: str) -> bool:
-    """Reject invalid dot-prefixed or dot-suffixed Go path components.
+    """Reject unsafe Go path elements, including Windows device names.
 
-    Go module path elements cannot start or end with a period. Merely matching
-    allowed characters would accept traversal-like ``../secret`` as a module.
+    Go module paths cannot contain reserved Windows filenames or DOS 8.3
+    short-name-looking segments. Check the stem before the first dot, as
+    Windows also reserves names such as ``CON.txt``.
     """
-    return bool(_MODULE_PATH.fullmatch(path)) and all(
-        not element.startswith('.') and not element.endswith('.')
-        for element in path.split('/')
-    )
+    if not _MODULE_PATH.fullmatch(path):
+        return False
+    for element in path.split('/'):
+        if element.startswith('.') or element.endswith('.'):
+            return False
+        stem = element.split('.', 1)[0]
+        if stem.lower() in _WINDOWS_RESERVED:
+            return False
+        # Windows can interpret a trailing '~<digits>' as an 8.3 alias.
+        if '~' in stem and stem.rsplit('~', 1)[1].isdigit():
+            return False
+    return True
 
 
 def parse_go_requirements(content: str) -> list[str]:
