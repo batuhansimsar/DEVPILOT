@@ -114,18 +114,17 @@ def _human(command: str, output: dict[str, Any]) -> str:
     if command == 'test':
         lines = [f"Tests: {'executed' if output['executed'] else 'dry run'}"]
         for item in output['commands']:
-            lines.append(f"  {item['ecosystem']}: {shlex.join(item['argv'])} ({item['reason']})")
+            lines.append(f"  {escape_terminal(item['ecosystem'])}: {escape_terminal(shlex.join(item['argv']))} ({escape_terminal(item['reason'])})")
             if 'skipped_reason' in item:
-                lines.append('    Skipped: ' + item['skipped_reason'])
+                lines.append('    Skipped: ' + escape_terminal(item['skipped_reason']))
             if 'result' in item:
                 result = item['result']
                 lines.append(f"    Exit: {result['exit_code']}")
-                if result.get('stdout'):
-                    lines.append(result['stdout'].rstrip())
-                if result.get('stderr'):
-                    lines.append(result['stderr'].rstrip())
+                for stream in ('stdout', 'stderr'):
+                    if result.get(stream):
+                        lines.extend(f'    {stream} | {escape_terminal(line)}' for line in result[stream].splitlines())
                 if result.get('error'):
-                    lines.append('    Error: ' + result['error'])
+                    lines.append('    Error: ' + escape_terminal(result['error']))
         if not output['commands']:
             lines.append('  No supported test command detected')
         if not output['executed'] and output['commands']:
