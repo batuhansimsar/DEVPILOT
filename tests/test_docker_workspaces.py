@@ -28,6 +28,17 @@ class DockerWorkspaceTests(unittest.TestCase):
             self.assertEqual(report['workspaces'][0]['ecosystems'], ['Docker', 'Node.js'])
             self.assertEqual({m['file'] for m in report['workspaces'][0]['manifests']}, {'compose.yaml', 'package.json'})
 
+    def test_named_dockerfiles_discovered(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'Dockerfile.dev').write_text('')
+            (root / 'Containerfile.prod').write_text('')
+            (root / 'unrelated.Dockerfile.dev').write_text('')
+            report = discover_workspaces(root)
+            self.assertEqual(report['workspace_count'], 1)
+            self.assertEqual({m['file'] for m in report['workspaces'][0]['manifests']},
+                             {'Dockerfile.dev', 'Containerfile.prod'})
+
     def test_other_container_manifest_names(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
