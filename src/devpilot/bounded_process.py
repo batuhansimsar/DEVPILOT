@@ -6,6 +6,7 @@ access local files or launch child processes.
 
 from __future__ import annotations
 
+import math
 import os
 import signal
 import subprocess
@@ -53,6 +54,19 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
     Windows). This is not a sandbox; run only trusted project scripts.
     """
     result = {'argv': argv, 'exit_code': None}
+    # Validate before Popen: subprocess.wait() can raise for NaN or invalid
+    # timeouts after the child has started, leaving it running unsupervised.
+    try:
+        valid_timeout = (
+            not isinstance(timeout, bool)
+            and isinstance(timeout, (int, float))
+            and math.isfinite(timeout)
+            and timeout > 0
+        )
+    except (OverflowError, TypeError, ValueError):
+        valid_timeout = False
+    if not valid_timeout:
+        return {**result, 'error': 'timeout must be a positive finite number of seconds'}
     try:
         process = subprocess.Popen(
             argv, cwd=root, stdin=subprocess.DEVNULL,
