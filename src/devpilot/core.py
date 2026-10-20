@@ -24,6 +24,7 @@ from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
 from .walk import walk_project
+from .requirements_names import is_requirements_manifest
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -50,7 +51,6 @@ KEY_FILES = frozenset({
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
     'uv.lock', 'poetry.lock', 'go.work',
-    'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -77,7 +77,7 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
 def _has_python_manifest(names: set[str]) -> bool:
     """Match the Python dependency manifests supported by dependency scanning."""
     return bool(names & {'pyproject.toml', 'setup.py', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
-        name.startswith('requirements') and name.endswith(('.txt', '.in'))
+        is_requirements_manifest(name)
         for name in names
     )
 
@@ -91,9 +91,6 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Deno')
     if _has_python_manifest(names):
         types.add('Python')
-    if names & {'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked'} or any(
-            name.lower().endswith('.gemspec') for name in names):
-        types.add('Ruby')
     if names & {'Cargo.toml'}:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
@@ -143,8 +140,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if language:
                 languages[language] += 1
             rel = p.relative_to(root).as_posix()
-            if (filename in KEY_FILES or filename.lower().endswith('.gemspec')
-                or is_container_manifest(filename)) and (
+            if (filename in KEY_FILES or is_container_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
                 key_files.append(rel)
@@ -225,7 +221,6 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby',
     }
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]

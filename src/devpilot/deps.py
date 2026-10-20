@@ -25,6 +25,7 @@ from .maven_deps import parse_maven_dependencies
 from .dotnet_deps import parse_dotnet_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .requirements_deps import parse_requirements_dependencies
+from .requirements_names import is_requirements_manifest as _is_requirements_manifest
 from .pipenv_deps import parse_pipfile_lock
 from .pipfile_deps import parse_pipfile_dependencies
 from .json_numbers import parse_finite_json_float
@@ -40,11 +41,6 @@ MAX_FILES = 500
 # Recognize PEP 508 "name @ URL" while retaining only the package name.
 PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(?:\s*(?:[<>=!~;]|@\s*\S|$))")
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
-
-
-def _is_requirements_manifest(name: str) -> bool:
-    """Recognize pip-tools input files and existing pinned requirements lists."""
-    return name.startswith("requirements") and name.endswith((".txt", ".in"))
 
 
 
