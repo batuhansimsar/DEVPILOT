@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from devpilot.workspaces import discover_workspaces
 
@@ -52,6 +53,24 @@ class WorkspaceDiscoveryTests(unittest.TestCase):
             except (NotImplementedError, OSError):
                 self.skipTest('Symlinks unavailable')
             self.assertEqual(discover_workspaces(root)['workspace_count'], 0)
+
+    def test_unreadable_directory_is_reported_and_scan_is_incomplete(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'go.mod').write_text('module test')
+
+            def interrupted_walk(path, *, followlinks=False, onerror=None):
+                self.assertFalse(followlinks)
+                yield str(root), ['private'], ['go.mod']
+                onerror(PermissionError(13, 'Permission denied', str(root / 'private')))
+
+            with patch('devpilot.walk.os.walk', side_effect=interrupted_walk):
+                report = discover_workspaces(root)
+            self.assertTrue(report['truncated'])
+            self.assertEqual(report['workspace_count'], 1)
+            self.assertEqual(len(report['problems']), 1)
+            self.assertIn('private', report['problems'][0])
+            self.assertNotIn(str(root), report['problems'][0])
 
     def test_invalid_limits(self):
         with TemporaryDirectory() as temp:
