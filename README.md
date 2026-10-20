@@ -59,6 +59,8 @@ devpilot doctor --path /path/to/project --json
 
 `devpilot doctor` warns if Git tracks potentially sensitive `.env` files (including nested `.env.production` or `.env.local`). Template filenames such as `.env.example` and `.env.sample` are excluded. This check inspects Git's index only; it never reads environment-file contents.
 
+`devpilot audit` also flags tracked Git plaintext credential stores (`.git-credentials`) and GitHub CLI token configuration (`gh/hosts.yml` or `gh/hosts.yaml`, including nested locations). It reports filenames only, not their contents.
+
 DevPilot is designed to **inspect before acting**. Analysis skips symlinked files and folders, dependency/build directories, and caps scans at 10,000 files / 12 directory levels. It never prints `.env` values or executes project scripts during `doctor` or `analyze`. External tools such as Git and Docker are invoked with argument arrays, **not shell interpolation**. Git status disables repository-configured filesystem-monitor hooks and optional index writes, avoiding unexpected helper execution during inspection. CLI stdout/stderr may contain sensitive project data; do not publish `--json` output blindly. `test --yes` runs untrusted repository code and should only be used with projects you trust. The `check` command opens a network connection only to the host explicitly supplied. No telemetry is collected.
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
