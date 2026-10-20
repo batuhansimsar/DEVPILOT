@@ -90,6 +90,15 @@ def parse_npm_lock(content: str) -> list[str]:
     if not isinstance(document, dict):
         raise ValueError('npm lockfile root must be an object')
 
+    # An explicit npm lockfile version must be an integer supported by this
+    # parser. In particular, booleans compare equal to integers in Python,
+    # but true/false and null are not valid lockfile versions. Do not infer an
+    # inventory from an unsupported future format or a malformed manifest.
+    if 'lockfileVersion' in document:
+        version = document['lockfileVersion']
+        if type(version) is not int or version not in (1, 2, 3):
+            raise ValueError('npm lockfile has an unsupported lockfileVersion')
+
     names: set[str] = set()
     if 'packages' in document:
         packages = document['packages']
