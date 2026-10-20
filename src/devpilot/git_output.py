@@ -8,20 +8,35 @@ from .console import escape_terminal
 
 
 def format_git_status(report: dict[str, Any]) -> str:
-    """Render Git porcelain records safely without allowing diagnostic line spoofing.
+    """Render Git status safely and disclose failed or incomplete inspections.
 
-    Git porcelain uses LF to separate records. Preserve structural LF only for
-    status stdout; arbitrary error messages are not records and must escape
-    embedded line breaks as well as terminal controls. JSON reports deliberately
-    retain the original, unmodified command output.
+    Preserve porcelain record separators in stdout, but never trust diagnostic
+    line breaks. When command capture is truncated or Git fails, clearly mark
+    the output as incomplete instead of presenting a misleading clean status.
+    JSON reports retain their original data unchanged.
     """
     stdout = report.get('stdout')
-    if stdout:
-        return '\n'.join(escape_terminal(line) for line in str(stdout).split('\n'))
-
+    rendered = ('\n'.join(escape_terminal(line) for line in str(stdout).split('\n'))
+                if stdout else '')
     diagnostic = report.get('error') or report.get('stderr')
-    if diagnostic:
-        return escape_terminal(str(diagnostic))
-    if report.get('exit_code') not in (None, 0) or ('dirty' in report and report['dirty'] is None):
-        return 'Git status unavailable'
-    return 'No changes'
+    warnings: list[str] = []
+
+    if report.get('stdout_truncated'):
+        warnings.append('Warning: Git status output truncated; results may be incomplete')
+
+    if 'exit_code' in report and report['exit_code'] != 0:
+        code = report['exit_code']
+        if code is None:
+            warnings.append('Git status unavailable (command did not complete)')
+        else:
+            warnings.append(f'Git status failed (exit code {escape_terminal(str(code))})')
+        if diagnostic:
+            warnings.append(escape_terminal(str(diagnostic)))
+    elif report.get("dirty", False) is None and "dirty" in report:
+        warnings.append("Git status unavailable (worktree state inconclusive)")
+    elif not stdout and diagnostic:
+        warnings.append(escape_terminal(str(diagnostic)))
+
+    if warnings:
+        return '\n'.join(([rendered.rstrip('\n')] if rendered else []) + warnings)
+    return rendered or 'No changes'
