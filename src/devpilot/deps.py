@@ -22,6 +22,7 @@ from .composer_deps import parse_composer_dependencies
 from .maven_deps import parse_maven_dependencies
 from .pyproject_deps import parse_pyproject_dependencies
 from .pipenv_deps import parse_pipfile_lock
+from .uv_lock import parse_uv_lock
 
 IGNORED = {".git", "node_modules", "vendor", ".venv", "venv", "dist", "build", "target", "bin", "obj", ".next", ".tox", "__pycache__"}
 MAX_BYTES = 512_000
@@ -119,6 +120,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         return "Python", {"requirements": sorted(matches)}
     if name == "Pipfile.lock":
         return "Python", parse_pipfile_lock(content)
+    if name == "uv.lock":
+        return "Python", {"locked": parse_uv_lock(content)}
     if name == "go.mod":
         return "Go", {"require": parse_go_requirements(content)}
     if name == "composer.json":
@@ -163,7 +166,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock")
+            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "composer.json", "pom.xml", "Pipfile.lock", "uv.lock")
                     or _is_requirements_manifest(filename)
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
                 continue
