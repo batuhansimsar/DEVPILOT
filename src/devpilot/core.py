@@ -114,6 +114,13 @@ def analyze_project(root: Path) -> dict[str, Any]:
     package, error = _read_package_json(root)
     if error:
         problems.append(error)
+    if package is not None:
+        _, lockfiles, declared = package_manager(root, package)
+        if not declared and len({LOCKFILES[name] for name in lockfiles}) > 1:
+            problems.append(
+                'Conflicting Node.js lockfiles detected; declare packageManager in package.json '
+                'or remove obsolete lockfiles before running tests.'
+            )
     scripts = package.get('scripts', {}) if package else {}
     if not isinstance(scripts, dict):
         problems.append('package.json scripts must be an object')
