@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 _GROUPS = frozenset({'dependencies', 'dev-dependencies', 'build-dependencies'})
-_DEPENDENCY = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=')
+_DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za-z0-9_-]+))\s*=''')
 _NAME = re.compile(r'[A-Za-z0-9_-]+\Z')
 
 
@@ -13,8 +13,8 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
     """List Cargo dependency names from inline and table-style declarations.
 
     Supports ``[dependencies]``/``[dependencies.foo]`` and equivalent
-    target-specific, workspace, build and dev dependency sections. Never
-    includes version specifications or credentials in the output.
+    target-specific, workspace, build and dev dependency sections. Bare and
+    quoted TOML keys are accepted. Never includes version specifications or credentials in the output.
     """
     found: dict[str, set[str]] = {}
     active_group = ''
@@ -33,5 +33,5 @@ def parse_cargo_dependencies(content: str) -> dict[str, list[str]]:
         if active_group:
             match = _DEPENDENCY.match(line)
             if match:
-                found.setdefault(active_group, set()).add(match.group(1))
+                found.setdefault(active_group, set()).add(next(part for part in match.groups() if part is not None))
     return {group: sorted(names) for group, names in found.items()}
