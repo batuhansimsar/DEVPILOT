@@ -147,16 +147,21 @@ def _human(command: str, output: dict[str, Any]) -> str:
             return output.get('error') or output.get('stderr') or 'Docker failed'
         return '\n'.join(f"{x.get('Names')}: {x.get('Status')} ({x.get('Image')})" for x in output['containers']) or 'No running containers'
     if command == 'http':
-        return f"{output['url']} — HTTP {output['status']}" + (' (healthy)' if output.get('healthy') else ' (unhealthy)') if output['reachable'] else f"{output['url']} — unreachable ({output.get('error', 'network error')})"
+        # Diagnostics can contain untrusted terminal controls; JSON remains raw.
+        url = escape_terminal(output['url'])
+        if output['reachable']:
+            return f"{url} — HTTP {output['status']}" + (' (healthy)' if output.get('healthy') else ' (unhealthy)')
+        return f"{url} — unreachable ({escape_terminal(str(output.get('error', 'network error')))})"
     if command == 'check':
         status = 'reachable' if output['reachable'] else 'unreachable'
+        host = escape_terminal(output['host'])
         if 'tls_valid' in output:
-            details = (' (TLS certificate verified; expires ' + output['expires_at'] + ')'
+            details = (' (TLS certificate verified; expires ' + escape_terminal(output['expires_at']) + ')'
                        if output.get('expires_at') else
                        ' (TLS certificate verified)' if output['tls_valid'] else
-                       f" (TLS verification failed: {output.get('error', 'unknown error')})")
-            return f"{output['host']}:{output['port']} — {status}" + details
-        return f"{output['host']}:{output['port']} — {status}" + (f" ({output['error']})" if output.get('error') else '')
+                       f" (TLS verification failed: {escape_terminal(str(output.get('error', 'unknown error')))})")
+            return f"{host}:{output['port']} — {status}" + details
+        return f"{host}:{output['port']} — {status}" + (f" ({escape_terminal(str(output['error']))})" if output.get('error') else '')
     return output.get('stdout') or output.get('error') or output.get('stderr') or 'No changes'
 
 
