@@ -26,10 +26,13 @@ def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
     reference_tag = f'{prefix}PackageReference'
     names: set[str] = set()
 
-    def visit(node: ET.Element, in_item_group: bool = False) -> None:
+    # An explicit stack handles deeply nested but valid project XML without
+    # depending on Python's recursion limit.
+    stack: list[tuple[ET.Element, bool]] = [(root, False)]
+    while stack:
+        node, in_item_group = stack.pop()
         for child in node:
-            # Ignore foreign namespaces and their full subtrees. An extension
-            # wrapper must not turn nested elements into MSBuild declarations.
+            # Ignore foreign namespace subtrees, not just their leaf tags.
             if prefix:
                 if not child.tag.startswith(prefix):
                     continue
@@ -42,7 +45,6 @@ def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
                 if name:
                     names.add(name)
             else:
-                visit(child, item_scope)
+                stack.append((child, item_scope))
 
-    visit(root)
     return {'PackageReference': sorted(names)}

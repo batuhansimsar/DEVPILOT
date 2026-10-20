@@ -52,6 +52,17 @@ class DotnetDependencyNamespaceTests(unittest.TestCase):
             'PackageReference': ['Actual', 'Conditional'],
         })
 
+    def test_deep_msbuild_nesting_does_not_overflow_python_stack(self):
+        depth = 1800
+        content = (
+            '<Project>' + '<Choose>' * depth
+            + '<ItemGroup><PackageReference Include="Deep.Package"/></ItemGroup>'
+            + '</Choose>' * depth + '</Project>'
+        )
+        self.assertEqual(parse_dotnet_dependencies(content), {
+            'PackageReference': ['Deep.Package'],
+        })
+
     def test_foreign_project_root_is_rejected(self):
         content = '''<other:Project xmlns:other="urn:external">
             <other:PackageReference Include="fake"/>
