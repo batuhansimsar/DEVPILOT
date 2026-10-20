@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import signal
@@ -304,4 +305,12 @@ def tcp_check(host: str, port: int, timeout: float) -> dict[str, Any]:
         with socket.create_connection((dial_host, port), timeout=timeout):
             return {'host': host, 'port': port, 'reachable': True}
     except (OSError, TimeoutError) as exc:
-        return {'host': host, 'port': port, 'reachable': False, 'error': str(exc)}
+        # Never expose OS-provided error messages: they may include internal
+        # hostnames, paths or untrusted socket details in JSON/terminal reports.
+        if isinstance(exc, TimeoutError):
+            error = 'TCP connection timed out'
+        elif isinstance(exc, ConnectionRefusedError):
+            error = 'connection refused'
+        else:
+            error = errno.errorcode.get(exc.errno, 'network I/O error')
+        return {'host': host, 'port': port, 'reachable': False, 'error': error}
