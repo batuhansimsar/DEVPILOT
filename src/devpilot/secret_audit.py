@@ -32,6 +32,7 @@ EXACT_NAMES = frozenset({
     # Registry, database, and Terraform CLI authentication files can hold tokens.
     'auth.json', '.yarnrc', '.yarnrc.yml',
     '.pgpass', '.my.cnf', '.mylogin.cnf', '.terraformrc',
+    'credentials.tfrc.json',
     'secrets.yml', 'secrets.yaml', '.envrc',
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml',
 })
