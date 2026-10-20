@@ -46,7 +46,6 @@ func TestBadTimeout(t *testing.T) {
 	}
 }
 
-
 func TestTreeJSONAndValidation(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "src"), 0755); err != nil {
