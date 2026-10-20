@@ -147,4 +147,7 @@ def parse_go_requirements(content: str) -> list[str]:
                     continue
             if _valid_module_path(module):
                 names.add(module)
+    if in_require_block:
+        # An incomplete go.mod cannot provide a trustworthy dependency list.
+        raise ValueError('go.mod contains unterminated require block')
     return sorted(names)
