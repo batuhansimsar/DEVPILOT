@@ -21,7 +21,7 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
 
     Never follow symlinks and never run package-manager commands. Explicit
     packageManager metadata takes precedence; otherwise use a single lockfile
-    family, then a pnpm workspace manifest when no lockfiles are present.
+    family, then pnpm workspace or Yarn configuration when no lockfiles exist.
     Ambiguous or unconfigured projects fall back to npm.
     """
     locks = sorted(name for name in LOCKFILES if (root / name).is_file() and not (root / name).is_symlink())
@@ -34,12 +34,16 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
     families = {LOCKFILES[name] for name in locks}
     workspace = root / 'pnpm-workspace.yaml'
     pnpm_workspace = workspace.is_file() and not workspace.is_symlink()
+    yarn_config = root / '.yarnrc.yml'
+    yarn_config_present = yarn_config.is_file() and not yarn_config.is_symlink()
     if declared:
         selected = declared
     elif len(families) == 1:
         selected = next(iter(families))
     elif not families and pnpm_workspace:
         selected = 'pnpm'
+    elif not families and yarn_config_present:
+        selected = 'yarn'
     else:
         selected = 'npm'
     return selected, locks, declared
