@@ -19,6 +19,7 @@ WORKSPACE_FILES = {
     'requirements.txt': 'Python',
     'setup.py': 'Python',
     'Pipfile': 'Python',
+    'Pipfile.lock': 'Python',
     'go.mod': 'Go',
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
