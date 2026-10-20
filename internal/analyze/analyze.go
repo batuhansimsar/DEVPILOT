@@ -117,9 +117,7 @@ func Inspect(path string) (Report, error) {
 		} else if isDotnetManifest(entry.Name()) {
 			r.Manifests = append(r.Manifests, relative+" (.NET)")
 		}
-		if (strings.HasPrefix(relative, ".github/workflows/") &&
-			(strings.HasSuffix(relative, ".yml") || strings.HasSuffix(relative, ".yaml"))) ||
-			relative == ".gitlab-ci.yml" || relative == "azure-pipelines.yml" || relative == "Jenkinsfile" {
+		if isCIConfig(relative) {
 			r.CI = append(r.CI, relative)
 		}
 		return nil
