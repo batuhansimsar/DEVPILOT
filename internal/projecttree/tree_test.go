@@ -105,3 +105,10 @@ func TestRejectBadPathsAndDepth(t *testing.T) {
 		t.Fatal("accepted missing workspace")
 	}
 }
+
+func TestTerminalFilenameSanitization(t *testing.T) {
+	actual := safeDisplayName("bad\x1b[31m\nname\u202etxt")
+	if strings.ContainsAny(actual, "\x1b\n") || strings.ContainsRune(actual, '\u202e') {
+		t.Fatalf("unsafe control sequence: %q", actual)
+	}
+}
