@@ -1,0 +1,7 @@
+/devpilot
+*.exe
+*.test
+*.out
+/coverage/
+.env
+.DS_Store
