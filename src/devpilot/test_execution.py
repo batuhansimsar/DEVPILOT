@@ -49,7 +49,12 @@ def execute_test_commands(
             result = {'exit_code': None, 'error': 'Test runner returned an invalid result'}
         # Keep each command's report independent of a custom runner's mutable
         # buffer, including nested metadata such as captured output chunks.
-        item['result'] = deepcopy(result)
+        try:
+            item['result'] = deepcopy(result)
+        except Exception:
+            # A custom runner may return objects whose copy hooks raise.
+            # Treat the result as a failed command without exposing private data.
+            item['result'] = {'exit_code': None, 'error': 'Test runner returned an uncopyable result'}
         exit_code = item['result'].get('exit_code')
         # Runner-reported errors invalidate the run even when a subprocess
         # happens to return zero (e.g. a failed output-capture stage).
