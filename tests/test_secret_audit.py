@@ -24,6 +24,22 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIsNone(classify(name))
 
+    def test_environment_templates_and_local_variants(self):
+        for name in (
+            '.env.example', '.env.defaults', 'backend/.env.production.sample',
+            'backend/.env.production.template', 'backend/.env.production.dist',
+            'backend/.env.production.defaults',
+        ):
+            with self.subTest(template=name):
+                self.assertIsNone(classify(name))
+        for name in (
+            '.env.example.local', '.env.defaults.local',
+            'backend/.env.production.template.local', 'backend/.env.sample.production',
+            'backend\\.env.defaults.production',
+        ):
+            with self.subTest(sensitive=name):
+                self.assertEqual(classify(name), 'environment file')
+
     def test_windows_style_paths(self):
         self.assertIsNotNone(classify('nested\\secret.pem'))
 
@@ -70,6 +86,14 @@ class RepoTests(unittest.TestCase):
         self.assertEqual(result['findings'][0]['path'], 'config/.env')
         self.assertNotIn('do_not_print', json.dumps(result))
         self.assertNotIn('untracked.key', json.dumps(result))
+
+    def test_environment_local_suffix_appears_in_real_index_audit(self):
+        self.add('backend/.env.example.local', 'TOP_SECRET_NEVER_OUTPUT')
+        self.add('backend/.env.production.defaults', 'PUBLIC_TEMPLATE')
+        report = audit(self.root)
+        self.assertEqual([item['path'] for item in report['findings']], ['backend/.env.example.local'])
+        self.assertEqual(report['tracked_files_checked'], 2)
+        self.assertNotIn('TOP_SECRET_NEVER_OUTPUT', json.dumps(report))
 
     def test_redaction_keeps_category(self):
         self.add('private.pem', 'very_secret')
