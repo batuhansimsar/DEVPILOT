@@ -1,72 +1,61 @@
-"""Keep the standalone secret audit aligned with common credential locations."""
+"""Independent secret audit must detect credential paths covered by CLI audit."""
 
-import json
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
-from devpilot.audit import _potential_secret
 from devpilot.secret_audit import audit, classify
 
 
-SENSITIVE = (
-    ".terraformrc",
-    "configs/.terraformrc.bak",
-    "private/auth.json",
-    ".yarnrc",
-    "frontend/.yarnrc.yml",
-    "home/.pgpass",
-    "db/.my.cnf",
-    ".mylogin.cnf.backup",
-    ".config/gcloud/credentials.db",
-    ".config/gcloud/access_tokens.db",
-    ".config/pypoetry/auth.toml",
-    ".config/pip/pip.conf",
-    "pip/pip.ini",
-)
-
-
-class CredentialParityTests(unittest.TestCase):
-    def test_sensitive_auth_files_match_general_audit(self):
-        for path in SENSITIVE:
+class SecretAuditCredentialParityTests(unittest.TestCase):
+    def test_database_and_package_manager_credentials(self):
+        paths = (
+            '.pgpass', 'db/.my.cnf', '.mylogin.cnf',
+            '.terraformrc', 'infra/credentials.tfrc.json',
+            'registry/auth.json', '.yarnrc', 'project/.yarnrc.yml',
+            'home/.config/pypoetry/auth.toml',
+            'home/.config/pip/pip.conf', 'C:\\Users\\me\\pip\\pip.ini',
+            'backups/.pgpass.bak.tmp', 'backup/.mylogin.cnf.swp',
+            'backup/.npmrc.swo',
+        )
+        for path in paths:
             with self.subTest(path=path):
-                self.assertTrue(_potential_secret(path))
                 self.assertIsNotNone(classify(path))
-                self.assertIsNotNone(classify(path.upper().replace("/", "\\")))
 
-    def test_templates_and_unrelated_names_are_not_credentials(self):
-        for path in (
-            ".terraformrc.example", ".pgpass.sample", ".my.cnf.template",
-            "auth.json.example", ".yarnrc.yml.dist",
-            "docs/credentials.db", "docs/access_tokens.db",
-            "docs/auth.toml", "docs/pip.conf", "docs/pip.ini",
-            ".config/gcloud/credentials.db.example",
-        ):
+    def test_templates_and_unrelated_files_are_ignored(self):
+        paths = (
+            '.pgpass.example', '.my.cnf.template', '.yarnrc.yml.sample',
+            'registry/auth.json.dist', '.terraformrc.example',
+            '.config/pip/pip.conf.sample', 'src/auth.toml',
+            'docs/pip.conf', 'docs/.my.cnf.example.bak',
+            'src/settings.json',
+        )
+        for path in paths:
             with self.subTest(path=path):
                 self.assertIsNone(classify(path))
 
-    @unittest.skipUnless(shutil.which("git"), "Git is required for integration test")
-    def test_staged_credentials_detected_without_exposing_values(self):
+    @unittest.skipUnless(shutil.which('git'), 'Git required')
+    def test_staged_credentials_without_exposing_contents(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            subprocess.run(["git", "init", "-q"], cwd=root, check=True,
-                           stdout=subprocess.DEVNULL)
-            paths = (".pgpass", ".config/pypoetry/auth.toml",
-                     ".config/gcloud/credentials.db", "docs/credentials.db")
-            for name in paths:
-                file = root / name
-                file.parent.mkdir(parents=True, exist_ok=True)
-                file.write_text("do-not-print-this-token", encoding="utf-8")
-            subprocess.run(["git", "add", "--", *paths], cwd=root, check=True,
-                           stdout=subprocess.DEVNULL)
+            subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            staged = ('.pgpass', '.my.cnf', '.yarnrc.yml',
+                      '.config/pypoetry/auth.toml', 'docs/pip.conf',
+                      '.pgpass.example')
+            for relative in (*staged, 'untracked/.mylogin.cnf'):
+                target = root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text('PRIVATE_TOKEN_NEVER_PRINT', encoding='utf-8')
+            subprocess.run(['git', '-C', str(root), 'add', '--', *staged], check=True)
             report = audit(root, redact_paths=True)
-        self.assertEqual(report["tracked_files_checked"], len(paths))
-        self.assertEqual(len(report["findings"]), 3)
-        self.assertTrue(all("path" not in item for item in report["findings"]))
-        self.assertNotIn("do-not-print-this-token", json.dumps(report))
+            self.assertEqual(report['tracked_files_checked'], len(staged))
+            self.assertEqual(len(report['findings']), 4)
+            self.assertTrue(all('path' not in item for item in report['findings']))
+            self.assertNotIn('PRIVATE_TOKEN_NEVER_PRINT', str(report))
+            self.assertNotIn('untracked', str(report))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

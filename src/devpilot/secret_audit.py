@@ -42,7 +42,7 @@ PLAN_NAMES = frozenset({'tfplan'})
 PLAN_SUFFIXES = ('.tfplan',)
 VARIABLE_SUFFIXES = ('.tfvars', '.tfvars.json')
 TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
-BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~')
+BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo')
 # These names are ambiguous outside their well-known secret-bearing directories.
 SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
