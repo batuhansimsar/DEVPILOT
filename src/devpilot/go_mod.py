@@ -70,7 +70,9 @@ def _without_go_comments(content: str) -> str:
         if content.startswith('/*', index):
             end = content.find('*/', index + 2)
             if end == -1:
-                return ''
+                # Treat an incomplete manifest as invalid instead of silently
+                # reporting that it has no dependencies. Do not echo source.
+                raise ValueError('go.mod contains unterminated block comment')
             comment = content[index:end + 2]
             output.append(''.join(char if char in '\r\n' else ' ' for char in comment))
             index = end + 2
