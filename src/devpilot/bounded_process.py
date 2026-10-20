@@ -20,15 +20,17 @@ _READ_BYTES = 8192
 def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int]) -> None:
     """Always drain a pipe; retain only its last MAX_OUTPUT_BYTES bytes."""
     try:
-        while chunk := stream.read(_READ_BYTES):
+        while chunk := os.read(stream.fileno(), _READ_BYTES):
             totals[0] += len(chunk)
             tail.extend(chunk)
             if len(tail) > MAX_OUTPUT_BYTES:
                 del tail[:-MAX_OUTPUT_BYTES]
     except (OSError, ValueError):
-        # The caller may close a pipe after a timeout or when a descendant
-        # incorrectly keeps an inherited descriptor open.
         pass
+    finally:
+        # Close in the reader thread to avoid blocking on a read lock
+        # held by a pipe with an inherited writer.
+        stream.close()
 
 
 def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
@@ -75,8 +77,6 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
         # indefinitely waiting for EOF from those unrelated descendants.
         for thread in threads:
             thread.join(timeout=0.5)
-        for stream in (process.stdout, process.stderr):
-            stream.close()
     if 'error' not in result:
         result['stdout'] = stdout_tail.decode('utf-8', errors='replace')
         result['stderr'] = stderr_tail.decode('utf-8', errors='replace')
