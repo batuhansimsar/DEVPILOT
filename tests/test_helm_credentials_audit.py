@@ -57,7 +57,7 @@ class HelmCredentialAuditTests(unittest.TestCase):
         self.assertEqual(standalone["tracked_files_checked"], len(paths))
         self.assertEqual(len(standalone["findings"]), 2)
         self.assertTrue(all("path" not in item for item in standalone["findings"]))
-        self.assertEqual(cli["candidates"], list(paths[:2]))
+        self.assertEqual(cli["candidates"], sorted(paths[:2]))
         self.assertNotIn("DO_NOT_REVEAL_THIS_PASSWORD", str(standalone) + str(cli))
 
 
