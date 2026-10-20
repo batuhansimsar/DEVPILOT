@@ -29,7 +29,7 @@ func run(args []string, out, errs io.Writer) int {
 }
 
 func usage(out io.Writer) {
-	fmt.Fprint(out,DevPilot — developer project diagnostics (no AI account required)
+	fmt.Fprint(out,`DevPilot — developer project diagnostics (no AI account required)
 
 Usage:
   devpilot doctor [--json] [--strict] [path]
