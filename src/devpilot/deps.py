@@ -90,7 +90,10 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         for line in content.splitlines():
             if line.lstrip().startswith(("#", "-", "git+", "https:", "http:")):
                 continue
-            match = PYTHON_NAME.match(line)
+            # pip only treats whitespace-prefixed # as an inline comment;
+            # keep URL fragments in named direct references untouched.
+            requirement = re.split(r"\s+#", line, maxsplit=1)[0]
+            match = PYTHON_NAME.match(requirement)
             if match:
                 matches.add(PYTHON_CANONICAL_SEPARATOR.sub("-", match.group(1)).lower())
         return "Python", {"requirements": sorted(matches)}
