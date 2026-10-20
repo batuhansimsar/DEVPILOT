@@ -79,8 +79,15 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
             collect('dependencies', _requirements(project['dependencies'], 'project.dependencies'))
         if 'optional-dependencies' in project:
             optional = _mapping(project['optional-dependencies'], 'project.optional-dependencies')
+            normalized_extras: set[str] = set()
             for group, values in optional.items():
-                collect(f'optional:{group}', _requirements(values, 'project.optional-dependencies'))
+                if not _NAME.fullmatch(group):
+                    raise ValueError('pyproject.toml contains an invalid optional dependency group name')
+                normalized = _canonical(group)
+                if normalized in normalized_extras:
+                    raise ValueError('pyproject.toml contains duplicate normalized optional dependency groups')
+                normalized_extras.add(normalized)
+                collect(f'optional:{normalized}', _requirements(values, 'project.optional-dependencies'))
 
     if 'dependency-groups' in data:
         declared = _mapping(data['dependency-groups'], 'dependency-groups')
