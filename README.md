@@ -33,7 +33,7 @@ Examples:
 
 ## Supported detection
 
-Manifest-driven detection of Go (`go.mod`), JavaScript/TypeScript (`package.json`), Python (`pyproject.toml`, `requirements.txt`, `pytest.ini`), Rust (`Cargo.toml`), and top-level C# (`*.csproj`). JS frameworks detected from `package.json` dependencies include React, Next.js, Vue, Angular, Express and Vite. Test commands are discovered for Go, Cargo, pytest (if configured), and JavaScript projects with a test script.
+Manifest-driven detection of Go (`go.mod`), JavaScript/TypeScript (`package.json`), Python (`pyproject.toml`, `requirements.txt`, `pytest.ini`), Rust (`Cargo.toml`), and top-level C# (`*.csproj`). For `.NET`, test discovery recognizes `<IsTestProject>true</IsTestProject>` or a `Microsoft.NET.Test.Sdk` package reference in valid project XML; ordinary applications are not treated as test projects. JS frameworks detected from `package.json` dependencies include React, Next.js, Vue, Angular, Express and Vite. Test commands are discovered for Go, Cargo, pytest (if configured), and JavaScript projects with a test script.
 
 `.env.example`, `.env.sample` and `.env.template` are compared with local `.env` on **variable names only**; values are never included in the report. Missing `.env` keys are informational because variables can be supplied outside the file.
 

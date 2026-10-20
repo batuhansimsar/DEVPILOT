@@ -211,9 +211,22 @@ func Inspect(root string) (Report, error) {
 	matches, err := filepath.Glob(filepath.Join(abs, "*.csproj"))
 	if err == nil {
 		for _, match := range matches {
-			if hasMarker(abs, filepath.Base(match)) {
-				language("C#")
-				break
+			name := filepath.Base(match)
+			if !hasMarker(abs, name) {
+				continue
+			}
+			language("C#")
+			if r.Tests != nil {
+				continue
+			}
+			isTest, inspectErr := isDotnetTestProject(abs, name)
+			if inspectErr != nil {
+				add("warning", "dotnet-project-unreadable", fmt.Sprintf("Cannot inspect %s: %v", name, inspectErr), "Fix the project XML or inspect the file type and size.")
+				continue
+			}
+			if isTest {
+				r.Tests = &TestCommand{Executable: "dotnet", Arguments: []string{"test", name}}
+				tool("dotnet", ".NET SDK")
 			}
 		}
 	}
