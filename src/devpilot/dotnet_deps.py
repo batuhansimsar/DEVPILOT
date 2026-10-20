@@ -1,4 +1,7 @@
-"""Read-only .NET PackageReference inventory with XML namespace isolation."""
+"""Read-only .NET package inventory with XML namespace isolation.
+
+Also supports central package versions in Directory.Packages.props files.
+"""
 
 from __future__ import annotations
 
@@ -12,11 +15,13 @@ _MSBUILD_NS = 'http://schemas.microsoft.com/developer/msbuild/2003'
 _PACKAGE_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z')
 
 
-def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
-    """Extract literal NuGet PackageReference names from an MSBuild project.
+def parse_dotnet_dependencies(content: str, *, central: bool = False) -> dict[str, list[str]]:
+    """Extract literal NuGet package IDs from an MSBuild project or props file.
 
-    Both modern SDK projects and legacy MSBuild-namespace projects are
-    supported. Refuse dynamic or malformed names rather than accidentally
+    ``central=True`` reads PackageVersion entries used by NuGet central package
+    management (Directory.Packages.props); otherwise PackageReference entries
+    are read. Both modern SDK projects and legacy MSBuild-namespace projects
+    are supported. Refuse dynamic or malformed names rather than accidentally
     printing project-defined expressions, URLs or credentials in diagnostics.
     """
     upper = content.upper()
@@ -28,7 +33,8 @@ def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
 
     prefix = root.tag[:-len('Project')]
     item_group_tag = f'{prefix}ItemGroup'
-    reference_tag = f'{prefix}PackageReference'
+    element = 'PackageVersion' if central else 'PackageReference'
+    reference_tag = f'{prefix}{element}'
     names: set[str] = set()
 
     # An explicit stack handles deeply nested but valid project XML without
@@ -50,9 +56,9 @@ def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
                 if name is not None:
                     if not _PACKAGE_ID.fullmatch(name):
                         # Never interpolate untrusted attributes into a warning.
-                        raise ValueError('.NET manifest contains an invalid PackageReference identifier')
+                        raise ValueError(f'.NET manifest contains an invalid {element} identifier')
                     names.add(name)
             else:
                 stack.append((child, item_scope))
 
-    return {'PackageReference': sorted(names)}
+    return {element: sorted(names)}
