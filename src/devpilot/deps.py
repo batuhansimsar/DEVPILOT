@@ -66,7 +66,7 @@ def _read(path: Path) -> str:
             raise ValueError("file larger than 512 KB")
         if _file_identity(os.fstat(stream.fileno())) != _file_identity(opened):
             raise ValueError("file changed during inspection")
-    return content.decode("utf-8")
+    return content.decode("utf-8-sig")
 
 
 def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
