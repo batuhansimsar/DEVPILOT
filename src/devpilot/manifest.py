@@ -43,5 +43,8 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'
         return data, None
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except UnicodeDecodeError:
+        # The exception string can echo bytes from a manifest containing secrets.
+        return None, 'Invalid package.json: must be UTF-8'
+    except (OSError, json.JSONDecodeError) as exc:
         return None, f'Invalid package.json: {exc}'
