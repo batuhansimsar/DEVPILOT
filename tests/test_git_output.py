@@ -41,5 +41,18 @@ class GitOutputTests(unittest.TestCase):
         self.assertEqual(format_git_status({'stdout': '## café\n'}), '## café\n')
 
 
+    def test_failed_git_without_diagnostics_is_not_reported_clean(self):
+        self.assertEqual(format_git_status({'exit_code': 128, 'stdout': '', 'stderr': ''}),
+                         'Git status unavailable')
+        self.assertEqual(format_git_status({'exit_code': 0, 'dirty': None, 'stdout': ''}),
+                         'Git status unavailable')
+        self.assertEqual(format_git_status({'exit_code': 0, 'dirty': False, 'stdout': ''}),
+                         'No changes')
+
+    def test_git_failure_diagnostics_take_precedence(self):
+        self.assertEqual(format_git_status({'exit_code': 128, 'stderr': 'fatal: no repository'}),
+                         'fatal: no repository')
+
+
 if __name__ == '__main__':
     unittest.main()
