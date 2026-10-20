@@ -206,7 +206,12 @@ def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, 
 
 
 def git_status(root: Path) -> dict[str, Any]:
-    result = command_result(['git', 'status', '--short', '--branch', '--untracked-files=normal'], root)
+    # Git status may execute a repository-configured fsmonitor helper.
+    # Disable it and avoid optional index writes in read-only inspections.
+    result = command_result([
+        'git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
+        'status', '--short', '--branch', '--untracked-files=normal',
+    ], root)
     return {'path': str(root), **result}
 
 
