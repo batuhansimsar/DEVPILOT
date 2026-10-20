@@ -19,6 +19,21 @@ class GitOutputTests(unittest.TestCase):
                          r'fatal: path\x1b[31m')
         self.assertEqual(format_git_status({'error': 'bad\x07'}), r'bad\x07')
 
+    def test_diagnostic_line_breaks_cannot_spoof_status_records(self):
+        for key in ('error', 'stderr'):
+            with self.subTest(key=key):
+                diagnostic = 'fatal: cannot read\n## main\n?? forged.txt\r\x1b[2J'
+                output = format_git_status({key: diagnostic})
+                self.assertEqual(output,
+                                 r'fatal: cannot read\x0a## main\x0a?? forged.txt\x0d\x1b[2J')
+                self.assertNotIn('\n', output)
+                self.assertNotIn('\r', output)
+                self.assertNotIn('\x1b', output)
+
+    def test_stdout_precedence_preserves_record_boundaries(self):
+        report = {'stdout': '## main\n M file.txt\n', 'error': 'spoof\nerror'}
+        self.assertEqual(format_git_status(report), '## main\n M file.txt\n')
+
     def test_normal_status_and_missing_output(self):
         self.assertEqual(format_git_status({'stdout': '## main\n M README.md\n'}),
                          '## main\n M README.md\n')
