@@ -135,6 +135,11 @@ def parse_go_requirements(content: str) -> list[str]:
                 continue
             entry = line
         else:
+            # Go's modfile syntax also accepts `require(` without a space.
+            # This is a block opener, not a single-line requirement.
+            if line == 'require(':
+                in_require_block = True
+                continue
             fields = line.split(None, 1)
             if len(fields) != 2 or fields[0] != 'require':
                 continue
