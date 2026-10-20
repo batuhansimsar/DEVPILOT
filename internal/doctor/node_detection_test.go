@@ -50,13 +50,17 @@ func TestPlaceholderAndEmptyNodeScriptsAreNotTests(t *testing.T) {
 	for _, script := range []string{"", "echo \"Error: no test specified\" && exit 1", "ECHO no TEST specified"} {
 		t.Run(script, func(t *testing.T) {
 			dir := t.TempDir()
-			data := map[string]any{"scripts":map[string]string{"test":script}}
+			data := map[string]any{"scripts": map[string]string{"test": script}}
 			// JSON strings are encoded by a typed fixture to avoid invalid escaping.
 			body, err := json.Marshal(data)
-			if err != nil {t.Fatal(err)}
+			if err != nil {
+				t.Fatal(err)
+			}
 			write(t, dir, "package.json", string(body))
 			r, err := Inspect(dir)
-			if err != nil {t.Fatal(err)}
+			if err != nil {
+				t.Fatal(err)
+			}
 			if r.Tests != nil || !finding(r, "no-test-command") {
 				t.Fatalf("placeholder should not register a test command: %+v", r)
 			}
@@ -68,7 +72,9 @@ func TestRealNodeTestCommandStillDiscovered(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "package.json", `{"scripts":{"test":"vitest run"}}`)
 	r, err := Inspect(dir)
-	if err != nil {t.Fatal(err)}
+	if err != nil {
+		t.Fatal(err)
+	}
 	if r.Tests == nil || r.Tests.Executable != "npm" {
 		t.Fatalf("expected npm test discovery: %+v", r.Tests)
 	}
