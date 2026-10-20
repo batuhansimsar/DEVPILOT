@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 _GROUPS = frozenset({'dependencies', 'dev-dependencies', 'build-dependencies'})
-_DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za-z0-9_-]+))\s*=''')
+_DEPENDENCY = re.compile(r'''^\s*(?:"([A-Za-z0-9_-]+)"|'([A-Za-z0-9_-]+)'|([A-Za-z0-9_-]+))\s*=\s*(?=\S)''')
 _NAME = re.compile(r'[A-Za-z0-9_-]+\Z')
 
 
