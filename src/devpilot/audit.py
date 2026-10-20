@@ -11,12 +11,13 @@ _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa', 'credentials.json',
     'service-account.json', 'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
-    'secrets.json', '.netrc', '.envrc',
+    'secrets.json', '.netrc', '.envrc', '.git-credentials',
     '.pypirc', '.npmrc', 'secrets.yml', 'secrets.yaml',
 })
 _PRIVATE_EXTENSIONS = frozenset({'.pem', '.key', '.p12', '.pfx', '.kdbx', '.keystore', '.jks'})
 _SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'), ('.kube', 'config'), ('.docker', 'config.json'),
+    ('gh', 'hosts.yml'), ('gh', 'hosts.yaml'),
     ('.azure', 'accesstokens.json'), ('.azure', 'msal_token_cache.json'),
     ('.azure', 'msal_token_cache.bin'),
 })
