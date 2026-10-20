@@ -47,7 +47,7 @@ def classify(path: str) -> str | None:
     if not parts:
         return None
     name = parts[-1]
-    if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template')):
+    if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
         return None
@@ -61,6 +61,8 @@ def classify(path: str) -> str | None:
         return 'potential private key or certificate'
     if name.endswith(STATE_SUFFIXES):
         return 'potential Terraform state containing secrets'
+    if name.endswith(('.tfvars', '.tfvars.json')):
+        return 'potential Terraform variables containing secrets'
     if name.endswith(VARIABLE_SUFFIXES):
         return 'potential Terraform variables containing secrets'
     return None
