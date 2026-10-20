@@ -16,9 +16,9 @@ func isCIConfig(path string) bool {
 		}
 	}
 	switch path {
-	case ".gitlab-ci.yml", "azure-pipelines.yml", "Jenkinsfile",
+	case ".gitlab-ci.yml", "azure-pipelines.yml", "azure-pipelines.yaml", "Jenkinsfile",
 		".circleci/config.yml", ".circleci/config.yaml",
-		"bitbucket-pipelines.yml", ".travis.yml", ".drone.yml",
+		"bitbucket-pipelines.yml", ".travis.yml", ".drone.yml", ".drone.yaml",
 		".buildkite/pipeline.yml", ".buildkite/pipeline.yaml":
 		return true
 	default:
