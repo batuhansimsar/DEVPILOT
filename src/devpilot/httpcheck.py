@@ -34,6 +34,11 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('method must be HEAD or GET')
     if not isinstance(url, str):
         raise ValueError('URL must be a string')
+    # Lone UTF-16 surrogates cannot be encoded as UTF-8 for the request target.
+    # Reject them before building an opener or triggering a low-level encoding
+    # exception that might expose parts of the user-supplied URL.
+    if any(0xD800 <= ord(char) <= 0xDFFF for char in url):
+        raise ValueError('URL must not contain unpaired Unicode surrogates')
     # urlsplit silently strips leading spaces and certain control characters;
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
