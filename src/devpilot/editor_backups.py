@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 
 _EMACS_NUMBERED_BACKUP = re.compile(r'\.~[0-9]+~\Z')
-# Vim starts at .swp and walks backward through .swo, .swn, ..., .swa
-# when earlier swap names already exist.
-_VIM_SWAP_SUFFIX = re.compile(r'\.sw[a-p]\Z')
+# Vim starts at .swp and rotates down through .swa, then .svz to .sva,
+# continuing through .suz ... .saa if every preceding swap name is occupied.
+# Restrict the initial .sw group to a-p: .swq and .swz are not Vim swaps.
+_VIM_SWAP_SUFFIX = re.compile(r'\.s(?:w[a-p]|[a-v][a-z])\Z')
 # JetBrains IDEs create these copies while safely replacing an edited file.
 _JETBRAINS_SAFE_WRITE_SUFFIXES = ('.___jb_tmp___', '.___jb_old___')
 
