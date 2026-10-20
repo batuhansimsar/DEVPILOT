@@ -6,6 +6,7 @@ Never return repository URLs, version pins, index settings or hash values.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 
 from .pyproject_deps import _REQUIREMENT, _canonical, _valid_requirement_suffix
 
@@ -15,22 +16,40 @@ from .pyproject_deps import _REQUIREMENT, _canonical, _valid_requirement_suffix
 _HASH_OPTIONS = re.compile(r'(?:\s+--hash(?:=|\s+)(?:sha256|sha384|sha512):[0-9a-fA-F]+)+\s*\Z')
 
 
+def _logical_lines(content: str) -> Iterator[str]:
+    """Join pip's backslash-continued lines before examining declarations.
+
+    An unterminated continuation is incomplete and must not contribute a
+    dependency, even if its first physical line looks like a valid name.
+    """
+    pieces: list[str] = []
+    for raw in content.splitlines():
+        line = raw.strip()
+        if line.endswith('\\'):
+            pieces.append(line[:-1].rstrip())
+            continue
+        if pieces:
+            pieces.append(line)
+            yield ' '.join(pieces)
+            pieces.clear()
+        else:
+            yield line
+
+
 def parse_requirements_dependencies(content: str) -> list[str]:
     """Return canonical names from valid requirement declarations only.
 
     Ignore pip directives, bare VCS/URL lines and malformed requirements.
-    A backslash on a pinned line may continue pip hash options on later lines;
-    the dependency name itself remains on the first line.
+    Backslashes join continuation lines before validation, including hash
+    options, version specifiers and environment markers.
     """
     names: set[str] = set()
-    for raw in content.splitlines():
+    for raw in _logical_lines(content):
         line = raw.strip()
         if not line or line.startswith(('#', '-', 'git+', 'https:', 'http:')):
             continue
         # A comment must have whitespace before #; URL fragments are data.
         line = re.split(r'\s+#', line, maxsplit=1)[0].rstrip()
-        if line.endswith('\\'):
-            line = line[:-1].rstrip()
         line = _HASH_OPTIONS.sub('', line).rstrip()
         match = _REQUIREMENT.match(line)
         if match and _valid_requirement_suffix(line[match.end():]):
