@@ -129,6 +129,11 @@ class HTTPCheckTests(unittest.TestCase):
             with self.subTest(codes=codes), self.assertRaises(ValueError):
                 http_check(self.url(), expected_statuses=codes)
 
+    def test_malformed_host_is_reported_as_argument_error(self):
+        for value in ('http://bad host/', 'http://bad\\host/'):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, 'URL host'):
+                http_check(value)
+
     def test_invalid_urls_rejected(self):
         for value in (
             'file:///etc/passwd', 'http://user:pass@example.org/',
