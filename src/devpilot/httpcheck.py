@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import re
 import time
 from itertools import islice
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit, urlunsplit
 from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, ProxyHandler, Request, build_opener
+
+
+_INVALID_PERCENT_ESCAPE = re.compile(r'%(?![0-9A-Fa-f]{2})')
+
+
+def _encode_component(value: str, *, safe: str) -> str:
+    """Preserve valid percent escapes while encoding stray '%' and Unicode."""
+    return quote(_INVALID_PERCENT_ESCAPE.sub('%25', value), safe=safe)
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -69,15 +78,15 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL port must be between 1 and 65535')
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
-    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (quote(parts.path, safe="/%:@!$&'()*+,;=-._~") or '/')
+    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (_encode_component(parts.path, safe="/%:@!$&'()*+,;=-._~") or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     # Encode Unicode path/query data as UTF-8 without double-encoding existing
     # percent escapes. Keep only an ASCII, percent-encoded path in reports.
     request_url = urlunsplit((
         parts.scheme, parts.netloc,
-        quote(parts.path, safe="/%:@!$&'()*+,;=-._~"),
-        quote(parts.query, safe="/?%:@!$&'()*+,;=-._~"),
+        _encode_component(parts.path, safe="/%:@!$&'()*+,;=-._~"),
+        _encode_component(parts.query, safe="/?%:@!$&'()*+,;=-._~"),
         '',
     ))
     request = Request(request_url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
