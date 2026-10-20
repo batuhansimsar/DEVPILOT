@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,30 @@ func Check(ctx context.Context, host string, port int, timeout time.Duration) (R
 	if host == "" || host != strings.TrimSpace(host) || strings.IndexFunc(host, unicode.IsControl) >= 0 {
 		return Result{}, fmt.Errorf("host must be a nonempty hostname or IP address without surrounding whitespace or control characters")
 	}
+	// A bracketed IPv6 literal is common when copied from a URL. DialContext
+	// needs the address without brackets because JoinHostPort adds them.
+	// Reject malformed or non-IPv6 bracketed values as configuration errors.
+	dialHost := host
+	if strings.ContainsAny(host, "[]") {
+		if len(host) < 3 || host[0] != '[' || host[len(host)-1] != ']' {
+			return Result{}, fmt.Errorf("host has malformed IPv6 brackets")
+		}
+		dialHost = host[1 : len(host)-1]
+		ip, err := netip.ParseAddr(dialHost)
+		if err != nil || !ip.Is6() {
+			return Result{}, fmt.Errorf("bracketed host must be a valid IPv6 address")
+		}
+	}
+	if strings.IndexFunc(host, unicode.IsSpace) >= 0 || strings.ContainsAny(host, "/\\@?#") {
+		return Result{}, fmt.Errorf("host must not contain whitespace or URL delimiters")
+	}
+	// Colons in a host are valid only for IPv6 literals, never for a
+	// second port embedded in the host argument.
+	if strings.Contains(dialHost, ":") {
+		if ip, err := netip.ParseAddr(dialHost); err != nil || !ip.Is6() {
+			return Result{}, fmt.Errorf("host contains an invalid IPv6 address or embedded port")
+		}
+	}
 	if port < 1 || port > 65535 {
 		return Result{}, fmt.Errorf("port must be between 1 and 65535")
 	}
@@ -39,7 +64,7 @@ func Check(ctx context.Context, host string, port int, timeout time.Duration) (R
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	started := time.Now()
-	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	conn, err := (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(dialHost, strconv.Itoa(port)))
 	result.LatencyMS = float64(time.Since(started)) / float64(time.Millisecond)
 	if err != nil {
 		result.Error = err.Error()

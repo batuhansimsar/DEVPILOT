@@ -26,6 +26,23 @@ func TestCheckReachable(t *testing.T) {
 	assertLatencyJSON(t, result)
 }
 
+func TestCheckBracketedIPv6(t *testing.T) {
+	listener, err := net.Listen("tcp6", "[::1]:0")
+	if err != nil {
+		t.Skipf("IPv6 loopback is unavailable: %v", err)
+	}
+	defer listener.Close()
+	port := listener.Addr().(*net.TCPAddr).Port
+	for _, host := range []string{"::1", "[::1]"} {
+		t.Run(host, func(t *testing.T) {
+			result, err := Check(context.Background(), host, port, time.Second)
+			if err != nil || !result.Reachable || result.Host != host {
+				t.Fatalf("result=%+v err=%v", result, err)
+			}
+		})
+	}
+}
+
 func TestCheckUnreachable(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -65,6 +82,14 @@ func TestCheckRejectsInvalidArguments(t *testing.T) {
 		{"", 443, time.Second},
 		{" example.org", 443, time.Second},
 		{"example.org\n", 443, time.Second},
+		{"bad host.example", 443, time.Second},
+		{"bad\u00a0host.example", 443, time.Second},
+		{"example.org/path", 443, time.Second},
+		{"example.org:443", 443, time.Second},
+		{"[::1", 443, time.Second},
+		{"::1]", 443, time.Second},
+		{"[example.org]", 443, time.Second},
+		{"[127.0.0.1]", 443, time.Second},
 		{"\x1b[31mexample.org", 443, time.Second},
 		{"example.org", 0, time.Second},
 		{"example.org", 65536, time.Second},
