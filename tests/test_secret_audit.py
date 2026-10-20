@@ -61,6 +61,27 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIsNone(classify(name))
 
+    def test_cloud_cli_credential_files(self):
+        for name in (
+            'application_default_credentials.json',
+            'profiles/.azure/accessTokens.json',
+            '.azure/msal_token_cache.json',
+            '.azure/msal_token_cache.bin',
+            'profile/.config/gh/hosts.yml',
+            'C:\\Users\\me\\.Azure\\accessTokens.json',
+        ):
+            with self.subTest(name=name):
+                self.assertIsNotNone(classify(name))
+
+        for name in (
+            'docs/hosts.yml', '.config/gh/config.yml',
+            'config/msal_token_cache.json', 'src/accessTokens.json',
+            '.azure/README.md', '.config/git/hosts.yml',
+            'application_default_credentials.json.example',
+        ):
+            with self.subTest(name=name):
+                self.assertIsNone(classify(name))
+
 
 @unittest.skipUnless(shutil.which('git'), 'Git is not installed')
 class RepoTests(unittest.TestCase):
@@ -121,6 +142,17 @@ class RepoTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(len(json.loads(output.getvalue())['findings']), 1)
         self.assertNotIn('.env', output.getvalue())
+
+    def test_cloud_cli_credentials_never_expose_values(self):
+        self.add('.azure/msal_token_cache.json', 'dont_print_azure_token')
+        self.add('.config/gh/hosts.yml', 'dont_print_gh_token')
+        self.add('docs/hosts.yml', 'ordinary config')
+        result = audit(self.root, redact_paths=True)
+        self.assertEqual(result['tracked_files_checked'], 3)
+        self.assertEqual(len(result['findings']), 2)
+        self.assertNotIn('dont_print_azure_token', json.dumps(result))
+        self.assertNotIn('dont_print_gh_token', json.dumps(result))
+        self.assertTrue(all('path' not in item for item in result['findings']))
 
     def test_clean_repo(self):
         self.add('main.py')

@@ -10,6 +10,8 @@ Run from a Git repository:
 
 It searches Git's tracked index for names such as .env, environment-specific configuration, private key formats (.pem, .p12, .pfx, .key, .kdbx), service-account JSON and known credential config filenames. Example/sample files are excluded where possible.
 
+Additional path-sensitive checks cover Azure CLI token cache files (`.azure/accessTokens.json`, `.azure/msal_token_cache.json`, `.azure/msal_token_cache.bin`), GitHub CLI OAuth credential storage (`.config/gh/hosts.yml`) and Google application-default credentials (`application_default_credentials.json`). Generic `hosts.yml` and configuration filenames are not flagged outside the known credential locations.
+
 The command **never reads file contents**, does not access the network, and does not change the repository. It skips untracked files; it is not a full secrets scanner or proof of compromise. All findings are heuristics and need human review.
 
 Exit status: 0 means no suspicious tracked filenames, 1 means potential risks found, 2 means invocation or Git inspection failed. The --redact-paths option excludes filenames from the finding list for safer automation logs.

@@ -26,6 +26,7 @@ EXACT_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519',
     'credentials.json', 'secrets.json', 'service-account.json',
     'service_account.json', 'google-credentials.json',
+    'application_default_credentials.json',
     '.npmrc', '.pypirc', '.netrc',
     'secrets.yml', 'secrets.yaml', '.envrc',
 })
@@ -38,7 +39,12 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
     ('.kube', 'config'),
     ('.docker', 'config.json'),
+    ('.azure', 'accesstokens.json'),
+    ('.azure', 'msal_token_cache.json'),
+    ('.azure', 'msal_token_cache.bin'),
 })
+# GitHub CLI stores OAuth tokens in this precise path.
+SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
 
 
 def classify(path: str) -> str | None:
@@ -58,6 +64,8 @@ def classify(path: str) -> str | None:
             return None
         return 'environment file'
     if len(parts) >= 2 and parts[-2:] in SENSITIVE_LOCATIONS:
+        return 'potential credential configuration'
+    if len(parts) >= 3 and parts[-3:] in SENSITIVE_CLI_LOCATIONS:
         return 'potential credential configuration'
     if name in EXACT_NAMES:
         return 'potential credential file'
