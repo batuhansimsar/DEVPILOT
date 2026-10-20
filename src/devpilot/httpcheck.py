@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from http.client import HTTPException
 import time
 from itertools import islice
 from urllib.error import HTTPError, URLError
@@ -103,7 +104,7 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     except HTTPError as exc:
         status = exc.code  # 3xx, 4xx and 5xx are valid HTTP responses, not network failures.
         exc.close()
-    except (URLError, OSError, TimeoutError) as exc:
+    except (URLError, OSError, TimeoutError, HTTPException) as exc:
         return {'url': display, 'method': method, 'reachable': False, 'status': None, 'healthy': False,
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
