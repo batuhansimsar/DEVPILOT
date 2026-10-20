@@ -36,17 +36,20 @@ class AuditHardeningTests(unittest.TestCase):
         self.assertEqual(report['tracked_files'], 2)
         self.assertEqual(report['candidates'], ['.env.production'])
 
+    @unittest.skipUnless(shutil.which('git'), 'Git executable required')
     def test_git_index_query_disables_fsmonitor_and_stdin(self):
         with tempfile.TemporaryDirectory() as directory:
-            with patch('devpilot.audit.shutil.which', return_value='/usr/bin/git'):
-                with patch('devpilot.audit.subprocess.run', return_value=subprocess.CompletedProcess([], 0, b'config/.env\0', b'')) as run:
-                    report = audit_tracked_files(Path(directory))
-        argv = run.call_args.args[0]
-        self.assertEqual(argv[:4], ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false'])
-        self.assertEqual(argv[-3:], ['ls-files', '--cached', '-z'])
-        self.assertEqual(run.call_args.kwargs['stdin'], subprocess.DEVNULL)
-        self.assertEqual(report['candidates'], ['config/.env'])
-
+            root = Path(directory)
+            subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+            (root / '.env').write_text('DUMMY=not-logged', encoding='utf-8')
+            subprocess.run(['git', '-C', str(root), 'add', '--', '.env'], check=True)
+            with patch('devpilot.secret_audit.subprocess.Popen', wraps=subprocess.Popen) as spawn:
+                report = audit_tracked_files(root)
+        argv = spawn.call_args.args[0]
+        self.assertEqual(argv[:4], ['git', '-c', 'core.fsmonitor=false', '--no-optional-locks'])
+        self.assertEqual(argv[-3:], ['ls-files', '-z', '--cached'])
+        self.assertEqual(spawn.call_args.kwargs['stdin'], subprocess.DEVNULL)
+        self.assertEqual(report['candidates'], ['.env'])
 
 if __name__ == '__main__':
     unittest.main()
