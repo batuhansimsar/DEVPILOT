@@ -1,6 +1,7 @@
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from unittest.mock import patch
 
 from devpilot.httpcheck import http_check
 
@@ -48,12 +49,26 @@ class HTTPCheckTests(unittest.TestCase):
         self.assertFalse(result['healthy'])
         self.assertEqual(result['status'], 503)
 
-    def test_redirect_not_followed(self):
+    def test_redirect_not_followed_or_marked_healthy(self):
         result = http_check(self.url('/redirect'))
+        self.assertTrue(result['reachable'])
+        self.assertFalse(result['healthy'])
         self.assertEqual(result['status'], 302)
 
+    def test_ipv6_report_uses_valid_bracketed_address(self):
+        with patch('devpilot.httpcheck.build_opener') as opener:
+            opener.return_value.open.return_value.__enter__.return_value.status = 204
+            result = http_check('http://[::1]:8080/ready?token=hidden')
+        self.assertEqual(result['url'], 'http://[::1]:8080/ready')
+        self.assertTrue(result['healthy'])
+
     def test_invalid_urls_rejected(self):
-        for value in ('file:///etc/passwd', 'http://user:pass@example.org/', 'http://', 'http://example.org:99999'):
+        for value in (
+            'file:///etc/passwd', 'http://user:pass@example.org/',
+            'http://@example.org/', 'http://', 'http://example.org:99999',
+            'http://example.org:0', 'http://example.org/\npath',
+            'http://example.org/\x1b[31m',
+        ):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 http_check(value)
 
