@@ -54,6 +54,7 @@ BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.s
 # These names are ambiguous outside their well-known secret-bearing directories.
 SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
+    ('.aws', 'config'),  # AWS profiles may embed access keys alongside settings.
     ('.kube', 'config'),
     ('.docker', 'config.json'),
     ('.azure', 'accesstokens.json'),
