@@ -101,7 +101,10 @@ def _poetry_names(dependencies: dict) -> set[str]:
         if not _NAME.fullmatch(name):
             raise ValueError('pyproject.toml tool.poetry contains an invalid dependency name')
         if name.lower() != 'python':
-            names.add(_canonical(name))
+            canonical = _canonical(name)
+            if canonical in names:
+                raise ValueError('pyproject.toml tool.poetry contains duplicate normalized dependency names')
+            names.add(canonical)
     return names
 
 
