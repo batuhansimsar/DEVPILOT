@@ -27,6 +27,7 @@ devpilot git --path /path/to/project
 devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
 devpilot docker
 devpilot check localhost 5432
+devpilot check example.com 443 --tls --json  # verify TLS certificate and hostname
 # HTTP HEAD health check (redirects are not followed):
 devpilot http http://localhost:8080/health --json
 devpilot test --path /path/to/project           # discovery only
