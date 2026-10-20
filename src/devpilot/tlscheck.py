@@ -42,6 +42,14 @@ def _tls_dial_host(host: str) -> str:
             raise ValueError('host contains an invalid IPv6 address or embedded port') from exc
         if not isinstance(parsed, ipaddress.IPv6Address):
             raise ValueError('host contains an invalid IPv6 address or embedded port')
+    else:
+        # Socket name resolution performs IDNA encoding and can raise an
+        # uncaught UnicodeEncodeError for invalid or oversized DNS labels.
+        # Validate without network activity or echoing the supplied hostname.
+        try:
+            dial_host.encode('idna')
+        except UnicodeError:
+            raise ValueError('host contains an invalid IDNA hostname') from None
     return dial_host
 
 
