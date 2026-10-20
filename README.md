@@ -59,3 +59,7 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+### Go toolchain compatibility
+
+For Go repositories, `doctor` compares the `go` version declared in `go.mod` with the local stable toolchain. An older toolchain produces the actionable `go-version-too-old` warning. This runs only `go version` with `GOTOOLCHAIN=local` (and with a three-second timeout), so inspection never downloads a toolchain or executes project source. Prerelease versions that cannot be safely compared are not guessed.

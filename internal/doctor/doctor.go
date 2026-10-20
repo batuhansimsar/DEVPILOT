@@ -146,6 +146,7 @@ func Inspect(root string) (Report, error) {
 
 	if hasMarker(abs, "go.mod") {
 		language("Go")
+		inspectGoVersion(abs, add)
 		r.Tests = &TestCommand{Executable: "go", Arguments: []string{"test", "./..."}}
 		tool("go", "Go toolchain")
 	}
