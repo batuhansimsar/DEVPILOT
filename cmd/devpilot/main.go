@@ -22,6 +22,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
+	fmt.Fprintln(w, "       devpilot ci-audit [--json] [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 	fmt.Fprintln(w, "Docker queries are read-only and have a 5-second timeout.")
 }
@@ -32,6 +33,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "ci-audit":
+		return ciAuditCommand(args[1:], stdout, stderr)
 	case "analyze":
 		return analyzeCommand(args[1:], stdout, stderr)
 	case "doctor":
