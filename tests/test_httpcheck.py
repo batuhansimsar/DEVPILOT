@@ -75,6 +75,15 @@ class HTTPCheckTests(unittest.TestCase):
         self.assertEqual(result['url'], 'http://[::1]:8080/ready')
         self.assertTrue(result['healthy'])
 
+    def test_unicode_path_is_encoded_in_report_without_leaking_query(self):
+        with patch('devpilot.httpcheck.build_opener') as opener:
+            opener.return_value.open.return_value.__enter__.return_value.status = 204
+            result = http_check('https://example.org/café/%20ready?token=hidden')
+            requested = opener.return_value.open.call_args.args[0].full_url
+        self.assertEqual(result['url'], 'https://example.org/caf%C3%A9/%20ready')
+        self.assertEqual(requested, 'https://example.org/caf%C3%A9/%20ready?token=hidden')
+        self.assertNotIn('hidden', str(result))
+
     def test_ignores_ambient_http_proxy(self):
         proxy = ThreadingHTTPServer(('127.0.0.1', 0), _UnwantedProxy)
         thread = threading.Thread(target=proxy.serve_forever, daemon=True)
