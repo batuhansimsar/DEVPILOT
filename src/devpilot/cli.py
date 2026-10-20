@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .audit import audit_tracked_files
+from .httpcheck import http_check
+from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, select_test_commands
@@ -26,8 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
     for name, description in (
         ('doctor', 'Check required developer tools and project configuration'),
         ('analyze', 'Inspect languages, manifests and project structure'),
+        ('deps', 'Inventory dependency manifests without executing project code'),
         ('workspaces', 'Discover nested projects in a monorepo'),
         ('git', 'Inspect local Git changes (read-only)'),
+        ('audit', 'Find potentially sensitive filenames already tracked by Git'),
         ('docker', 'List running Docker containers (read-only)'),
         ('test', 'Discover project test commands; execute only with --yes'),
     ):
@@ -42,10 +47,22 @@ def build_parser() -> argparse.ArgumentParser:
     health.add_argument('port', type=int, help='TCP port (1-65535)')
     health.add_argument('--timeout', type=float, default=3, help='Socket timeout in seconds (0.1-30)')
     health.add_argument('--json', action='store_true')
+    web_health = sub.add_parser('http', help='Probe an HTTP endpoint with a no-redirect HEAD request')
+    web_health.add_argument('url', help='Absolute http(s) endpoint URL')
+    web_health.add_argument('--timeout', type=float, default=3, help='Request timeout in seconds (0.1-30)')
+    web_health.add_argument('--json', action='store_true', help='Print machine-readable JSON')
     return parser
 
 
 def _human(command: str, output: dict[str, Any]) -> str:
+    if command == 'deps':
+        lines = [f"Dependency inventory: {output['root']}"]
+        for item in output['manifests']:
+            lines.append(f"  {item['ecosystem']}: {item['path']} ({item['count']} dependencies)")
+            for group, names in item['groups'].items():
+                lines.append(f"    {group}: {', '.join(names) or '(none)'}")
+        lines.extend(f"  Warning: {warning}" for warning in output['warnings'])
+        return '\n'.join(lines)
     if command == 'analyze':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}",
                  f"Files scanned: {output['file_count']}{' (limit reached)' if output['truncated'] else ''}"]
@@ -93,10 +110,24 @@ def _human(command: str, output: dict[str, Any]) -> str:
         if not output['executed'] and output['commands']:
             lines.append('  Use --yes to run detected project test scripts (untrusted code).')
         return '\n'.join(lines)
+    if command == 'audit':
+        if output.get('error'):
+            return 'Audit unavailable: ' + output['error']
+        lines = [f"Git files checked: {output['tracked_files']}"]
+        lines += [f"  REVIEW tracked sensitive filename: {name}" for name in output['candidates']]
+        if output['truncated']:
+            lines.append('  More than 50 candidates found; list truncated')
+        if not output['candidates']:
+            lines.append('No suspicious tracked filenames detected (contents were not scanned).')
+        else:
+            lines.append('Review these paths; rotate exposed secrets if confirmed.')
+        return '\n'.join(lines)
     if command == 'docker':
         if output.get('exit_code') != 0:
             return output.get('error') or output.get('stderr') or 'Docker failed'
         return '\n'.join(f"{x.get('Names')}: {x.get('Status')} ({x.get('Image')})" for x in output['containers']) or 'No running containers'
+    if command == 'http':
+        return f"{output['url']} — HTTP {output['status']}" + (' (healthy)' if output.get('healthy') else ' (unhealthy)') if output['reachable'] else f"{output['url']} — unreachable ({output.get('error', 'network error')})"
     if command == 'check':
         return f"{output['host']}:{output['port']} — {'reachable' if output['reachable'] else 'unreachable'}" + (f" ({output['error']})" if output.get('error') else '')
     return output.get('stdout') or output.get('error') or output.get('stderr') or 'No changes'
@@ -105,7 +136,13 @@ def _human(command: str, output: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.command == 'check':
+    if args.command == 'http':
+        try:
+            result = http_check(args.url, args.timeout)
+        except ValueError as exc:
+            parser.error(str(exc))
+        success = result.get('healthy', False)
+    elif args.command == 'check':
         if not 0.1 <= args.timeout <= 30:
             parser.error('--timeout must be between 0.1 and 30 seconds')
         if not 1 <= args.port <= 65535:
@@ -119,12 +156,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == 'doctor':
             result = doctor_report(root)
             success = result['ok']
+        elif args.command == 'deps':
+            result = dependency_scan(root)
+            success = not result['warnings']
         elif args.command == 'analyze':
             result = analyze_project(root)
             success = not result['problems']
         elif args.command == 'workspaces':
             result = discover_workspaces(root)
             success = True
+        elif args.command == 'audit':
+            result = audit_tracked_files(root)
+            success = not result.get('error') and not result['candidates']
         elif args.command == 'git':
             result = git_status(root)
             success = result['exit_code'] == 0

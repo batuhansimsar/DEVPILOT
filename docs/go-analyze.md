@@ -1,7 +1,7 @@
 # Go CLI: recursive repository analysis
 
 The native Go CLI has a read-only `analyze` command for inventorying nested
-projects and GitHub/GitLab/Azure/Jenkins CI configuration files.
+projects and GitHub Actions, GitLab CI, Azure Pipelines, Jenkins, CircleCI, Bitbucket Pipelines, Travis CI, Drone CI, and Buildkite configuration files.
 
 ```bash
 go run ./cmd/devpilot analyze .

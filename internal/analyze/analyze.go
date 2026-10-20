@@ -114,12 +114,12 @@ func Inspect(path string) (Report, error) {
 		}
 		if eco, ok := markers[entry.Name()]; ok {
 			r.Manifests = append(r.Manifests, relative+" ("+eco+")")
-		} else if strings.HasSuffix(entry.Name(), ".csproj") || strings.HasSuffix(entry.Name(), ".sln") {
+		} else if isDotnetManifest(entry.Name()) {
 			r.Manifests = append(r.Manifests, relative+" (.NET)")
+		} else if kind, ok := dockerManifestKind(entry.Name()); ok {
+			r.Manifests = append(r.Manifests, relative+" ("+kind+")")
 		}
-		if (strings.HasPrefix(relative, ".github/workflows/") &&
-			(strings.HasSuffix(relative, ".yml") || strings.HasSuffix(relative, ".yaml"))) ||
-			relative == ".gitlab-ci.yml" || relative == "azure-pipelines.yml" || relative == "Jenkinsfile" {
+		if isCIConfig(relative) {
 			r.CI = append(r.CI, relative)
 		}
 		return nil
@@ -140,4 +140,15 @@ func Inspect(path string) (Report, error) {
 	sort.Strings(r.CI)
 	sort.Strings(r.Warnings)
 	return r, nil
+}
+
+// isDotnetManifest detects .NET project and solution files without opening them.
+// Extension matching is case-insensitive and includes modern .slnx files.
+func isDotnetManifest(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx":
+		return true
+	default:
+		return false
+	}
 }

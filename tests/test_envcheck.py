@@ -1,6 +1,8 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from devpilot.envcheck import MAX_ENV_BYTES, inspect_env
 
@@ -51,6 +53,82 @@ class EnvCheckTests(unittest.TestCase):
         result = inspect_env(self.root)
         self.assertEqual(result['status'], 'matched')
         self.assertEqual(result['expected_count'], 0)
+
+    def test_template_swap_to_symlink_is_rejected(self):
+        self.write('.env.example', 'SAFE=value\n')
+        with tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / 'secret'
+            target.write_text('SECRET=external-secret\n', encoding='utf-8')
+            original_open = os.open
+            def swap(path, flags):
+                Path(path).unlink()
+                Path(path).symlink_to(target)
+                return original_open(path, flags)
+            try:
+                with patch('devpilot.envcheck.os.open', side_effect=swap):
+                    result = inspect_env(self.root)
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks unavailable')
+        self.assertEqual(result['status'], 'unreadable_template')
+        self.assertNotIn('external-secret', str(result))
+
+    def test_local_swap_to_symlink_is_rejected(self):
+        self.write('.env.example', 'TOKEN=example\n')
+        self.write('.env', 'TOKEN=local\n')
+        with tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / 'secret'
+            target.write_text('TOKEN=external-secret\n', encoding='utf-8')
+            original_open = os.open
+            def swap(path, flags):
+                if Path(path).name == '.env':
+                    Path(path).unlink()
+                    Path(path).symlink_to(target)
+                return original_open(path, flags)
+            try:
+                with patch('devpilot.envcheck.os.open', side_effect=swap):
+                    result = inspect_env(self.root)
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks unavailable')
+        self.assertEqual(result['status'], 'unreadable_local')
+        self.assertNotIn('external-secret', str(result))
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo') and hasattr(os, 'O_NONBLOCK'), 'POSIX FIFO required')
+    def test_swap_to_fifo_is_rejected_without_blocking(self):
+        self.write('.env.example', 'TOKEN=example\n')
+        original_open = os.open
+        def swap(path, flags):
+            Path(path).unlink()
+            os.mkfifo(path)
+            return original_open(path, flags)
+        with patch('devpilot.envcheck.os.open', side_effect=swap):
+            result = inspect_env(self.root)
+        self.assertEqual(result['status'], 'unreadable_template')
+
+    def test_growth_between_stat_and_open_is_rejected(self):
+        self.write('.env.example', 'SAFE=example\n')
+        original_open = os.open
+        def grow(path, flags):
+            Path(path).write_bytes(b'X' * (MAX_ENV_BYTES + 1))
+            return original_open(path, flags)
+        with patch('devpilot.envcheck.os.open', side_effect=grow):
+            result = inspect_env(self.root)
+        self.assertEqual(result['status'], 'unreadable_template')
+
+
+    def test_swap_to_another_regular_file_with_reused_inode_is_rejected(self):
+        self.write('.env.example', 'EXPECTED=x\n')
+        original_open = os.open
+
+        def replace_regular_file(path, flags):
+            Path(path).unlink()
+            Path(path).write_text('UNTRUSTED_KEY=unexpected-content\n', encoding='utf-8')
+            return original_open(path, flags)
+
+        with patch('devpilot.envcheck.os.open', side_effect=replace_regular_file):
+            result = inspect_env(self.root)
+        self.assertEqual(result['status'], 'unreadable_template')
+        self.assertEqual(result['detail'], 'file changed during inspection')
+
 
 
 if __name__ == '__main__':

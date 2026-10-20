@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import stat
 from pathlib import Path
@@ -13,7 +14,11 @@ _KEY = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 
 
 def _keys(path: Path) -> tuple[set[str] | None, str | None]:
-    """Read variable names only; refuse symlinks, non-files and huge files."""
+    """Read names only from an unchanged, regular file; never follow symlinks.
+
+    The lstat and descriptor checks defend against a project swapping the file
+    after it has been inspected. O_NONBLOCK avoids hanging on a swapped-in FIFO.
+    """
     try:
         metadata = path.lstat()
     except FileNotFoundError:
@@ -24,8 +29,17 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
         return None, 'not a regular file'
     if metadata.st_size > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
+
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
     try:
-        with path.open('rb') as handle:
+        with os.fdopen(os.open(path, flags), 'rb') as handle:
+            opened = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(opened.st_mode) or
+                    (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns, opened.st_ctime_ns) !=
+                    (metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns, metadata.st_ctime_ns)):
+                return None, 'file changed during inspection'
+            if opened.st_size > MAX_ENV_BYTES:
+                return None, 'exceeds 256 KiB limit'
             raw = handle.read(MAX_ENV_BYTES + 1)
     except OSError:
         return None, 'not readable'

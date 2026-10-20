@@ -7,14 +7,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/dockercheck"
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
-	"github.com/batuhansimsar/DEVPILOT/internal/dockerfile"
+	"github.com/batuhansimsar/DEVPILOT/internal/portcheck"
 )
 
 func usage(w io.Writer) {
@@ -22,8 +24,9 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot dockerfile [--json] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
-	fmt.Fprintln(w, "       devpilot test [--dry-run | --trust] [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot test [--dry-run [--json] | --trust] [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
+	fmt.Fprintln(w, "       devpilot check [--json] [--timeout=3s] host port")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 	fmt.Fprintln(w, "Docker queries are read-only and have a 5-second timeout.")
 }
@@ -37,30 +40,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "analyze":
 		return analyzeCommand(args[1:], stdout, stderr)
 	case "dockerfile":
-		flags := flag.NewFlagSet("dockerfile", flag.ContinueOnError)
-		flags.SetOutput(stderr)
-		jsonOut := flags.Bool("json", false, "machine-readable JSON report")
-		if err := flags.Parse(args[1:]); err != nil { return 2 }
-		if flags.NArg() > 1 { fmt.Fprintln(stderr, "dockerfile accepts at most one project directory"); return 2 }
-		path := "."
-		if flags.NArg() == 1 { path = flags.Arg(0) }
-		report, err := dockerfile.Inspect(path)
-		if err != nil { fmt.Fprintln(stderr, "dockerfile:", err); return 2 }
-		if *jsonOut {
-			enc := json.NewEncoder(stdout)
-			enc.SetIndent("", "  ")
-			if err := enc.Encode(report); err != nil { fmt.Fprintln(stderr, err); return 2 }
-		} else {
-			fmt.Fprintf(stdout, "DevPilot Dockerfile: %s\n", report.File)
-			for _, stage := range report.Stages { fmt.Fprintf(stdout, "Stage at line %d: %s\n", stage.Line, stage.Base) }
-			if len(report.Findings) == 0 { fmt.Fprintln(stdout, "No findings from the available static checks.") }
-			for _, finding := range report.Findings {
-				fmt.Fprintf(stdout, "[%s] %s: %s\n", strings.ToUpper(finding.Level), finding.Evidence, finding.Message)
-				fmt.Fprintf(stdout, "       Next: %s\n", finding.Remedy)
-			}
-		}
-		if report.HasWarnings() { return 1 }
-		return 0
+		return dockerfileCommand(args[1:], stdout, stderr)
 	case "doctor":
 		flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 		flags.SetOutput(stderr)
@@ -108,17 +88,69 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		return 0
+	case "check":
+		flags := flag.NewFlagSet("check", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "machine-readable connectivity result")
+		timeout := flags.Duration("timeout", 3*time.Second, "TCP connection timeout (100ms to 30s)")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() != 2 {
+			fmt.Fprintln(stderr, "check requires a host and port")
+			return 2
+		}
+		port, err := strconv.Atoi(flags.Arg(1))
+		if err != nil {
+			fmt.Fprintln(stderr, "port must be an integer between 1 and 65535")
+			return 2
+		}
+		result, err := portcheck.Check(ctx, flags.Arg(0), port, *timeout)
+		if err != nil {
+			fmt.Fprintln(stderr, "check:", err)
+			return 2
+		}
+		if *jsonOut {
+			enc := json.NewEncoder(stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(result); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 2
+			}
+		} else {
+			status := "unreachable"
+			if result.Reachable {
+				status = "reachable"
+			}
+			fmt.Fprintf(stdout, "%s — %s\n", net.JoinHostPort(result.Host, strconv.Itoa(result.Port)), status)
+			if result.Error != "" {
+				fmt.Fprintln(stderr, result.Error)
+			}
+		}
+		if result.Reachable {
+			return 0
+		}
+		return 1
 	case "test":
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
 		dryRun := flags.Bool("dry-run", false, "preview test command without executing it")
+		jsonOut := flags.Bool("json", false, "emit a machine-readable test preview (requires --dry-run)")
 		timeout := flags.Duration("timeout", 2*time.Minute, "test timeout (maximum 10 minutes)")
 		if err := flags.Parse(args[1:]); err != nil {
 			return 2
 		}
 		if flags.NArg() > 1 {
 			fmt.Fprintln(stderr, "test accepts at most one path")
+			return 2
+		}
+		if *dryRun && *trust {
+			fmt.Fprintln(stderr, "--dry-run and --trust cannot be combined")
+			return 2
+		}
+		if *jsonOut && !*dryRun {
+			fmt.Fprintln(stderr, "--json requires --dry-run for the test command")
 			return 2
 		}
 		if !*trust && !*dryRun {
@@ -143,7 +175,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 		if *dryRun {
-			printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			if *jsonOut {
+				if err := printJSONTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments); err != nil {
+					fmt.Fprintln(stderr, "Cannot write test plan:", err)
+					return 2
+				}
+			} else {
+				printTestPreview(stdout, report.Path, report.Tests.Executable, report.Tests.Arguments)
+			}
 			return 0
 		}
 		if _, err = exec.LookPath(report.Tests.Executable); err != nil {

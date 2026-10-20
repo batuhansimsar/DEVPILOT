@@ -24,6 +24,7 @@ devpilot analyze --path /path/to/project
 devpilot workspaces --path /path/to/monorepo --json
 devpilot doctor --path /path/to/project
 devpilot git --path /path/to/project
+devpilot audit --path /path/to/project       # filename-only scan of Git-tracked potential secrets
 devpilot docker
 devpilot check localhost 5432
 devpilot test --path /path/to/project           # discovery only
@@ -40,11 +41,14 @@ devpilot doctor --path /path/to/project --json
 | `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only `git status` with no shell. |
+| `audit` | Warns about Git-tracked `.env`, private keys, and credential-like filenames without opening their contents. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
 | `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. |
 
 ## Security and limits
+
+`devpilot doctor` warns if Git tracks potentially sensitive `.env` files (including nested `.env.production` or `.env.local`). Template filenames such as `.env.example` and `.env.sample` are excluded. This check inspects Git's index only; it never reads environment-file contents.
 
 DevPilot is designed to **inspect before acting**. Analysis skips symlinked files and folders, dependency/build directories, and caps scans at 10,000 files / 12 directory levels. It never reads `.env` contents or executes project scripts during `doctor` or `analyze`. External tools such as Git and Docker are invoked with argument arrays, **not shell interpolation**. Git status disables repository-configured filesystem-monitor hooks and optional index writes, avoiding unexpected helper execution during inspection. CLI stdout/stderr may contain sensitive project data; do not publish `--json` output blindly. `test --yes` runs untrusted repository code and should only be used with projects you trust. The `check` command opens a network connection only to the host explicitly supplied. No telemetry is collected.
 
@@ -64,3 +68,18 @@ Contributions are welcome. Please add regression tests for bug fixes. For securi
 Licensed under the MIT License.
 
 JavaScript diagnostics flag multiple lockfiles (`pnpm-lock.yaml`, `yarn.lock`, Bun, npm lock/shrinkwrap) with a warning; `doctor` does not execute package scripts.
+
+
+### HTTP health checks
+
+Probe an explicitly supplied HTTP endpoint without reading the response body or following redirects:
+
+```bash
+devpilot http http://localhost:8080/health --json
+```
+
+The command uses HEAD, reports HTTP status and latency, and returns an unsuccessful exit code for HTTP 4xx/5xx or network failures. Credentials in URLs are rejected; query parameters are omitted from diagnostics. Use `--timeout 5` to adjust the deadline (0.1–30 seconds).
+
+## Dependency inventory
+
+`devpilot deps --path /path/to/repo` reports dependency names in Node.js `package.json`, Python `requirements*.txt`, Go `go.mod`, Rust `Cargo.toml`, and .NET project files. Use `--json` for machine-readable output. This is a bounded, read-only scan that does not execute project code or access the network. Version specifications and dependency URLs are deliberately omitted to avoid exposing credentials. This is **not** a vulnerability audit.

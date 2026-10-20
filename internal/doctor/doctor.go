@@ -65,11 +65,28 @@ func readMarker(root, name string) ([]byte, bool, error) {
 	if st.Size() > 1024*1024 {
 		return nil, false, fmt.Errorf("%s exceeds 1 MiB inspection limit", name)
 	}
+	return readMarkerAfterStat(path, name, st)
+}
+
+// readMarkerAfterStat verifies the opened file is exactly the regular file
+// observed by Lstat. A workspace can swap a path between Lstat and Open;
+// no contents are read until the open descriptor has been validated.
+func readMarkerAfterStat(path, name string, expected os.FileInfo) ([]byte, bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, false, err
 	}
 	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil {
+		return nil, false, err
+	}
+	if !opened.Mode().IsRegular() || !os.SameFile(expected, opened) {
+		return nil, false, fmt.Errorf("%s changed while opening for inspection", name)
+	}
+	if opened.Size() > 1024*1024 {
+		return nil, false, fmt.Errorf("%s exceeds 1 MiB inspection limit", name)
+	}
 	b, err := io.ReadAll(io.LimitReader(f, 1024*1024+1))
 	if err != nil {
 		return nil, false, err
@@ -215,7 +232,7 @@ func Inspect(root string) (Report, error) {
 				}
 				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
 					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
-					r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
+					r.Tests = &TestCommand{Executable: executable, Arguments: nodeTestArgs(executable)}
 				}
 				tool(executable, manager+" package manager")
 			}

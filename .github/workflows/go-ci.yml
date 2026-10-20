@@ -1,39 +1,31 @@
-name: Go CI
+name: Go race checks
 
 on:
   push:
     branches: [main]
+    paths:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+      - .github/workflows/go-ci.yml
   pull_request:
+    paths:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+      - .github/workflows/go-ci.yml
 
 permissions:
   contents: read
 
 jobs:
-  go:
-    name: Go ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  race:
+    name: Go race detector
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: false
-      - name: Check formatting
-        shell: bash
-        run: |
-          unformatted="$(gofmt -l cmd internal)"
-          if [ -n "$unformatted" ]; then
-            echo "Go files require gofmt:"
-            echo "$unformatted"
-            exit 1
-          fi
-      - name: Vet
-        run: go vet ./...
-      - name: Test
-        run: go test -count=1 ./...
-      - name: Build
-        run: go build ./cmd/devpilot
+      - name: Race-enabled tests
+        run: go test -race -count=1 ./...

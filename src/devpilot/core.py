@@ -4,19 +4,21 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import shutil
 import socket
-import subprocess
 import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 
+from .bounded_process import run_bounded
 from .envcheck import inspect_env
 from typing import Any
 
+from .gradle import gradle_test_command
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
+from .walk import walk_project
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -26,11 +28,13 @@ SKIP_DIRS = frozenset({
 })
 LANGUAGES = {
     '.py': 'Python', '.js': 'JavaScript', '.jsx': 'JavaScript',
-    '.ts': 'TypeScript', '.tsx': 'TypeScript', '.cs': 'C#',
+    '.mjs': 'JavaScript', '.cjs': 'JavaScript',
+    '.ts': 'TypeScript', '.tsx': 'TypeScript',
+    '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
     '.cc': 'C++', '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
-    '.svelte': 'Svelte', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
+    '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
 }
 KEY_FILES = frozenset({
@@ -89,7 +93,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
     key_files: list[str] = []
     problems: list[str] = []
     # Do not follow symlinks or recurse into generated/dependency folders.
-    for current, dirs, files in os.walk(root, followlinks=False):
+    for current, dirs, files in walk_project(root, problems):
         here = Path(current)
         relative = here.relative_to(root)
         depth = len(relative.parts)
@@ -171,10 +175,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if 'pom.xml' in names:
         commands.append({'ecosystem': 'Java', 'argv': ['mvn', 'test'], 'reason': 'pom.xml'})
     elif names & {'build.gradle', 'build.gradle.kts'}:
-        if 'gradlew' in names:
-            commands.append({'ecosystem': 'Java', 'argv': ['./gradlew', 'test'] if os.name != 'nt' else ['gradlew.bat', 'test'], 'reason': 'Gradle wrapper'})
-        else:
-            commands.append({'ecosystem': 'Java', 'argv': ['gradle', 'test'], 'reason': 'Gradle project'})
+        argv, reason = gradle_test_command(root, names, os.name)
+        commands.append({'ecosystem': 'Java', 'argv': argv, 'reason': reason})
     return commands
 
 
@@ -187,6 +189,13 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
+    from .security import tracked_environment_files
+    tracked_env = tracked_environment_files(root)
+    if tracked_env:
+        shown = ', '.join(tracked_env[:5])
+        if len(tracked_env) > 5:
+            shown += f' (+{len(tracked_env) - 5} more)'
+        issues.append('Git-tracked environment files may contain secrets: ' + shown)
     environment = inspect_env(root)
     if 'Node.js' in found:
         package, _ = _read_package_json(root)
@@ -204,28 +213,10 @@ def doctor_report(root: Path) -> dict[str, Any]:
             'ok': not issues and not missing}
 
 
-def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, Any]:
-    """Run without a shell; spool output to temporary files to bound RAM usage."""
-    def tail(stream: Any) -> tuple[str, bool]:
-        stream.seek(0, os.SEEK_END)
-        size = stream.tell()
-        stream.seek(max(0, size - 20000))
-        return stream.read().decode('utf-8', errors='replace'), size > 20000
 
-    try:
-        with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
-            finished = subprocess.run(argv, cwd=root, stdout=out, stderr=err,
-                                      timeout=timeout, shell=False)
-            stdout, stdout_truncated = tail(out)
-            stderr, stderr_truncated = tail(err)
-            return {'argv': argv, 'exit_code': finished.returncode,
-                    'stdout': stdout, 'stderr': stderr,
-                    'stdout_truncated': stdout_truncated,
-                    'stderr_truncated': stderr_truncated}
-    except subprocess.TimeoutExpired:
-        return {'argv': argv, 'exit_code': None, 'error': f'Timed out after {timeout}s'}
-    except OSError as exc:
-        return {'argv': argv, 'exit_code': None, 'error': str(exc)}
+def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, Any]:
+    """Execute a local command with bounded in-memory stdout/stderr capture."""
+    return run_bounded(argv, root, timeout)
 
 
 def git_status(root: Path) -> dict[str, Any]:
