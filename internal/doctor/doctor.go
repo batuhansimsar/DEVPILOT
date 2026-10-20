@@ -172,6 +172,7 @@ func Inspect(root string) (Report, error) {
 			add("warning", "package-json-unreadable", "Cannot inspect package.json: "+err.Error(), "Make package.json a regular file smaller than 1 MiB.")
 		} else {
 			var pkg struct {
+				PackageManager  string                     `json:"packageManager"`
 				Scripts         map[string]string          `json:"scripts"`
 				Dependencies    map[string]json.RawMessage `json:"dependencies"`
 				DevDependencies map[string]json.RawMessage `json:"devDependencies"`
@@ -192,6 +193,13 @@ func Inspect(root string) (Report, error) {
 					}
 				}
 				manager, executable, lockfiles := detectJSLockfiles(abs)
+				if declared := declaredNodeManager(pkg.PackageManager); declared != "" {
+					if len(lockfiles) == 0 {
+						manager, executable = declared, declared
+					} else if declared != manager {
+						add("warning", "js-package-manager-mismatch", "packageManager specifies "+declared+" but the lockfile selects "+manager, "Align packageManager and the committed lockfile before installing dependencies.")
+					}
+				}
 				r.PackageManager = manager
 				if len(lockfiles) > 1 {
 					add("warning", "js-lockfiles-conflict", "Multiple JavaScript lockfiles detected: "+strings.Join(lockfiles, ", "), "Keep only the lockfile for the selected package manager after confirming which one is authoritative.")
