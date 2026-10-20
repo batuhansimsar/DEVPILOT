@@ -28,6 +28,12 @@ PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
 GO_NAME = re.compile(r"^\s*([A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)+)\s+v\S+")
 
+
+def _reject_nonfinite_number(_value: str) -> None:
+    """Reject Python's nonstandard NaN/Infinity extensions in JSON manifests."""
+    raise ValueError("non-finite JSON number in package.json")
+
+
 def _file_identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
     """Identify file replacement and in-place writes during inspection."""
     return (metadata.st_dev, metadata.st_ino, metadata.st_size,
@@ -66,7 +72,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
     name = path.name
     content = _read(path)
     if name == "package.json":
-        data = json.loads(content)
+        data = json.loads(content, parse_constant=_reject_nonfinite_number)
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
         groups = {}
@@ -158,6 +164,9 @@ def scan(path: str | Path) -> dict:
             rel = filepath.relative_to(root).as_posix()
             try:
                 ecosystem, groups = _parse(filepath)
+            except RecursionError:
+                warnings.append(f"{rel}: manifest nesting exceeds parser limits")
+                continue
             except (OSError, UnicodeError, ValueError, ET.ParseError) as exc:
                 warnings.append(f"{rel}: {exc}")
                 continue
