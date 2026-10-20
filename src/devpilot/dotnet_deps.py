@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+import re
 import xml.etree.ElementTree as ET
 
 _MSBUILD_NS = 'http://schemas.microsoft.com/developer/msbuild/2003'
+# Literal NuGet package IDs contain letters, digits, dots, underscores and
+# hyphens. A bounded, conservative identifier is safe to echo in reports;
+# MSBuild property expressions and arbitrary URLs are not package IDs.
+_PACKAGE_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,99}\Z')
 
 
 def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
-    """Extract NuGet PackageReference names from an MSBuild Project document.
+    """Extract literal NuGet PackageReference names from an MSBuild project.
 
-    Modern SDK projects typically have no XML namespace; older projects use
-    the MSBuild namespace. Elements from extension namespaces must not be
-    mistaken for NuGet references. Package values and versions are omitted.
+    Both modern SDK projects and legacy MSBuild-namespace projects are
+    supported. Refuse dynamic or malformed names rather than accidentally
+    printing project-defined expressions, URLs or credentials in diagnostics.
     """
     upper = content.upper()
     if '<!DOCTYPE' in upper or '<!ENTITY' in upper:
@@ -42,7 +47,10 @@ def parse_dotnet_dependencies(content: str) -> dict[str, list[str]]:
             item_scope = in_item_group or child.tag == item_group_tag
             if child.tag == reference_tag and item_scope:
                 name = child.attrib.get('Include') or child.attrib.get('Update')
-                if name:
+                if name is not None:
+                    if not _PACKAGE_ID.fullmatch(name):
+                        # Never interpolate untrusted attributes into a warning.
+                        raise ValueError('.NET manifest contains an invalid PackageReference identifier')
                     names.add(name)
             else:
                 stack.append((child, item_scope))
