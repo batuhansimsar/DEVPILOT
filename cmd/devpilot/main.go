@@ -78,44 +78,50 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 0
 	case "tree":
-        flags := flag.NewFlagSet("tree", flag.ContinueOnError)
-        flags.SetOutput(stderr)
-        jsonOut := flags.Bool("json", false, "JSON tree report")
-        depth := flags.Int("depth", 3, "maximum directory depth (1 to 10)")
-        maxEntries := flags.Int("max", 300, "maximum entries (1 to 2000)")
-        if err := flags.Parse(args[1:]); err != nil { return 2 }
-        if flags.NArg() > 1 {
-            fmt.Fprintln(stderr, "tree accepts at most one path")
-            return 2
-        }
-        path := "."
-        if flags.NArg() == 1 { path = flags.Arg(0) }
-        report, err := tree.Inspect(path, *depth, *maxEntries)
-        if err != nil {
-            fmt.Fprintln(stderr, "tree:", err)
-            return 2
-        }
-        if *jsonOut {
-            encoder := json.NewEncoder(stdout)
-            encoder.SetIndent("", "  ")
-            if err := encoder.Encode(report); err != nil {
-                fmt.Fprintln(stderr, "tree output:", err)
-                return 2
-            }
-            return 0
-        }
-        fmt.Fprintf(stdout, "Workspace: %q\n", report.Root)
-        for _, entry := range report.Entries {
-            pieces := strings.Split(entry.Path, "/")
-            name := pieces[len(pieces)-1]
-            if strings.IndexFunc(name, func(r rune) bool { return r < 32 || r == 127 }) >= 0 {
-                name = fmt.Sprintf("%q", name)
-            }
-            fmt.Fprintf(stdout, "%s%s (%s)\n", strings.Repeat("  ", entry.Depth-1), name, entry.Kind)
-        }
-        if report.Truncated { fmt.Fprintln(stdout, "... entry limit reached; increase --max to inspect more") }
-        return 0
-    case "test":
+		flags := flag.NewFlagSet("tree", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "JSON tree report")
+		depth := flags.Int("depth", 3, "maximum directory depth (1 to 10)")
+		maxEntries := flags.Int("max", 300, "maximum entries (1 to 2000)")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "tree accepts at most one path")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		report, err := tree.Inspect(path, *depth, *maxEntries)
+		if err != nil {
+			fmt.Fprintln(stderr, "tree:", err)
+			return 2
+		}
+		if *jsonOut {
+			encoder := json.NewEncoder(stdout)
+			encoder.SetIndent("", "  ")
+			if err := encoder.Encode(report); err != nil {
+				fmt.Fprintln(stderr, "tree output:", err)
+				return 2
+			}
+			return 0
+		}
+		fmt.Fprintf(stdout, "Workspace: %q\n", report.Root)
+		for _, entry := range report.Entries {
+			pieces := strings.Split(entry.Path, "/")
+			name := pieces[len(pieces)-1]
+			if strings.IndexFunc(name, func(r rune) bool { return r < 32 || r == 127 }) >= 0 {
+				name = fmt.Sprintf("%q", name)
+			}
+			fmt.Fprintf(stdout, "%s%s (%s)\n", strings.Repeat("  ", entry.Depth-1), name, entry.Kind)
+		}
+		if report.Truncated {
+			fmt.Fprintln(stdout, "... entry limit reached; increase --max to inspect more")
+		}
+		return 0
+ case "test":
 		flags := flag.NewFlagSet("test", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		trust := flags.Bool("trust", false, "explicitly allow execution of project test code")
