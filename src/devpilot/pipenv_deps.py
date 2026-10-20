@@ -13,13 +13,24 @@ def _reject_nonfinite(_value: str) -> None:
     raise ValueError("Pipfile.lock must use finite JSON numbers")
 
 
+def _unique_object_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Fail closed on ambiguous JSON without exposing keys or values in errors."""
+    entries: dict[str, object] = {}
+    for key, value in pairs:
+        if key in entries:
+            raise ValueError("Pipfile.lock contains duplicate object keys")
+        entries[key] = value
+    return entries
+
+
 def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
     """List locked default and development package names, never their values.
 
     Lockfiles may contain authenticated indexes, URLs and hashes, so neither
     source metadata nor per-package values should reach diagnostic reports.
     """
-    lock = json.loads(content, parse_constant=_reject_nonfinite)
+    lock = json.loads(content, parse_constant=_reject_nonfinite,
+                      object_pairs_hook=_unique_object_keys)
     if not isinstance(lock, dict):
         raise ValueError("Pipfile.lock root must be an object")
 
