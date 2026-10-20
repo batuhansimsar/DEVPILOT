@@ -186,6 +186,13 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
+    from .security import tracked_environment_files
+    tracked_env = tracked_environment_files(root)
+    if tracked_env:
+        shown = ', '.join(tracked_env[:5])
+        if len(tracked_env) > 5:
+            shown += f' (+{len(tracked_env) - 5} more)'
+        issues.append('Git-tracked environment files may contain secrets: ' + shown)
     environment = inspect_env(root)
     if 'Node.js' in found:
         package, _ = _read_package_json(root)
