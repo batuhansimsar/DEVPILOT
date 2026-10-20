@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
+from .workspaces import discover_workspaces
 
 
 def _add_repo_flags(parser: argparse.ArgumentParser) -> None:
@@ -24,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name, description in (
         ('doctor', 'Check required developer tools and project configuration'),
         ('analyze', 'Inspect languages, manifests and project structure'),
+        ('workspaces', 'Discover nested projects in a monorepo'),
         ('git', 'Inspect local Git changes (read-only)'),
         ('docker', 'List running Docker containers (read-only)'),
         ('test', 'Discover project test commands; execute only with --yes'),
@@ -49,6 +51,12 @@ def _human(command: str, output: dict[str, Any]) -> str:
         lines += [f'  Manifest: {name}' for name in output['key_files']]
         lines += [f'  npm script: {name}' for name in output['npm_scripts']]
         lines += [f'  Warning: {problem}' for problem in output['problems']]
+        return '\n'.join(lines)
+    if command == 'workspaces':
+        lines = [f"Workspaces in {output['path']}: {output['workspace_count']}"]
+        lines += [f"  {item['path']}: {', '.join(item['ecosystems'])}" for item in output['workspaces']]
+        if output['truncated']:
+            lines.append('  Warning: directory scan limit reached')
         return '\n'.join(lines)
     if command == 'doctor':
         lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
@@ -102,6 +110,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == 'analyze':
             result = analyze_project(root)
             success = not result['problems']
+        elif args.command == 'workspaces':
+            result = discover_workspaces(root)
+            success = True
         elif args.command == 'git':
             result = git_status(root)
             success = result['exit_code'] == 0

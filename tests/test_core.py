@@ -59,6 +59,43 @@ class RepositoryTests(unittest.TestCase):
         with patch('devpilot.cli.command_result', side_effect=AssertionError('must not run')):
             self.assertEqual(main(['test', '--path', str(self.root)]), 0)
 
+    def test_node_uses_installed_package_manager_lockfile(self):
+        choices = {
+            'pnpm-lock.yaml': ['pnpm', 'test'],
+            'yarn.lock': ['yarn', 'test'],
+            'bun.lock': ['bun', 'run', 'test'],
+            'bun.lockb': ['bun', 'run', 'test'],
+            'npm-shrinkwrap.json': ['npm', 'test'],
+            'package-lock.json': ['npm', 'test'],
+        }
+        for filename, expected in choices.items():
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / 'package.json').write_text('{"scripts":{"test":"node tests.js"}}')
+                (root / filename).touch()
+                self.assertEqual(core.test_commands(root)[0]['argv'], expected)
+
+    def test_node_package_manager_field_overrides_lockfiles(self):
+        self.write('package.json', '{"packageManager":"pnpm@10.0.0","scripts":{"test":"node tests.js"}}')
+        self.write('yarn.lock')
+        self.assertEqual(core.test_commands(self.root)[0]['argv'], ['pnpm', 'test'])
+
+    def test_node_unknown_package_manager_falls_back_to_npm(self):
+        self.write('package.json', '{"packageManager":"untrusted@1.0","scripts":{"test":"node tests.js"}}')
+        self.assertEqual(core.test_commands(self.root)[0]['argv'], ['npm', 'test'])
+
+    def test_node_bun_package_manager_runs_script_not_native_tests(self):
+        self.write('package.json', '{"packageManager":"bun@1.2.0","scripts":{"test":"custom-command"}}')
+        self.assertEqual(core.test_commands(self.root)[0]['argv'], ['bun', 'run', 'test'])
+
+    def test_node_symlinked_lockfile_not_trusted(self):
+        self.write('package.json', '{"scripts":{"test":"node tests.js"}}')
+        try:
+            (self.root / 'pnpm-lock.yaml').symlink_to('missing-file')
+        except (OSError, NotImplementedError):
+            self.skipTest('symlinks unavailable')
+        self.assertEqual(core.test_commands(self.root)[0]['argv'], ['npm', 'test'])
+
     def test_python_test_detection(self):
         self.write('pyproject.toml')
         self.write('tests/test_demo.py')

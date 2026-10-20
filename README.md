@@ -21,6 +21,7 @@ For local source development without installing: `PYTHONPATH=src python -m devpi
 
 ```bash
 devpilot analyze --path /path/to/project
+devpilot workspaces --path /path/to/monorepo --json
 devpilot doctor --path /path/to/project
 devpilot git --path /path/to/project
 devpilot docker
@@ -34,6 +35,7 @@ devpilot doctor --path /path/to/project --json
 
 | Command | Behavior |
 | --- | --- |
+| `workspaces` | Discovers nested Python, Node.js, Go, Rust, Java, .NET, Ruby and PHP projects without following symlinks or reading file contents. | 
 | `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only `git status` with no shell. |

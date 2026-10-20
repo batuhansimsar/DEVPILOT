@@ -12,6 +12,9 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
+from .node import LOCKFILES, package_manager
+
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
     'node_modules', 'dist', 'build', '.next', '.nuxt', '.turbo',
@@ -36,29 +39,24 @@ KEY_FILES = frozenset({
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
-MAX_MANIFEST_BYTES = 256 * 1024
-
-
-def _read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
-    manifest = root / 'package.json'
-    if not manifest.is_file() or manifest.is_symlink():
-        return None, None
-    try:
-        if manifest.stat().st_size > MAX_MANIFEST_BYTES:
-            return None, 'package.json exceeds the 256 KiB inspection limit'
-        data = json.loads(manifest.read_text(encoding='utf-8'))
-        if not isinstance(data, dict):
-            return None, 'package.json must contain a JSON object'
-        return data, None
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        return None, f'Invalid package.json: {exc}'
-
 
 def _root_files(root: Path) -> set[str]:
     try:
         return {p.name for p in root.iterdir() if p.is_file() and not p.is_symlink()}
     except OSError:
         return set()
+
+
+def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
+    """Select a safe package script runner without executing any project code.
+
+    Ambiguous lockfiles without an explicit packageManager must be resolved
+    by the developer before tests can be executed.
+    """
+    manager, lockfiles, declared = package_manager(root, package)
+    if not declared and len({LOCKFILES[name] for name in lockfiles}) > 1:
+        return []
+    return ['bun', 'run', 'test'] if manager == 'bun' else [manager, 'test']
 
 
 def detect_projects(root: Path) -> list[str]:
@@ -137,7 +135,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         if isinstance(scripts, dict) and isinstance(scripts.get('test'), str):
             if scripts['test'].strip():
                 # npm scripts execute project code. CLI requires explicit --yes.
-                commands.append({'ecosystem': 'Node.js', 'argv': ['npm', 'test'], 'reason': 'package.json test script'})
+                argv = _node_test_argv(root, package)
+                if argv:
+                    commands.append({'ecosystem': 'Node.js', 'argv': argv, 'reason': 'package.json test script'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
@@ -177,6 +177,16 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
+    if 'Node.js' in found:
+        package, _ = _read_package_json(root)
+        if package is not None:
+            manager, lockfiles, declared = package_manager(root, package)
+            families = {LOCKFILES[name] for name in lockfiles}
+            if len(families) > 1:
+                issues.append('Conflicting JavaScript lockfiles: ' + ', '.join(lockfiles))
+            if declared and families and declared not in families:
+                issues.append(f'packageManager specifies {declared} but lockfile(s) indicate {", ".join(sorted(families))}')
+            tools.append({'name': manager, 'available': bool(shutil.which(manager)), 'required_by': ['Node.js']})
     missing = [t['name'] for t in tools if t['required_by'] and not t['available']]
     return {'path': str(root), 'project_types': found, 'tools': tools,
             'warnings': issues + [f'Missing {name} required by detected project' for name in missing],
@@ -196,7 +206,12 @@ def command_result(argv: list[str], root: Path, timeout: int = 15) -> dict[str, 
 
 
 def git_status(root: Path) -> dict[str, Any]:
-    result = command_result(['git', 'status', '--short', '--branch', '--untracked-files=normal'], root)
+    # Git status may execute a repository-configured fsmonitor helper.
+    # Disable it and avoid optional index writes in read-only inspections.
+    result = command_result([
+        'git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
+        'status', '--short', '--branch', '--untracked-files=normal',
+    ], root)
     return {'path': str(root), **result}
 
 
