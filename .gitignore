@@ -1,0 +1,8 @@
+# Local binaries and test artifacts
+/devpilot
+/devpilot.exe
+*.test
+coverage.out
+# Local secrets
+.env
+.env.*.local
