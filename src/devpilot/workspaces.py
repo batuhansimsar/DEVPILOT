@@ -13,6 +13,8 @@ from .requirements_names import is_requirements_manifest
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
+    'package-lock.json': 'Node.js',
+    'npm-shrinkwrap.json': 'Node.js',
     'pnpm-workspace.yaml': 'Node.js',
     # Bun's text and legacy binary lockfiles are also package-manager markers.
     'bun.lock': 'Node.js',

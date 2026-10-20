@@ -32,6 +32,7 @@ from .pipfile_deps import parse_pipfile_dependencies
 from .json_numbers import parse_finite_json_float
 from .gemfile_lock import parse_gemfile_lock
 from .node_deps import parse_node_dependency_groups
+from .npm_lock import parse_npm_lock
 from .uv_lock import parse_uv_lock
 from .poetry_lock import parse_poetry_lock
 
@@ -106,6 +107,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
         return "Node.js", parse_node_dependency_groups(data)
+    if name in ("package-lock.json", "npm-shrinkwrap.json"):
+        return "Node.js", {"locked": parse_npm_lock(content)}
     if _is_requirements_manifest(name):
         return "Python", {"requirements": parse_requirements_dependencies(content)}
     if name in ("Gemfile.lock", "gems.locked"):
@@ -159,7 +162,7 @@ def scan(path: str | Path) -> dict:
         else:
             subdirs[:] = traversable
         for filename in sorted(filenames):
-            if not (filename in ("pyproject.toml", "package.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "composer.lock", "pom.xml", "Pipfile", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
+            if not (filename in ("pyproject.toml", "package.json", "package-lock.json", "npm-shrinkwrap.json", "go.mod", "Cargo.toml", "Cargo.lock", "composer.json", "composer.lock", "pom.xml", "Pipfile", "Pipfile.lock", "uv.lock", "poetry.lock", "Gemfile.lock", "gems.locked")
                     or _is_requirements_manifest(filename)
                     or filename == "Directory.Packages.props"
                     or filename.lower().endswith((".csproj", ".fsproj", ".vbproj"))):
