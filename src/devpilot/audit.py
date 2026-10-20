@@ -30,6 +30,7 @@ _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     for sensitive in ('.tfvars', '.tfvars.json')
     for example in _ENV_TEMPLATE_SUFFIXES
 )
+_BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~')
 _MAX_INDEX_BYTES = 8 * 1024 * 1024
 _MAX_TRACKED_PATHS = 100_000
 
@@ -41,6 +42,14 @@ def _potential_secret(path: str) -> bool:
     if not parts:
         return False
     name = parts[-1]
+    # Inspect a bounded number of editor/backup suffixes before classification.
+    for _ in range(3):
+        suffix = next((suffix for suffix in _BACKUP_SUFFIXES
+                       if name.endswith(suffix) and len(name) > len(suffix)), None)
+        if suffix is None:
+            break
+        name = name[:-len(suffix)]
+    parts = (*parts[:-1], name)
     if name in _ENV_EXAMPLES or (
         (name.startswith('.env.') or '.env.' in name)
         and name.endswith(_ENV_TEMPLATE_SUFFIXES)
