@@ -44,5 +44,23 @@ class WalkProjectTests(unittest.TestCase):
         self.assertEqual(problems, [])
 
 
+
+    def test_terminal_controls_and_bidi_are_escaped(self):
+        root = Path.cwd() / 'example'
+        problems = []
+
+        def fake_walk(path, *, followlinks, onerror):
+            onerror(OSError(errno.EACCES, 'Permission\x1b[2J denied\u202e',
+                            str(root / 'bad\nname\x1b[31m')))
+            return iter([])
+
+        with patch('devpilot.walk.os.walk', side_effect=fake_walk):
+            self.assertEqual(list(walk_project(root, problems)), [])
+        self.assertEqual(problems, [
+            r'Cannot inspect bad\u000aname\u001b[31m: Permission\u001b[2J denied\u202e'
+        ])
+        self.assertFalse(any('\x1b' in issue or '\n' in issue or '\u202e' in issue
+                             for issue in problems))
+
 if __name__ == '__main__':
     unittest.main()
