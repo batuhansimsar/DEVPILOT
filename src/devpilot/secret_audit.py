@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path, PurePosixPath
+from threading import Thread
 from typing import Any
 
 MAX_OUTPUT = 8 * 1024 * 1024
@@ -65,6 +66,62 @@ def classify(path: str) -> str | None:
     return None
 
 
+def _tracked_paths(root: Path) -> bytes:
+    """Collect a bounded Git index listing, killing Git before it can fill memory.
+
+    A reader drains stdout concurrently to avoid pipe deadlocks. Unlike
+    ``subprocess.run(capture_output=True)``, bytes beyond MAX_OUTPUT are never
+    accumulated in the Python process.
+    """
+    argv = ['git', '-c', 'core.fsmonitor=false', '--no-optional-locks', 'ls-files', '-z', '--cached']
+    try:
+        process = subprocess.Popen(
+            argv, cwd=root, stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        )
+    except OSError as exc:
+        raise RuntimeError('Unable to inspect Git index') from exc
+
+    output = bytearray()
+    exceeded = [False]
+    read_failed = [False]
+
+    def read_stdout() -> None:
+        assert process.stdout is not None
+        try:
+            while chunk := process.stdout.read(8192):
+                if len(output) + len(chunk) > MAX_OUTPUT:
+                    exceeded[0] = True
+                    try:
+                        process.kill()
+                    except ProcessLookupError:
+                        pass
+                    break
+                output.extend(chunk)
+        except OSError:
+            read_failed[0] = True
+        finally:
+            process.stdout.close()
+
+    reader = Thread(target=read_stdout, daemon=True)
+    reader.start()
+    try:
+        returncode = process.wait(timeout=TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as exc:
+        process.kill()
+        process.wait()
+        raise RuntimeError('Git index inspection timed out') from exc
+    finally:
+        reader.join(timeout=2)
+    if reader.is_alive() or read_failed[0]:
+        raise RuntimeError('Unable to read Git index output')
+    if exceeded[0]:
+        raise RuntimeError('Git index exceeds 8 MiB safety limit')
+    if returncode != 0:
+        raise RuntimeError('Not a readable Git worktree or Git index unavailable')
+    return bytes(output)
+
+
 def audit(root: Path, *, redact_paths: bool = False) -> dict[str, Any]:
     """Inspect Git's tracked filename index; never open repository files."""
     root = root.expanduser().resolve()
@@ -72,18 +129,7 @@ def audit(root: Path, *, redact_paths: bool = False) -> dict[str, Any]:
         raise ValueError('Not a directory: ' + str(root))
     if shutil.which('git') is None:
         raise RuntimeError('Git is not installed or is not in PATH')
-    argv = ['git', '-c', 'core.fsmonitor=false', '--no-optional-locks', 'ls-files', '-z', '--cached']
-    try:
-        process = subprocess.run(argv, cwd=root, capture_output=True, timeout=TIMEOUT_SECONDS, check=False, stdin=subprocess.DEVNULL)
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError('Git index inspection timed out') from exc
-    except OSError as exc:
-        raise RuntimeError('Unable to inspect Git index') from exc
-    if process.returncode != 0:
-        raise RuntimeError('Not a readable Git worktree or Git index unavailable')
-    if len(process.stdout) > MAX_OUTPUT:
-        raise RuntimeError('Git index exceeds 8 MiB safety limit')
-    raw_paths = process.stdout.split(b'\0')
+    raw_paths = _tracked_paths(root).split(b'\0')
     if len(raw_paths) - 1 > MAX_PATHS:
         raise RuntimeError('Git index exceeds 100,000 path safety limit')
     findings: list[dict[str, str]] = []

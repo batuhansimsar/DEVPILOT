@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from devpilot.secret_audit import audit, classify, main
 
@@ -102,6 +103,24 @@ class RepoTests(unittest.TestCase):
         self.assertTrue(audit(self.root)['ok'])
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main([str(self.root)]), 0)
+
+    def test_output_limit_stops_large_git_index_listing(self):
+        # Exercise the real Git pipe with a tiny cap: no full output is buffered.
+        for number in range(12):
+            self.add(f'file-{number:02d}-long-filename.txt')
+        with patch('devpilot.secret_audit.MAX_OUTPUT', 64):
+            with self.assertRaisesRegex(RuntimeError, '8 MiB safety limit'):
+                audit(self.root)
+
+    def test_output_just_under_limit_is_complete(self):
+        self.add('.env')
+        self.add('README.md')
+        raw = subprocess.run(['git', 'ls-files', '-z'], cwd=self.root, check=True,
+                             capture_output=True).stdout
+        with patch('devpilot.secret_audit.MAX_OUTPUT', len(raw)):
+            result = audit(self.root)
+        self.assertEqual(result['tracked_files_checked'], 2)
+        self.assertEqual(result['findings'][0]['path'], '.env')
 
     def test_missing_directory(self):
         with contextlib.redirect_stderr(io.StringIO()):
