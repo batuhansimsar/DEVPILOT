@@ -90,44 +90,49 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
                 collect(f'optional:{normalized}', _requirements(values, 'project.optional-dependencies'))
 
     if 'dependency-groups' in data:
-        declared = _mapping(data['dependency-groups'], 'dependency-groups')
+        original_groups = _mapping(data['dependency-groups'], 'dependency-groups')
+        # PEP 735 compares group names by normalized spelling, but reports
+        # should retain the author's original spelling for readability.
         groups: dict[str, list] = {}
-        for raw_name, entries in declared.items():
-            normalized = _group_key(raw_name)
-            if normalized in groups:
-                raise ValueError('pyproject.toml dependency group names collide after normalization')
-            groups[normalized] = entries
+        for name, entries in original_groups.items():
+            if not _NAME.fullmatch(name):
+                raise ValueError('pyproject.toml contains an invalid dependency group name')
+            canonical = _canonical(name)
+            if canonical in groups:
+                raise ValueError('pyproject.toml contains a duplicate normalized dependency group')
+            groups[canonical] = entries
 
         resolved: dict[str, set[str]] = {}
         visiting: set[str] = set()
 
         def resolve(group: str) -> set[str]:
-            if group in resolved:
-                return resolved[group]
-            if group in visiting:
+            canonical = _canonical(group)
+            if canonical in resolved:
+                return resolved[canonical]
+            if canonical in visiting:
                 raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
-            if group not in groups:
+            if canonical not in groups:
                 raise ValueError('pyproject.toml dependency-groups reference an unknown group')
+            # A valid but hostile include chain could otherwise overflow Python's
+            # recursion limit before the CLI can report a useful warning.
             if len(visiting) >= 64:
-                raise ValueError('pyproject.toml dependency group inclusion is too deep')
-            visiting.add(group)
-            try:
-                entries = groups[group]
-                if not isinstance(entries, list):
-                    raise ValueError('pyproject.toml dependency-groups must contain lists')
-                names: set[str] = set()
-                for entry in entries:
-                    if isinstance(entry, dict) and set(entry) == {'include-group'}:
-                        names.update(resolve(_group_key(entry['include-group'])))
-                    else:
-                        names.update(_requirements([entry], 'dependency-groups'))
-                resolved[group] = names
-                return names
-            finally:
-                visiting.remove(group)
+                raise ValueError('pyproject.toml dependency group includes exceed the depth limit')
+            visiting.add(canonical)
+            entries = groups[canonical]
+            if not isinstance(entries, list):
+                raise ValueError('pyproject.toml dependency-groups must contain lists')
+            names: set[str] = set()
+            for entry in entries:
+                if isinstance(entry, dict) and set(entry) == {'include-group'} and isinstance(entry['include-group'], str):
+                    names.update(resolve(entry['include-group']))
+                else:
+                    names.update(_requirements([entry], 'dependency-groups'))
+            visiting.remove(canonical)
+            resolved[canonical] = names
+            return names
 
-        for group in sorted(groups):
-            collect(f'group:{group}', resolve(group))
+        for name in original_groups:
+            collect(f'group:{name}', resolve(name))
 
     tool = _mapping(data.get('tool', {}), 'tool')
     if 'poetry' in tool:
