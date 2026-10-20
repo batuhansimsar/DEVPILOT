@@ -29,7 +29,9 @@ def parse_uv_lock(content: str) -> list[str]:
         # The scanner reads UTF-8-SIG, but direct library callers may hand us
         # decoded text that still includes a UTF-8 byte-order mark.
         document = tomllib.loads(content.removeprefix('\ufeff'))
-    except (tomllib.TOMLDecodeError, RecursionError):
+    except (ValueError, RecursionError, OverflowError):
+        # TOML metadata can exceed numeric or nesting limits. Suppress parser
+        # details to avoid exposing private lockfile contents.
         raise ValueError("invalid uv.lock TOML") from None
 
     packages = document.get("package", [])
