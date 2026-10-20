@@ -51,9 +51,13 @@ def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
             raise ValueError(f"Pipfile.lock {group} must be an object")
         if not all(isinstance(value, dict) for value in entries.values()):
             raise ValueError(f"Pipfile.lock {group} packages must be objects")
+        # Never omit an invalid key: a partial dependency inventory is misleading.
+        # The message must not reflect potentially secret-containing lockfile keys.
+        if any(not _PACKAGE_NAME.fullmatch(name) for name in entries):
+            raise ValueError(f"Pipfile.lock {group} contains invalid package names")
         names = sorted({
             _SEPARATOR.sub("-", name).lower()
-            for name in entries if _PACKAGE_NAME.fullmatch(name)
+            for name in entries
         })
         if names:
             groups[group] = names
