@@ -13,12 +13,14 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[int] | None = None) -> dict:
+def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[int] | None = None, method: str = 'HEAD') -> dict:
     """Probe an explicitly supplied URL using HEAD, without reading response bodies.
 
     When supplied, expected_statuses replaces the default healthy 2xx range,
     allowing expected 401/403 responses from protected endpoints.
     """
+    if method not in ('HEAD', 'GET'):
+        raise ValueError('method must be HEAD or GET')
     # urlsplit silently strips certain control characters; reject them before parsing
     # so the endpoint that is probed always matches the caller's supplied URL.
     if any(ord(char) < 32 or ord(char) == 127 for char in url):
@@ -45,7 +47,7 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
-    request = Request(url, method='HEAD', headers={'User-Agent': 'DevPilot/0.1'})
+    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()
     try:
         with opener.open(request, timeout=timeout) as response:
@@ -54,9 +56,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         status = exc.code  # 3xx, 4xx and 5xx are valid HTTP responses, not network failures.
         exc.close()
     except (URLError, OSError, TimeoutError) as exc:
-        return {'url': display, 'reachable': False, 'status': None, 'healthy': False,
+        return {'url': display, 'method': method, 'reachable': False, 'status': None, 'healthy': False,
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
     # A redirect is reachable, but not healthy: following it is deliberately disabled.
-    return {'url': display, 'reachable': True, 'status': status, 'healthy': (status in expected_statuses if expected_statuses is not None else 200 <= status < 300),
+    return {'url': display, 'method': method, 'reachable': True, 'status': status, 'healthy': (status in expected_statuses if expected_statuses is not None else 200 <= status < 300),
             'latency_ms': round((time.monotonic() - start) * 1000, 1)}
