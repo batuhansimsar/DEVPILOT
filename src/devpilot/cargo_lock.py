@@ -39,5 +39,12 @@ def parse_cargo_lock(content: str) -> list[str]:
         if (not isinstance(name, str) or len(name) > _MAX_CRATE_NAME_LENGTH
                 or not _CRATE_NAME.fullmatch(name)):
             raise ValueError('Cargo.lock packages must be tables with valid names')
+        # Every resolved Cargo.lock package has a version.  Do not turn
+        # incomplete or corrupted records into seemingly valid dependencies.
+        # Validate only the shape; never put version data into reports/errors.
+        version = package.get('version')
+        if (not isinstance(version, str) or not version
+                or any(char.isspace() or not char.isprintable() for char in version)):
+            raise ValueError('Cargo.lock packages must have valid version strings')
         names.add(name)
     return sorted(names)
