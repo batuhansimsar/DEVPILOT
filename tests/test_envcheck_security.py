@@ -73,7 +73,7 @@ class EnvReadSafetyTests(unittest.TestCase):
 
     def test_in_place_rewrite_during_read_is_rejected(self):
         path = self.root / '.env'
-        path.write_text('TOKEN=value\\n', encoding='utf-8')
+        path.write_text('TOKEN=value\n', encoding='utf-8')
         original_fstat = os.fstat
         calls = 0
 
@@ -82,13 +82,31 @@ class EnvReadSafetyTests(unittest.TestCase):
             calls += 1
             if calls == 2:
                 old = path.stat()
-                path.write_text('TOKEN=other\\n', encoding='utf-8')
+                path.write_text('TOKEN=other\n', encoding='utf-8')
                 os.utime(path, ns=(old.st_atime_ns, old.st_mtime_ns + 5_000_000_000))
             return original_fstat(fd)
 
         with patch('devpilot.envcheck.os.fstat', side_effect=rewrite_before_final_check):
             result = _keys(path)
         self.assertEqual(result, (None, 'file changed during inspection'))
+
+
+    def test_in_place_growth_after_open_is_bounded(self):
+        path = self.root / '.env'
+        path.write_text('SAFE=1', encoding='utf-8')
+        original_fstat = os.fstat
+        calls = 0
+
+        def grow_before_final_check(fd):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                path.write_bytes(b'x' * (MAX_ENV_BYTES + 1))
+            return original_fstat(fd)
+
+        with patch('devpilot.envcheck.os.fstat', side_effect=grow_before_final_check):
+            result = _keys(path)
+        self.assertEqual(result, (None, 'exceeds 256 KiB limit'))
 
 
 if __name__ == '__main__':
