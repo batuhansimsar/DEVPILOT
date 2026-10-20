@@ -18,6 +18,7 @@ WORKSPACE_FILES = {
     'pyproject.toml': 'Python',
     'requirements.txt': 'Python',
     'setup.py': 'Python',
+    'setup.cfg': 'Python',
     'Pipfile': 'Python',
     'Pipfile.lock': 'Python',
     'uv.lock': 'Python',
