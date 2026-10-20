@@ -72,6 +72,10 @@ SENSITIVE_LOCATIONS = frozenset({
     ('pypoetry', 'auth.toml'),
     ('pip', 'pip.conf'),
     ('pip', 'pip.ini'),
+    # These conventional build-tool settings may store registry passwords.
+    ('.m2', 'settings.xml'),
+    ('.gradle', 'gradle.properties'),
+    ('nuget', 'nuget.config'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
     ('.streamlit', 'secrets.toml'),
 })
