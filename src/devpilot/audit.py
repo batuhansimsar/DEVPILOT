@@ -8,7 +8,9 @@ import subprocess
 from typing import Any
 
 _PRIVATE_NAMES = frozenset({
-    'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa', 'credentials.json',
+    'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
+    # OpenSSH hardware-backed security keys also have sensitive private stubs.
+    'id_ed25519_sk', 'id_ecdsa_sk', 'credentials.json',
     'service-account.json', 'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
     'secrets.json', '.netrc', '.envrc', '.git-credentials',
