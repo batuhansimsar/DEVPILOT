@@ -251,7 +251,7 @@ def git_status(root: Path) -> dict[str, Any]:
     ], root)
     dirty = is_git_dirty(result.get('stdout', ''), result['exit_code'])
     if result.get('stdout_truncated') and dirty is False:
-        dirty = True  # An incomplete status must never be treated as clean.
+        dirty = None  # Incomplete output cannot prove either state.
     return {'path': str(root), **result, 'dirty': dirty}
 
 
