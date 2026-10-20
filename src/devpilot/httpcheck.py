@@ -13,8 +13,12 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def http_check(url: str, timeout: float = 3.0) -> dict:
-    """Probe an explicitly supplied URL using HEAD, without reading response bodies."""
+def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[int] | None = None) -> dict:
+    """Probe an explicitly supplied URL using HEAD, without reading response bodies.
+
+    When supplied, expected_statuses replaces the default healthy 2xx range,
+    allowing expected 401/403 responses from protected endpoints.
+    """
     # urlsplit silently strips certain control characters; reject them before parsing
     # so the endpoint that is probed always matches the caller's supplied URL.
     if any(ord(char) < 32 or ord(char) == 127 for char in url):
@@ -24,6 +28,10 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
         raise ValueError('URL must be an absolute http(s) URL without credentials')
     if not 0.1 <= timeout <= 30:
         raise ValueError('timeout must be between 0.1 and 30 seconds')
+    if expected_statuses is not None and (
+        not expected_statuses or any(type(code) is not int or not 100 <= code <= 599 for code in expected_statuses)
+    ):
+        raise ValueError('expected HTTP status codes must be between 100 and 599')
     try:
         port = parts.port
     except ValueError as exc:
@@ -48,5 +56,5 @@ def http_check(url: str, timeout: float = 3.0) -> dict:
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
     # A redirect is reachable, but not healthy: following it is deliberately disabled.
-    return {'url': display, 'reachable': True, 'status': status, 'healthy': 200 <= status < 300,
+    return {'url': display, 'reachable': True, 'status': status, 'healthy': (status in expected_statuses if expected_statuses is not None else 200 <= status < 300),
             'latency_ms': round((time.monotonic() - start) * 1000, 1)}
