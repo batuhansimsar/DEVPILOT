@@ -110,6 +110,10 @@ def classify(path: str) -> str | None:
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
         return None
+    # Cloudflare Workers loads sensitive local bindings from .dev.vars files.
+    # The earlier template check excludes examples, including backed-up copies.
+    if name == '.dev.vars' or name.startswith('.dev.vars.'):
+        return 'potential Cloudflare Workers environment file'
     if (name == '.env' or name.startswith('.env.')
             or name.endswith('.env') or '.env.' in name):
         # Example/template names are safe only when the template suffix is final.
