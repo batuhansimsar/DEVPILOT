@@ -33,6 +33,9 @@ EXACT_NAMES = frozenset({
     'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
     '.npmrc', '.pypirc', '.netrc', '.git-credentials',
+    # Apache password databases and PostgreSQL service files may contain
+    # reusable hashes or plaintext database passwords.
+    '.htpasswd', '.pg_service.conf',
     # Registry, database, and Terraform CLI authentication files can hold tokens.
     'auth.json', '.yarnrc', '.yarnrc.yml',
     '.pgpass', '.my.cnf', '.mylogin.cnf', '.terraformrc',
