@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
 import shutil
-import subprocess
 from typing import Any
+
+from .secret_audit import _tracked_paths
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
@@ -98,30 +99,21 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
     if not shutil.which('git'):
         report['error'] = 'Git is not installed'
         return report
+    # Reuse the capped streaming Git reader. capture_output=True can
+    # exhaust memory *before* a subsequent output-size check is reached.
     try:
-        completed = subprocess.run(
-            ['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-C', str(root),
-             'ls-files', '--cached', '-z'],
-            capture_output=True, timeout=10, check=False, stdin=subprocess.DEVNULL,
-        )
-    except subprocess.TimeoutExpired:
-        report['error'] = 'Cannot inspect Git index: timed out'
+        output = _tracked_paths(root)
+    except RuntimeError as exc:
+        report['error'] = str(exc)
         return report
-    except OSError:
-        report['error'] = 'Cannot inspect Git index: command or I/O error'
-        return report
-    if completed.returncode:
-        report['error'] = 'Not a readable Git worktree'
-        return report
-    if len(completed.stdout) > _MAX_INDEX_BYTES:
+    if len(output) > _MAX_INDEX_BYTES:
         report['error'] = 'Git index output exceeds 8 MiB safety limit'
         return report
-    # ls-files -z terminates every filename with NUL. Missing the final
-    # terminator means incomplete output, not proof that the index is clean.
-    if completed.stdout and not completed.stdout.endswith(b'\0'):
+    # Treat incomplete records as errors instead of reporting a clean index.
+    if output and not output.endswith(b'\0'):
         report['error'] = 'Incomplete Git index output (missing record terminator)'
         return report
-    paths = completed.stdout.split(b'\0')
+    paths = output.split(b'\0')
     if len(paths) - (1 if paths[-1] == b'' else 0) > _MAX_TRACKED_PATHS:
         report['error'] = 'Git index exceeds 100,000 tracked paths safety limit'
         return report
