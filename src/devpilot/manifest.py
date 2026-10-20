@@ -11,6 +11,21 @@ from typing import Any
 MAX_MANIFEST_BYTES = 256 * 1024
 
 
+
+class _DuplicateJSONKeyError(ValueError):
+    """Ambiguous manifest mapping; never include potentially private keys."""
+
+
+def _unique_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject duplicate keys at every nesting level, including script maps."""
+    values: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in values:
+            raise _DuplicateJSONKeyError
+        values[key] = value
+    return values
+
+
 def _identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
     """Identify file replacement and concurrent mutation without reading secrets."""
     return (metadata.st_dev, metadata.st_ino, metadata.st_size,
@@ -57,13 +72,16 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
                 return None, 'package.json exceeds the 256 KiB inspection limit'
             if _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None, 'package.json changed during inspection'
-        data = json.loads(content.decode('utf-8-sig'), parse_constant=_reject_non_json_number)
+        data = json.loads(content.decode('utf-8-sig'), parse_constant=_reject_non_json_number,
+                          object_pairs_hook=_unique_json_keys)
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'
         return data, None
     except UnicodeDecodeError:
         # The exception string can echo bytes from a manifest containing secrets.
         return None, 'Invalid package.json: must be UTF-8'
+    except _DuplicateJSONKeyError:
+        return None, 'Invalid package.json: duplicate JSON object keys'
     except (OSError, json.JSONDecodeError) as exc:
         return None, f'Invalid package.json: {exc}'
     except (RecursionError, ValueError):
