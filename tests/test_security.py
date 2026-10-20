@@ -59,21 +59,14 @@ class EnvironmentIndexTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as other:
             self.assertEqual(tracked_environment_files(Path(other)), [])
 
-    def test_index_query_ignores_fsmonitor_and_disables_stdin(self):
-        with patch('devpilot.security.subprocess.run') as run:
-            run.return_value = subprocess.CompletedProcess([], 0, b'')
+    def test_index_query_reuses_bounded_hook_disabled_reader(self):
+        with patch('devpilot.security._tracked_paths', return_value=b'') as reader:
             self.assertEqual(tracked_environment_files(self.root), [])
-        argv = run.call_args.args[0]
-        self.assertIn(['-c', 'core.fsmonitor=false'], [argv[i:i + 2] for i in range(len(argv) - 1)])
-        self.assertIn('--no-optional-locks', argv)
-        self.assertIs(run.call_args.kwargs['stdin'], subprocess.DEVNULL)
-
-
+        reader.assert_called_once_with(self.root)
 
     def test_control_and_bidi_characters_in_tracked_paths_are_escaped(self):
         paths = b'backend/.env\x1b[2J\0backend/.env\nline\0backend/.env\xe2\x80\xae\0'
-        with patch('devpilot.security.subprocess.run') as run:
-            run.return_value = subprocess.CompletedProcess([], 0, paths)
+        with patch('devpilot.security._tracked_paths', return_value=paths):
             results = tracked_environment_files(self.root)
         self.assertEqual(results, [
             r'backend/.env\u000aline', r'backend/.env\u001b[2J', r'backend/.env\u202e'
@@ -83,8 +76,7 @@ class EnvironmentIndexTests(unittest.TestCase):
 
     def test_safe_template_filtering_precedes_escaping(self):
         paths = b'backend/.env.example\0backend/.env.secret\x1b[2J\0'
-        with patch('devpilot.security.subprocess.run') as run:
-            run.return_value = subprocess.CompletedProcess([], 0, paths)
+        with patch('devpilot.security._tracked_paths', return_value=paths):
             self.assertEqual(tracked_environment_files(self.root), [r'backend/.env.secret\u001b[2J'])
 
 

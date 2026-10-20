@@ -15,8 +15,7 @@ from devpilot.security import tracked_environment_files
 class NonUTF8GitPathTests(unittest.TestCase):
     def test_invalid_utf8_bytes_remain_distinguishable(self):
         fake_paths = b'backend/.env.\xff\0backend/.env.\xfe\0'
-        with patch('devpilot.security.subprocess.run') as run:
-            run.return_value = subprocess.CompletedProcess([], 0, fake_paths)
+        with patch('devpilot.security._tracked_paths', return_value=fake_paths):
             found = tracked_environment_files(Path('.'))
         self.assertEqual(found, [r'backend/.env.\udcfe', r'backend/.env.\udcff'])
         self.assertNotIn('\ufffd', ''.join(found))
