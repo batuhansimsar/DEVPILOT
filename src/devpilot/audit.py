@@ -20,6 +20,8 @@ _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     for sensitive in ('.tfvars', '.tfvars.json')
     for example in _ENV_TEMPLATE_SUFFIXES
 )
+_MAX_INDEX_BYTES = 8 * 1024 * 1024
+_MAX_TRACKED_PATHS = 100_000
 
 
 def _potential_secret(path: str) -> bool:
@@ -55,7 +57,13 @@ def audit_tracked_files(root: Path) -> dict[str, Any]:
     if completed.returncode:
         report['error'] = 'Not a readable Git worktree'
         return report
+    if len(completed.stdout) > _MAX_INDEX_BYTES:
+        report['error'] = 'Git index output exceeds 8 MiB safety limit'
+        return report
     paths = completed.stdout.split(b'\0')
+    if len(paths) - (1 if paths[-1] == b'' else 0) > _MAX_TRACKED_PATHS:
+        report['error'] = 'Git index exceeds 100,000 tracked paths safety limit'
+        return report
     for raw in paths:
         if not raw:
             continue
