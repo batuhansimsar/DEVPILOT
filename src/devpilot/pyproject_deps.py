@@ -90,6 +90,21 @@ def _mapping(value: object, label: str) -> dict:
     return value
 
 
+def _poetry_names(dependencies: dict) -> set[str]:
+    """Validate every Poetry dependency key to avoid partial inventories.
+
+    Invalid keys used to be silently ignored by a set comprehension, making
+    a malformed manifest look complete. Errors never echo untrusted names.
+    """
+    names: set[str] = set()
+    for name in dependencies:
+        if not _NAME.fullmatch(name):
+            raise ValueError('pyproject.toml tool.poetry contains an invalid dependency name')
+        if name.lower() != 'python':
+            names.add(_canonical(name))
+    return names
+
+
 def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     """Inventory PEP 621, PEP 735, Poetry, PDM and uv declaration names.
 
@@ -190,19 +205,17 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
         poetry = _mapping(tool['poetry'], 'tool.poetry')
         if 'dependencies' in poetry:
             dependencies = _mapping(poetry['dependencies'], 'tool.poetry.dependencies')
-            collect('dependencies', {_canonical(name) for name in dependencies
-                                     if name.lower() != 'python' and _NAME.fullmatch(name)})
+            collect('dependencies', _poetry_names(dependencies))
         if 'dev-dependencies' in poetry:
             legacy = _mapping(poetry['dev-dependencies'], 'tool.poetry.dev-dependencies')
-            collect('group:dev', {_canonical(name) for name in legacy if _NAME.fullmatch(name)})
+            collect('group:dev', _poetry_names(legacy))
         if 'group' in poetry:
             groups = _mapping(poetry['group'], 'tool.poetry.group')
             for group, settings in groups.items():
                 settings = _mapping(settings, 'tool.poetry.group entry')
                 if 'dependencies' in settings:
                     dependencies = _mapping(settings['dependencies'], 'tool.poetry.group.dependencies')
-                    collect(f'group:{group}', {_canonical(name) for name in dependencies
-                                               if name.lower() != 'python' and _NAME.fullmatch(name)})
+                    collect(f'group:{group}', _poetry_names(dependencies))
 
     if 'pdm' in tool:
         pdm = _mapping(tool['pdm'], 'tool.pdm')
