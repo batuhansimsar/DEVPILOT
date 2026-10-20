@@ -85,6 +85,8 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.m2', 'settings-security.xml'),
     ('.gradle', 'gradle.properties'),
     ('nuget', 'nuget.config'),
+    # The Copilot CLI may fall back to plaintext OAuth storage without a keychain.
+    ('.copilot', 'config.json'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
     ('.streamlit', 'secrets.toml'),
 })
@@ -95,6 +97,10 @@ SENSITIVE_CLI_LOCATIONS = frozenset({
     # GitLab CLI persists authenticated hosts and tokens in this config.
     ('.config', 'glab-cli', 'config.yml'),
     ('.config', 'glab-cli', 'config.yaml'),
+    # GitHub Copilot editor integrations store reusable OAuth tokens here.
+    ('.config', 'github-copilot', 'apps.json'),
+    ('.config', 'github-copilot', 'hosts.json'),
+    ('.config', 'github-copilot', 'oauth.json'),
 })
 
 # Helm stores chart repository passwords and OCI registry auth under ~/.config/helm.

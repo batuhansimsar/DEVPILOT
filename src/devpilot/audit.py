@@ -54,10 +54,18 @@ _SENSITIVE_LOCATIONS = frozenset({
     # and feed credentials. Keep detection scoped to conventional config folders.
     ('.m2', 'settings.xml'), ('.m2', 'settings-security.xml'),
     ('.gradle', 'gradle.properties'), ('nuget', 'nuget.config'),
+    # The Copilot CLI may save plaintext OAuth tokens when no keychain exists.
+    ('.copilot', 'config.json'),
     # Streamlit project-local secrets are credential files, unlike generic TOML.
     ('.streamlit', 'secrets.toml'),
 })
-_SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
+_SENSITIVE_CLI_LOCATIONS = frozenset({
+    ('.config', 'gh', 'hosts.yml'),
+    # Copilot editor integrations persist OAuth credentials in these JSON stores.
+    ('.config', 'github-copilot', 'apps.json'),
+    ('.config', 'github-copilot', 'hosts.json'),
+    ('.config', 'github-copilot', 'oauth.json'),
+})
 # Helm stores chart repository passwords and OCI registry auth under ~/.config/helm.
 # Restrict detection to conventional config paths; generic chart YAML is safe.
 _HELM_CREDENTIAL_LOCATIONS = (
