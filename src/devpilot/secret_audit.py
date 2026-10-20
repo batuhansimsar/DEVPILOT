@@ -27,7 +27,7 @@ EXACT_NAMES = frozenset({
     'credentials.json', 'secrets.json', 'service-account.json',
     'service_account.json', 'google-credentials.json',
     'application_default_credentials.json',
-    '.npmrc', '.pypirc', '.netrc',
+    '.npmrc', '.pypirc', '.netrc', '.git-credentials',
     'secrets.yml', 'secrets.yaml', '.envrc',
 })
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
@@ -45,7 +45,10 @@ SENSITIVE_LOCATIONS = frozenset({
     ('.azure', 'msal_token_cache.bin'),
 })
 # GitHub CLI stores OAuth tokens in this precise path.
-SENSITIVE_CLI_LOCATIONS = frozenset({('.config', 'gh', 'hosts.yml')})
+SENSITIVE_CLI_LOCATIONS = frozenset({
+    ('.config', 'gh', 'hosts.yml'),
+    ('.config', 'gh', 'hosts.yaml'),
+})
 
 
 def classify(path: str) -> str | None:
