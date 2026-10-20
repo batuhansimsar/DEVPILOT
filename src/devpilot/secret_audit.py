@@ -15,6 +15,7 @@ from threading import Thread
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
+from .publish_profiles import is_publish_profile
 from .editor_backups import strip_editor_backups
 
 MAX_OUTPUT = 8 * 1024 * 1024
@@ -127,6 +128,8 @@ def classify(path: str) -> str | None:
     name = parts[-1]
     name, saw_vim_swap = strip_editor_backups(name, BACKUP_SUFFIXES)
     parts = (*parts[:-1], name)
+    if is_publish_profile(parts):
+        return 'potential .NET publish profile credentials'
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
