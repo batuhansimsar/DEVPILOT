@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import errno
 import json
-import math
 import os
 import stat
 from pathlib import Path
 from typing import Any
+
+from .json_numbers import parse_finite_json_float
 
 MAX_MANIFEST_BYTES = 256 * 1024
 
@@ -37,14 +38,6 @@ def _identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
 def _reject_non_json_number(value: str) -> None:
     """Python accepts NaN/Infinity by default, but JSON manifests must not."""
     raise ValueError('Non-finite numbers are not valid JSON')
-
-
-def _parse_finite_float(value: str) -> float:
-    """Reject JSON numeric exponents that overflow into Python infinity."""
-    number = float(value)
-    if not math.isfinite(number):
-        raise ValueError('Non-finite numbers are not valid JSON')
-    return number
 
 
 def _safe_os_error(error: OSError) -> str:
@@ -92,7 +85,7 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
             if _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None, 'package.json changed during inspection'
         data = json.loads(content.decode('utf-8-sig'), parse_constant=_reject_non_json_number,
-                          parse_float=_parse_finite_float, object_pairs_hook=_unique_json_keys)
+                          parse_float=parse_finite_json_float, object_pairs_hook=_unique_json_keys)
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'
         return data, None
