@@ -144,8 +144,11 @@ def _human(command: str, output: dict[str, Any]) -> str:
         return '\n'.join(lines)
     if command == 'docker':
         if output.get('exit_code') != 0:
-            return output.get('error') or output.get('stderr') or 'Docker failed'
-        return '\n'.join(f"{x.get('Names')}: {x.get('Status')} ({x.get('Image')})" for x in output['containers']) or 'No running containers'
+            return escape_terminal(str(output.get('error') or output.get('stderr') or 'Docker failed'))
+        return '\n'.join(
+            f"{escape_terminal(str(x.get('Names')))}: {escape_terminal(str(x.get('Status')))} ({escape_terminal(str(x.get('Image')))})"
+            for x in output['containers']
+        ) or 'No running containers'
     if command == 'http':
         # Diagnostics can contain untrusted terminal controls; JSON remains raw.
         url = escape_terminal(output['url'])
