@@ -47,6 +47,7 @@ KEY_FILES = frozenset({
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
+    'uv.lock', 'poetry.lock', 'go.work',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -72,7 +73,7 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
 
 def _has_python_manifest(names: set[str]) -> bool:
     """Match the Python dependency manifests supported by dependency scanning."""
-    return bool(names & {'pyproject.toml', 'setup.py', 'Pipfile', 'Pipfile.lock'}) or any(
+    return bool(names & {'pyproject.toml', 'setup.py', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
         name.startswith('requirements') and name.endswith(('.txt', '.in'))
         for name in names
     )
@@ -89,7 +90,7 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Python')
     if names & {'Cargo.toml'}:
         types.add('Rust')
-    if 'go.mod' in names:
+    if names & {'go.mod', 'go.work'}:
         types.add('Go')
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts'}:
         types.add('Java')
