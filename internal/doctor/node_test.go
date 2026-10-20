@@ -5,7 +5,7 @@ import "testing"
 func TestSelectNodePackageManager(t *testing.T) {
 	tests := []struct {
 		name, declaration, fallback, expected, warning string
-		locks []string
+		locks                                          []string
 	}{
 		{name: "no declaration", fallback: "pnpm", expected: "pnpm"},
 		{name: "declared without lockfile", declaration: "yarn@4.0.0", fallback: "npm", expected: "yarn"},
@@ -21,8 +21,12 @@ func TestSelectNodePackageManager(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			name, findings := selectNodePackageManager(tc.declaration, tc.fallback, tc.locks)
-			if name != tc.expected { t.Fatalf("got %q, want %q", name, tc.expected) }
-			if tc.warning == "" && len(findings) != 0 { t.Fatalf("unexpected warnings: %+v", findings) }
+			if name != tc.expected {
+				t.Fatalf("got %q, want %q", name, tc.expected)
+			}
+			if tc.warning == "" && len(findings) != 0 {
+				t.Fatalf("unexpected warnings: %+v", findings)
+			}
 			if tc.warning != "" && (len(findings) != 1 || findings[0].Code != tc.warning) {
 				t.Fatalf("warnings: %+v, want %s", findings, tc.warning)
 			}
