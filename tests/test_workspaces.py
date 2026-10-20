@@ -61,5 +61,29 @@ class WorkspaceDiscoveryTests(unittest.TestCase):
                 discover_workspaces(Path(temp), max_directories=0)
 
 
+    def test_pipfile_nested_python_workspace(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            nested = root / 'apps' / 'worker'
+            nested.mkdir(parents=True)
+            (nested / 'Pipfile').write_text('[packages]\n')
+            report = discover_workspaces(root)
+            self.assertEqual(report['workspace_count'], 1)
+            self.assertEqual(report['workspaces'][0]['path'], 'apps/worker')
+            self.assertEqual(report['workspaces'][0]['ecosystems'], ['Python'])
+            self.assertEqual(report['workspaces'][0]['manifests'], [{'file': 'Pipfile', 'ecosystem': 'Python'}])
+
+    def test_visual_basic_project_and_case_insensitive_extension(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            nested = root / 'services' / 'legacy'
+            nested.mkdir(parents=True)
+            (nested / 'Legacy.VBPROJ').write_text('<Project />')
+            report = discover_workspaces(root)
+            self.assertEqual(report['workspace_count'], 1)
+            self.assertEqual(report['workspaces'][0]['ecosystems'], ['.NET'])
+            self.assertEqual(report['workspaces'][0]['manifests'], [{'file': 'Legacy.VBPROJ', 'ecosystem': '.NET'}])
+
+
 if __name__ == '__main__':
     unittest.main()
