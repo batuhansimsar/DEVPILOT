@@ -74,7 +74,7 @@ _ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.default
 _TERRAFORM_SENSITIVE_SUFFIXES = ('.tfvars', '.tfvars.json', '.tfstate', '.tfstate.backup', '.tfplan')
 _TERRAFORM_TEMPLATE_SUFFIXES = tuple(
     sensitive + example
-    for sensitive in ('.tfvars', '.tfvars.json')
+    for sensitive in _TERRAFORM_SENSITIVE_SUFFIXES
     for example in _ENV_TEMPLATE_SUFFIXES
 )
 _BACKUP_SUFFIXES = ('.bak', '.backup', '.old', '.orig', '.save', '~', '.tmp', '.swp', '.swo', '.swn')
