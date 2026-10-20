@@ -1,0 +1,6 @@
+{
+  "name": "devpilot-node-example",
+  "private": true,
+  "scripts": {"test": "node --test"},
+  "devDependencies": {"vite": "^5.0.0"}
+}
