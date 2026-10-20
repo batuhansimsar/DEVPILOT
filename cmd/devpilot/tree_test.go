@@ -23,7 +23,9 @@ func TestTreeJSONAndRedaction(t *testing.T) {
 		t.Fatalf("exit=%d stderr=%s", code, stderr.String())
 	}
 	var data struct {
-		Entries []struct{ Path string `json:"path"` } `json:"entries"`
+		Entries []struct {
+			Path string `json:"path"`
+		} `json:"entries"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &data); err != nil {
 		t.Fatal(err)
