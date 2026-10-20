@@ -21,6 +21,18 @@ _REQUIREMENT = re.compile(
 )
 
 
+def _valid_module_path(path: str) -> bool:
+    """Reject invalid dot-prefixed or dot-suffixed Go path components.
+
+    Go module path elements cannot start or end with a period. Merely matching
+    allowed characters would accept traversal-like ``../secret`` as a module.
+    """
+    return bool(_MODULE_PATH.fullmatch(path)) and all(
+        not element.startswith('.') and not element.endswith('.')
+        for element in path.split('/')
+    )
+
+
 def parse_go_requirements(content: str) -> list[str]:
     """Collect dependencies in single-line and parenthesized require blocks.
 
@@ -59,6 +71,6 @@ def parse_go_requirements(content: str) -> list[str]:
                     module = ast.literal_eval('"' + quoted + '"')
                 except (SyntaxError, ValueError, UnicodeError):
                     continue
-            if _MODULE_PATH.fullmatch(module):
+            if _valid_module_path(module):
                 names.add(module)
     return sorted(names)
