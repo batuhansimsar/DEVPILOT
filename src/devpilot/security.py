@@ -34,7 +34,10 @@ def tracked_environment_files(root: Path) -> list[str]:
         return []
     if result.returncode:
         return []
-    paths = result.stdout.decode('utf-8', errors='replace').split('\0')
+    # Git paths are byte sequences on POSIX. Replacement decoding merges distinct
+    # invalid UTF-8 names into the same finding; surrogateescape preserves each
+    # byte until _printable renders it safely as a literal escape sequence.
+    paths = result.stdout.decode('utf-8', errors='surrogateescape').split('\0')
     return sorted({
         _printable(path) for path in paths if path and not (
             (name := Path(path).name.lower()) in SAFE_ENV_NAMES or
