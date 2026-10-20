@@ -36,6 +36,7 @@ devpilot check example.com 443 --tls --json  # verify TLS certificate and hostna
 devpilot http http://localhost:8080/health --json
 devpilot test --path /path/to/project           # discovery only
 devpilot test --path /path/to/project --ecosystem go  # select only Go tests
+devpilot test --path /path/to/deno-project --ecosystem deno  # preview Deno tests
 # Review the proposed command first; test scripts execute project code:
 devpilot test --path /path/to/trusted/project --yes --timeout 120
 # JSON outputs for scripts and integrations:
@@ -45,15 +46,15 @@ devpilot doctor --path /path/to/project --json
 | Command | Behavior |
 | --- | --- |
 | `env` | Compares environment variable names against an `.env` template without printing secret values. Missing keys return exit status 1; no local `.env` is advisory. |
-| `workspaces` | Discovers nested Python, Node.js, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir and Docker/Compose projects without following symlinks or reading file contents. | 
-| `analyze` | Detects Node.js, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
+| `workspaces` | Discovers nested Python, Node.js, Deno, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir and Docker/Compose projects without following symlinks or reading file contents. | 
+| `analyze` | Detects Node.js, Deno, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only Git porcelain status with no shell; JSON includes `dirty` (`true`, `false`, or `null` on Git failure). `--fail-on-dirty` exits nonzero for changed files. |
 | `audit` | Warns about Git-tracked `.env`, private keys, and credential-like filenames without opening their contents. |
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
 | `http` | Sends a bounded HTTP HEAD request without following redirects or reading the response body. Only HTTP 2xx is considered healthy; 3xx is reachable but unhealthy. Query strings are omitted from the displayed URL. |
-| `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. |
+| `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|deno|python|go|rust|dotnet|java` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. Deno uses `deno test` when a root `deno.json` or `deno.jsonc` exists. |
 
 ## Security and limits
 
