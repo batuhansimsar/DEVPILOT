@@ -223,7 +223,16 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
             collect('group:dev', _poetry_names(legacy))
         if 'group' in poetry:
             groups = _mapping(poetry['group'], 'tool.poetry.group')
+            normalized_groups: set[str] = set()
             for group, settings in groups.items():
+                # Validate even metadata-only groups (without dependencies).
+                # Poetry group names follow normalized package naming rules.
+                if not _NAME.fullmatch(group):
+                    raise ValueError('pyproject.toml contains an invalid dependency group name')
+                canonical = _canonical(group)
+                if canonical in normalized_groups:
+                    raise ValueError('pyproject.toml contains duplicate normalized Poetry dependency groups')
+                normalized_groups.add(canonical)
                 settings = _mapping(settings, 'tool.poetry.group entry')
                 if 'dependencies' in settings:
                     dependencies = _mapping(settings['dependencies'], 'tool.poetry.group.dependencies')
