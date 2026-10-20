@@ -98,11 +98,14 @@ func List(ctx context.Context, run DockerCLI) Containers {
 		return Containers{Items: []json.RawMessage{}, Detail: err.Error()}
 	}
 	result := Containers{Available: true, Items: []json.RawMessage{}}
-	for _, line := range bytes.Split(bytes.TrimSpace(out), []byte("\n")) {
-		if len(bytes.TrimSpace(line)) == 0 {
+	for _, line := range bytes.Split(out, []byte("\n")) {
+		// JSON permits surrounding whitespace. Normalize each line before
+		// validating it, so indented JSONL and CRLF input are accepted.
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
 			continue
 		}
-		if !json.Valid(line) || line[0] != '{' {
+		if line[0] != '{' || !json.Valid(line) {
 			return Containers{Items: []json.RawMessage{}, Detail: "Docker returned invalid container metadata"}
 		}
 		result.Items = append(result.Items, append(json.RawMessage(nil), line...))

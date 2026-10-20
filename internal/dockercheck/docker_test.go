@@ -75,3 +75,35 @@ func TestBoundedWriterRejectsOversizedOutput(t *testing.T) {
 		t.Fatalf("unexpected contents: %s", buf.String())
 	}
 }
+
+// JSON whitespace is legal, and the Docker CLI may use CRLF line endings.
+// A malformed line must still invalidate the complete result.
+func TestListWhitespaceAndInvalidLines(t *testing.T) {
+	cases := []struct {
+		name      string
+		output    string
+		wantNames []string
+		valid     bool
+	}{
+		{"indented CRLF", "  {\"Names\":\"web\"}\r\n\t{\"Names\":\"db\"} \r\n", []string{"web", "db"}, true},
+		{"blank lines", " \n\t\n {\"Names\":\"web\"} \n", []string{"web"}, true},
+		{"invalid after valid", " {\"Names\":\"web\"}\n not-json\n", nil, false},
+		{"array disallowed", " [{\"Names\":\"web\"}]\n", nil, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := List(context.Background(), func(context.Context, ...string) ([]byte, error) {
+				return []byte(tc.output), nil
+			})
+			if got.Available != tc.valid || len(got.Items) != len(tc.wantNames) {
+				t.Fatalf("Available=%v Items=%d Detail=%q", got.Available, len(got.Items), got.Detail)
+			}
+			for i, raw := range got.Items {
+				var item struct{ Names string }
+				if err := json.Unmarshal(raw, &item); err != nil || item.Names != tc.wantNames[i] {
+					t.Fatalf("item %d = %s err %v", i, raw, err)
+				}
+			}
+		})
+	}
+}
