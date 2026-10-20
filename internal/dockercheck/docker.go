@@ -36,6 +36,9 @@ type DockerCLI func(context.Context, ...string) ([]byte, error)
 
 // SystemCLI invokes docker with a short timeout and limits retained output.
 func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "docker", args...)
@@ -81,6 +84,9 @@ func (w *boundedWriter) Write(data []byte) (int, error) {
 
 // Inspect checks whether the Docker CLI and daemon are usable.
 func Inspect(ctx context.Context, run DockerCLI) Daemon {
+	if ctx == nil {
+		return Daemon{Detail: "context must not be nil"}
+	}
 	if run == nil {
 		if _, err := exec.LookPath("docker"); err != nil {
 			return Daemon{Detail: "Docker CLI not found on PATH"}
@@ -96,6 +102,9 @@ func Inspect(ctx context.Context, run DockerCLI) Daemon {
 
 // List returns metadata for running containers without inspecting secrets.
 func List(ctx context.Context, run DockerCLI) Containers {
+	if ctx == nil {
+		return Containers{Items: []json.RawMessage{}, Detail: "context must not be nil"}
+	}
 	if run == nil {
 		run = SystemCLI
 	}
