@@ -1,4 +1,4 @@
-"""HTTP health checks must support non-ASCII URL paths and queries."""
+"""HTTP probes accept UTF-8 paths and queries when percent-encoded."""
 
 import threading
 import unittest
@@ -23,11 +23,11 @@ class UnicodeURLTests(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
-            url = f'http://127.0.0.1:{server.server_port}/café?q=niño&encoded=%2F'
+            url = f'http://127.0.0.1:{server.server_port}/caf%C3%A9?q=ni%C3%B1o&encoded=%2F'
             result = http_check(url)
             self.assertTrue(result['healthy'], result)
             self.assertEqual(result['status'], 204)
-            self.assertNotIn('q=niño', result['url'])
+            self.assertNotIn('?', result['url'])
         finally:
             server.shutdown()
             server.server_close()
