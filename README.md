@@ -55,3 +55,12 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+## Local browser dashboard (proposed in stacked UI PR)
+
+```sh
+./devpilot serve --addr=127.0.0.1:7331 /path/to/project
+# Visit http://127.0.0.1:7331/
+```
+
+The dashboard reads the selected workspace through `doctor.Inspect` and displays project metadata, diagnostics and suggested tests. It **does not execute test commands**. Only loopback IPs can be used for listening; the server rejects foreign Host and Origin headers, and serves local scripts under a restrictive CSP. There is no cloud service or paid AI dependency.

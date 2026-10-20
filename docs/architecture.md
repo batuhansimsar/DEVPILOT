@@ -12,3 +12,7 @@ The CLI entrypoint lives in `cmd/devpilot`; read-only manifest diagnostics live 
 ## Trust boundaries
 
 Manifest files and environment examples are untrusted. Inspection refuses symlinks and files over 1 MiB. `.env` values must never appear in findings. Repository-defined scripts require explicit user trust and use argument arrays rather than shell interpolation. Git HEAD is read without executing Git. Do not use DevPilot as a security sandbox: even trusted test commands can spawn child processes and access local credentials.
+
+## Browser dashboard extension
+
+`internal/webui` adds a read-only local browser interface, backed by the existing `doctor.Inspect` API. It serves embedded HTML/CSS/JS directly from the Go binary; there is no separate Node runtime or frontend build step. This trades a smaller JS ecosystem for simpler installation at the early-project stage. The workspace root is selected only through the local CLI; HTTP clients cannot provide arbitrary paths. Host, Origin, binding address and CSP are restricted to protect local developer information.

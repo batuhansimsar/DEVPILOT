@@ -13,12 +13,14 @@ import (
 	"time"
 
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/webui"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
+	fmt.Fprintln(w, "       devpilot serve [--addr=127.0.0.1:7331] [path]")
 	fmt.Fprintln(w, "Doctor only reads supported project metadata; test requires explicit trust.")
 }
 
@@ -28,6 +30,26 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	switch args[0] {
+	case "serve":
+		flags := flag.NewFlagSet("serve", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		addr := flags.String("addr", "127.0.0.1:7331", "loopback listen address")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "serve accepts at most one path")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		if err := webui.Serve(ctx, path, *addr, stdout); err != nil {
+			fmt.Fprintln(stderr, "serve:", err)
+			return 2
+		}
+		return 0
 	case "doctor":
 		flags := flag.NewFlagSet("doctor", flag.ContinueOnError)
 		flags.SetOutput(stderr)
