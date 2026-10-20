@@ -31,6 +31,17 @@ PYTHON_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*\[[^\]\n]*\])?(
 PYTHON_CANONICAL_SEPARATOR = re.compile(r"[-_.]+")
 
 
+
+def _unique_node_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject ambiguous nested package.json mappings without logging key values."""
+    data: dict[str, object] = {}
+    for key, value in pairs:
+        if key in data:
+            raise ValueError('package.json contains duplicate JSON object keys')
+        data[key] = value
+    return data
+
+
 def _reject_nonfinite_number(_value: str) -> None:
     """Reject Python's nonstandard NaN/Infinity extensions in JSON manifests."""
     raise ValueError("non-finite JSON number in package.json")
@@ -74,7 +85,8 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
     name = path.name
     content = _read(path)
     if name == "package.json":
-        data = json.loads(content, parse_constant=_reject_nonfinite_number)
+        data = json.loads(content, parse_constant=_reject_nonfinite_number,
+                          object_pairs_hook=_unique_node_keys)
         if not isinstance(data, dict):
             raise ValueError("package.json root must be an object")
         groups = {}
