@@ -41,7 +41,8 @@ def _parse_finite_float(value: str) -> float:
 
 def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
     """Return require/require-dev package names, never version constraints or URLs."""
-    manifest = json.loads(content, object_pairs_hook=_unique_object_keys,
+    # Match the scanner's UTF-8-SIG decoding for direct parser callers.
+    manifest = json.loads(content.removeprefix('\ufeff'), object_pairs_hook=_unique_object_keys,
                           parse_constant=_reject_nonfinite_number,
                           parse_float=_parse_finite_float)
     if not isinstance(manifest, dict):
