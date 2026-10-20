@@ -14,11 +14,13 @@ import (
 
 	"github.com/batuhansimsar/DEVPILOT/internal/dockercheck"
 	"github.com/batuhansimsar/DEVPILOT/internal/doctor"
+	"github.com/batuhansimsar/DEVPILOT/internal/projecttree"
 )
 
 func usage(w io.Writer) {
 	fmt.Fprintln(w, "DevPilot — local developer project diagnostics")
 	fmt.Fprintln(w, "Usage: devpilot doctor [--json] [path]")
+	fmt.Fprintln(w, "       devpilot tree [--json] [--depth=3] [--max-entries=250] [path]")
 	fmt.Fprintln(w, "       devpilot analyze [--json] [path]")
 	fmt.Fprintln(w, "       devpilot test --trust [--timeout=2m] [path]")
 	fmt.Fprintln(w, "       devpilot docker [--json] [ps]")
@@ -79,6 +81,45 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		if report.HasWarnings() {
 			return 1
+		}
+		return 0
+	case "tree":
+		flags := flag.NewFlagSet("tree", flag.ContinueOnError)
+		flags.SetOutput(stderr)
+		jsonOut := flags.Bool("json", false, "machine-readable JSON")
+		depth := flags.Int("depth", 3, "maximum depth (1-10)")
+		maxEntries := flags.Int("max-entries", 250, "maximum displayed entries (1-2000)")
+		if err := flags.Parse(args[1:]); err != nil {
+			return 2
+		}
+		if flags.NArg() > 1 {
+			fmt.Fprintln(stderr, "tree accepts at most one path")
+			return 2
+		}
+		path := "."
+		if flags.NArg() == 1 {
+			path = flags.Arg(0)
+		}
+		result, err := projecttree.Scan(path, *depth, *maxEntries)
+		if err != nil {
+			fmt.Fprintln(stderr, "tree:", err)
+			return 2
+		}
+		if *jsonOut {
+			enc := json.NewEncoder(stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(result); err != nil {
+				fmt.Fprintln(stderr, err)
+				return 2
+			}
+		} else {
+			fmt.Fprintf(stdout, "DevPilot tree: %s\n", result.Root)
+			for _, item := range result.Entries {
+				fmt.Fprintf(stdout, "%s[%s] %s\n", strings.Repeat("  ", item.Depth-1), item.Kind, item.Path)
+			}
+			if result.Truncated {
+				fmt.Fprintln(stdout, "… output truncated; raise --max-entries to inspect more")
+			}
 		}
 		return 0
 	case "test":

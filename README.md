@@ -47,6 +47,17 @@ DevPilot is designed to **inspect before acting**. Analysis skips symlinked file
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
+## Experimental Go project tree
+
+The Go CLI (alongside the Python package) includes a read-only, bounded project tree command:
+
+```sh
+go run ./cmd/devpilot tree --depth=3 --max-entries=250 /path/to/project
+go run ./cmd/devpilot tree --json /path/to/project
+```
+
+The command lists relative paths and file types without reading file contents, following symlinks, or executing project code. Generated directories and common secret-like filenames are hidden by default. JSON output includes a `truncated` indicator when the entry limit is reached. The Python and Go CLIs are separate entrypoints at this stage.
+
 ## Development
 
 ```bash
