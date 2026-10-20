@@ -42,9 +42,14 @@ def _parse_finite_float(value: str) -> float:
 def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
     """Return require/require-dev package names, never version constraints or URLs."""
     # Match the scanner's UTF-8-SIG decoding for direct parser callers.
-    manifest = json.loads(content.removeprefix('\ufeff'), object_pairs_hook=_unique_object_keys,
-                          parse_constant=_reject_nonfinite_number,
-                          parse_float=_parse_finite_float)
+    try:
+        manifest = json.loads(content.removeprefix('\ufeff'), object_pairs_hook=_unique_object_keys,
+                              parse_constant=_reject_nonfinite_number,
+                              parse_float=_parse_finite_float)
+    except (RecursionError, OverflowError):
+        # Even small JSON files can exhaust the decoder's nesting limit.
+        # Keep direct parser calls safe without echoing manifest metadata.
+        raise ValueError('invalid composer.json JSON: nesting exceeds parser limits') from None
     if not isinstance(manifest, dict):
         raise ValueError('composer.json root must be an object')
     groups: dict[str, list[str]] = {}

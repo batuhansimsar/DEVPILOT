@@ -27,7 +27,7 @@ def parse_composer_lock(content: str) -> dict[str, list[str]]:
             parse_constant=_reject_nonfinite_number,
             parse_float=parse_finite_json_float,
         )
-    except (json.JSONDecodeError, ValueError):
+    except (json.JSONDecodeError, ValueError, RecursionError, OverflowError):
         raise ValueError('invalid composer.lock JSON') from None
     if not isinstance(document, dict):
         raise ValueError('composer.lock root must be an object')
