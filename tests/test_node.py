@@ -43,5 +43,33 @@ class PackageManagerTests(unittest.TestCase):
             self.assertEqual(package_manager(Path(d), {'packageManager': 'hijack@1'})[0], 'pnpm')
 
 
+    def test_pnpm_workspace_without_lockfile(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / 'pnpm-workspace.yaml').write_text('packages:\\n  - packages/*\\n')
+            self.assertEqual(package_manager(Path(d), {}), ('pnpm', [], None))
+
+    def test_pnpm_workspace_does_not_override_explicit_manager(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / 'pnpm-workspace.yaml').touch()
+            self.assertEqual(package_manager(Path(d), {'packageManager': 'yarn@4.5.0'})[0], 'yarn')
+
+    def test_pnpm_workspace_does_not_override_lockfiles(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / 'pnpm-workspace.yaml').touch()
+            (Path(d) / 'package-lock.json').touch()
+            self.assertEqual(package_manager(Path(d), {})[0], 'npm')
+
+    def test_pnpm_workspace_symlink_ignored(self):
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / 'workspace.yaml'
+            target.touch()
+            try:
+                (Path(d) / 'pnpm-workspace.yaml').symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unsupported')
+            self.assertEqual(package_manager(Path(d), {}), ('npm', [], None))
+
+
+
 if __name__ == '__main__':
     unittest.main()

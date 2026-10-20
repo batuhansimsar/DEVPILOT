@@ -21,7 +21,8 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
 
     Never follow symlinks and never run package-manager commands. Explicit
     packageManager metadata takes precedence; otherwise use a single lockfile
-    family, falling back to npm for ambiguous or unconfigured projects.
+    family, then a pnpm workspace manifest when no lockfiles are present.
+    Ambiguous or unconfigured projects fall back to npm.
     """
     locks = sorted(name for name in LOCKFILES if (root / name).is_file() and not (root / name).is_symlink())
     declaration = package.get('packageManager')
@@ -31,5 +32,14 @@ def package_manager(root: Path, package: dict[str, Any]) -> tuple[str, list[str]
         if separator and version and candidate in SUPPORTED:
             declared = candidate
     families = {LOCKFILES[name] for name in locks}
-    selected = declared or (next(iter(families)) if len(families) == 1 else 'npm')
+    workspace = root / 'pnpm-workspace.yaml'
+    pnpm_workspace = workspace.is_file() and not workspace.is_symlink()
+    if declared:
+        selected = declared
+    elif len(families) == 1:
+        selected = next(iter(families))
+    elif not families and pnpm_workspace:
+        selected = 'pnpm'
+    else:
+        selected = 'npm'
     return selected, locks, declared
