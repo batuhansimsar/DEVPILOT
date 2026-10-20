@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/batuhansimsar/DEVPILOT/internal/composecheck"
 )
 
 // Finding describes a verifiable observation and, when useful, a next action.
@@ -142,6 +144,10 @@ func Inspect(root string) (Report, error) {
 		} else {
 			add("pass", "tool-"+name, description+" is available", "")
 		}
+	}
+
+	for _, issue := range composecheck.Inspect(abs, exec.LookPath) {
+		add(issue.Level, issue.Code, issue.Message, issue.Remedy)
 	}
 
 	if hasMarker(abs, "go.mod") {
