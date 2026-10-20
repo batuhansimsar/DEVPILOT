@@ -69,6 +69,16 @@ SENSITIVE_CLI_LOCATIONS = frozenset({
 CLOUD_TOKEN_CACHE_DIRS = frozenset({('.aws', 'cli', 'cache'), ('.aws', 'sso', 'cache')})
 
 
+
+def _matches_sensitive_extension(name: str, extensions: tuple[str, ...]) -> bool:
+    """Match Terraform files including variants with trailing qualifiers.
+
+    Template-only filenames are excluded by classify() before this check.
+    A later suffix (for example, .tfvars.example.local) is not a template.
+    """
+    return any(name.endswith(extension) or extension + '.' in name
+               for extension in extensions)
+
 def classify(path: str) -> str | None:
     """Classify paths, not file contents. All findings require human review."""
     parts = PurePosixPath(path.replace('\\', '/').lower()).parts
@@ -105,13 +115,12 @@ def classify(path: str) -> str | None:
         return 'potential credential file'
     if name.endswith(PRIVATE_SUFFIXES):
         return 'potential private key or certificate'
-    if name.endswith(STATE_SUFFIXES):
+    if _matches_sensitive_extension(name, STATE_SUFFIXES):
         return 'potential Terraform state containing secrets'
-    if name in PLAN_NAMES or name.endswith(PLAN_SUFFIXES):
+    if (name in PLAN_NAMES or name.startswith('tfplan.')
+            or _matches_sensitive_extension(name, PLAN_SUFFIXES)):
         return 'potential Terraform plan containing secrets'
-    if name.endswith(('.tfvars', '.tfvars.json')):
-        return 'potential Terraform variables containing secrets'
-    if name.endswith(VARIABLE_SUFFIXES):
+    if _matches_sensitive_extension(name, VARIABLE_SUFFIXES):
         return 'potential Terraform variables containing secrets'
     return None
 
