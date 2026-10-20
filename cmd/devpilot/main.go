@@ -114,8 +114,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		cctx, cancel := context.WithTimeout(ctx, *timeout)
 		defer cancel()
-		cmd := exec.CommandContext(cctx, report.Tests.Executable, report.Tests.Arguments...)
-		cmd.Dir = report.Path
+		cmd := newTrustedTestCommand(cctx, report.Path, report.Tests.Executable, report.Tests.Arguments...)
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		fmt.Fprintf(stderr, "Running trusted project tests: %s %s\n", report.Tests.Executable, strings.Join(report.Tests.Arguments, " "))
