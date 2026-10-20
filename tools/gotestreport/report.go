@@ -16,6 +16,8 @@ const maxIdentities = 200000
 type event struct {
 	Action  string  `json:"Action"`
 	Package string  `json:"Package"`
+	ImportPath string `json:"ImportPath"`
+	FailedBuild string `json:"FailedBuild"`
 	Test    string  `json:"Test"`
 	Elapsed float64 `json:"Elapsed"`
 	// Intentionally discard Output: test logs may contain secrets.
@@ -41,6 +43,7 @@ type Report struct {
 type packageState struct {
 	terminal bool
 	failed   bool
+	failedBuild string
 }
 
 type testState struct {
@@ -58,6 +61,7 @@ func Analyze(input io.Reader) (Report, error) {
 	scanner.Buffer(make([]byte, 4096), maxEventBytes)
 	pkgs := make(map[string]*packageState)
 	tests := make(map[string]*testState)
+	buildFailures := make(map[string]bool)
 	line := 0
 	for scanner.Scan() {
 		line++
@@ -68,6 +72,15 @@ func Analyze(input io.Reader) (Report, error) {
 		var e event
 		if err := json.Unmarshal([]byte(raw), &e); err != nil {
 			return Report{}, fmt.Errorf("invalid go test JSON at event %d: %w", line, err)
+		}
+		// Go 1.24+ interleaves BuildEvent records without a Package field.
+		// Build output is deliberately discarded to avoid leaking secrets.
+		if e.Action == "build-output" || e.Action == "build-fail" {
+			if e.ImportPath == "" || len(e.ImportPath) > 4096 {
+				return Report{}, fmt.Errorf("invalid go build event at line %d", line)
+			}
+			if e.Action == "build-fail" { buildFailures[e.ImportPath] = true }
+			continue
 		}
 		// A stream with other JSON records is not a trustworthy test report.
 		if e.Package == "" || e.Action == "" || len(e.Package) > 4096 || len(e.Test) > 4096 {
@@ -86,6 +99,7 @@ func Analyze(input io.Reader) (Report, error) {
 			case "pass", "fail", "skip":
 				pkg.terminal = true
 				pkg.failed = e.Action == "fail"
+				pkg.failedBuild = e.FailedBuild
 			}
 		} else {
 			key := e.Package + "\x00" + e.Test
@@ -106,7 +120,7 @@ func Analyze(input io.Reader) (Report, error) {
 	if err := scanner.Err(); err != nil {
 		return Report{}, fmt.Errorf("read go test stream: %w", err)
 	}
-	if len(pkgs) == 0 {
+	if len(pkgs) == 0 && len(buildFailures) == 0 {
 		return Report{}, errors.New("no go test events found")
 	}
 	result.Packages = len(pkgs)
@@ -121,11 +135,14 @@ func Analyze(input io.Reader) (Report, error) {
 			result.Failures = append(result.Failures, Failure{Package: t.packageName, Test: t.name, Kind: "test", Hint: "Rerun this test with go test -run using the exact test name in its package."})
 		}
 	}
+	for name := range buildFailures {
+		result.Failures = append(result.Failures, Failure{Package: name, Kind: "build", Hint: "Build failed; rerun go test for this package to inspect compiler diagnostics locally."})
+	}
 	for name, p := range pkgs {
 		if !p.terminal {
 			result.IncompletePackages = append(result.IncompletePackages, name)
 		}
-		if p.failed && !hasTestFailure(result.Failures, name) {
+		if p.failed && !hasTestFailure(result.Failures, name) && (p.failedBuild == "" || !buildFailures[p.failedBuild]) {
 			result.Failures = append(result.Failures, Failure{Package: name, Kind: "package", Hint: "Package build or setup failed; rerun go test for this package to inspect local diagnostics."})
 		}
 	}

@@ -27,5 +27,6 @@ Exit codes: `0` pass; `1` at least one test/package failed; `2` malformed, missi
 - Accepts Go's NDJSON action events, not JUnit XML or an arbitrary JSON array.
 - Counts terminal `pass`, `fail` and `skip` events by test identity, including subtests. Package-only failures are reported separately, so a failing test isn't double counted.
 - Missing package terminal events are marked `incomplete`, not silently considered passing.
+- Go 1.24+ `build-output` and `build-fail` events are supported; build text is redacted, and duplicate package/build failures are avoided when linked by `FailedBuild`.
 - A failed test is a real failure; diagnostic details still require rerunning tests with trusted local tools. No guesses are made about the root cause.
 - Future task: integrate the report as an optional view in DevPilot's standard test workflow after coordinating the parent CLI result schema.

@@ -90,3 +90,25 @@ func TestHugeEventLimit(t *testing.T) {
 		t.Fatal("expected size limit error")
 	}
 }
+
+func TestGo124BuildEvents(t *testing.T) {
+	input := strings.Join([]string{
+		`{"ImportPath":"example.com/p","Action":"build-output","Output":"compiler error secret-123"}`,
+		`{"ImportPath":"example.com/p","Action":"build-fail"}`,
+		`{"Package":"example.com/p","Action":"fail","FailedBuild":"example.com/p"}`,
+	}, "\n") + "\n"
+	var out, errOut bytes.Buffer
+	if n := run([]string{"-format", "json"}, strings.NewReader(input), &out, &errOut); n != 1 {
+		t.Fatalf("exit=%d err=%s", n, errOut.String())
+	}
+	var report Report
+	if err := json.Unmarshal(out.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Failures) != 1 || report.Failures[0].Kind != "build" {
+		t.Fatalf("failures=%+v", report.Failures)
+	}
+	if bytes.Contains(out.Bytes(), []byte("secret-123")) {
+		t.Fatal("build output leaked")
+	}
+}
