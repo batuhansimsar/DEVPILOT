@@ -15,7 +15,7 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from .walk import walk_project
+from .walk import walk_project, _printable
 from .cargo_deps import parse_cargo_dependencies
 from .composer_deps import parse_composer_dependencies
 
@@ -181,18 +181,18 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = scan(args.path)
     except (OSError, ValueError) as exc:
-        print(f"devpilot deps: {exc}", file=sys.stderr)
+        print(_printable(f"devpilot deps: {exc}"), file=sys.stderr)
         return 2
     if args.json:
-        print(json.dumps(report, indent=2, ensure_ascii=False))
+        print(json.dumps(report, indent=2, ensure_ascii=True))
     else:
-        print(f"Dependency inventory: {report['root']}")
+        print(_printable(f"Dependency inventory: {report['root']}"))
         for item in report["manifests"]:
-            print(f"  {item['ecosystem']}: {item['path']} ({item['count']} declarations)")
+            print(_printable(f"  {item['ecosystem']}: {item['path']} ({item['count']} declarations)"))
             for group, names in item["groups"].items():
-                print(f"    {group}: {', '.join(names) or '(none)'}")
+                print(_printable(f"    {group}: {', '.join(names) or '(none)'}"))
         for warning in report["warnings"]:
-            print(f"  warning: {warning}")
+            print(_printable(f"  warning: {warning}"))
     return 0 if not report["warnings"] else 1
 
 
