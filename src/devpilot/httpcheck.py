@@ -67,7 +67,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         # At most 500 distinct HTTP status codes exist, so bound consumption.
         try:
             statuses = tuple(islice(iter(expected_statuses), 501))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, RuntimeError):
+            # User-supplied iterators may fail while producing status codes.
+            # Treat that as invalid input; never propagate private iterator errors.
             statuses = ()
         if not statuses or len(statuses) > 500 or not all(
             type(code) is int and 100 <= code <= 599 for code in statuses
