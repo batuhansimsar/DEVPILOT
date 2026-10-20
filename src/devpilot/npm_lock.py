@@ -25,6 +25,22 @@ def _reject_constant(_value: str) -> None:
     raise ValueError('npm lockfile contains a non-finite number')
 
 
+# This is below CPython's default integer-string limit and is applied also on
+# versions where that limit is absent or disabled. Large numeric metadata is
+# not meaningful to a package-name inventory, but can consume CPU and memory.
+_MAX_JSON_INTEGER_DIGITS = 1024
+
+
+def _bounded_int(value: str) -> int:
+    """Decode JSON integers with a portable size cap and redacted errors."""
+    if len(value.lstrip('-')) > _MAX_JSON_INTEGER_DIGITS:
+        raise ValueError('npm lockfile contains an oversized integer')
+    try:
+        return int(value)
+    except (ValueError, OverflowError):
+        raise ValueError('npm lockfile contains an invalid integer') from None
+
+
 def _installed_name(path: str) -> str | None:
     """Extract a package ID, ignoring root/workspace metadata entries."""
     if not path:
@@ -67,7 +83,8 @@ def parse_npm_lock(content: str) -> list[str]:
         document = json.loads(content.removeprefix('\ufeff'),
                               object_pairs_hook=_unique_keys,
                               parse_constant=_reject_constant,
-                              parse_float=parse_finite_json_float)
+                              parse_float=parse_finite_json_float,
+                              parse_int=_bounded_int)
     except (json.JSONDecodeError, RecursionError):
         raise ValueError('invalid npm lockfile JSON') from None
     if not isinstance(document, dict):
