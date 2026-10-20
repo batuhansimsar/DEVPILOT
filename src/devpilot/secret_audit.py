@@ -245,7 +245,7 @@ def audit(root: Path, *, redact_paths: bool = False) -> dict[str, Any]:
                 )
             findings.append(item)
     return {
-        'path': str(root), 'tracked_files_checked': len(raw_paths) - 1,
+        'path': '<redacted>' if redact_paths else str(root), 'tracked_files_checked': len(raw_paths) - 1,
         'findings': findings, 'ok': not findings,
         'note': 'Filenames only; no file contents inspected. Findings can include false positives.',
     }
