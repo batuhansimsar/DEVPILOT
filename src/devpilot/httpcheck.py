@@ -63,8 +63,8 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # UTF-8 without double-encoding existing percent escapes.
     request_url = urlunsplit((
         parts.scheme, parts.netloc,
-        quote(parts.path, safe="/%:@!    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})'()*+,;=-._~"),
-        quote(parts.query, safe="/?%:@!    request = Request(url, method=method, headers={'User-Agent': 'DevPilot/0.1'})'()*+,;=-._~"),
+        quote(parts.path, safe="/%:@!$&'()*+,;=-._~"),
+        quote(parts.query, safe="/?%:@!$&'()*+,;=-._~"),
         '',
     ))
     request = Request(request_url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
