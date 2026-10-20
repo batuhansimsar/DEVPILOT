@@ -46,7 +46,12 @@ def _without_go_comments(content: str) -> str:
         character = content[index]
         if quote:
             output.append(character)
-            if quote == '"' and escaped:
+            if character in '\r\n':
+                # go.mod requirements are line-oriented. An unterminated
+                # quote must not hide comments on subsequent lines.
+                quote = ''
+                escaped = False
+            elif quote == '"' and escaped:
                 escaped = False
             elif quote == '"' and character == '\\':
                 escaped = True
@@ -114,7 +119,13 @@ def parse_go_requirements(content: str) -> list[str]:
     """
     names: set[str] = set()
     in_require_block = False
-    for raw in _without_go_comments(content).splitlines():
+    try:
+        lines = _without_go_comments(content).splitlines()
+    except ValueError:
+        # A truncated block comment makes the manifest ambiguous; return no
+        # dependencies rather than a misleading partial inventory.
+        return []
+    for raw in lines:
         line = raw.strip()
         if not line:
             continue
