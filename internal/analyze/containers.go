@@ -5,7 +5,7 @@ import "strings"
 // isContainerConfig recognizes common Docker, Compose, and Podman manifests by
 // filename only. No manifest contents are opened, parsed, or executed.
 func isContainerConfig(name string) bool {
-	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~"} {
+	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~", ".dockerignore"} {
 		if strings.HasSuffix(name, suffix) {
 			return false
 		}
