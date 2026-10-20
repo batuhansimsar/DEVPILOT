@@ -115,5 +115,21 @@ class EnvCheckTests(unittest.TestCase):
         self.assertEqual(result['status'], 'unreadable_template')
 
 
+    def test_swap_to_another_regular_file_with_reused_inode_is_rejected(self):
+        self.write('.env.example', 'EXPECTED=x\n')
+        original_open = os.open
+
+        def replace_regular_file(path, flags):
+            Path(path).unlink()
+            Path(path).write_text('UNTRUSTED_KEY=unexpected-content\n', encoding='utf-8')
+            return original_open(path, flags)
+
+        with patch('devpilot.envcheck.os.open', side_effect=replace_regular_file):
+            result = inspect_env(self.root)
+        self.assertEqual(result['status'], 'unreadable_template')
+        self.assertEqual(result['detail'], 'file changed during inspection')
+
+
+
 if __name__ == '__main__':
     unittest.main()
