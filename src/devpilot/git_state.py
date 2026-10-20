@@ -35,7 +35,18 @@ def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
     if exit_code != 0 or not stdout.strip():
         return None
 
-    lines = stdout.splitlines(keepends=True)
+    # Porcelain v1 separates records with LF only. str.splitlines() also treats
+    # U+0085, U+2028 and U+2029 inside filenames/branch names as boundaries,
+    # allowing an ignored path to masquerade as a changed-file record.
+    records = stdout.split('\n')
+    lines = [record + '\n' for record in records[:-1]]
+    if records[-1]:
+        lines.append(records[-1])
+
+    # CRLF is harmless; an embedded CR is not a Git record delimiter and must
+    # not let a malformed branch line be accepted as a clean status.
+    if any('\r' in (line[:-2] if line.endswith('\r\n') else line) for line in lines):
+        return None
     # A torn branch marker is not a porcelain file-status record.
     if any(line.startswith('##') and not line.startswith('## ') for line in lines):
         return None
