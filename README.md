@@ -55,3 +55,14 @@ gofmt -w cmd internal
 ```
 
 See [architecture](docs/architecture.md), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md).
+
+## Project structure view
+
+The read-only `tree` command provides a bounded, local overview of an unfamiliar repository:
+
+```sh
+devpilot tree --depth=3 /path/to/project
+devpilot tree --json --max=500 /path/to/project
+```
+
+It skips common dependency/build folders (including `node_modules` and `.git`), never follows symlinks and does not read source files. Increase `--depth` (1–10) or `--max` (1–2000) for larger repositories. JSON includes path, depth, entry kind and a truncation flag. The CLI quotes filenames containing terminal control characters.
