@@ -4,28 +4,33 @@ from __future__ import annotations
 
 
 # Git porcelain v1 uses a two-character XY status followed by a space and
-# a path. Untracked and ignored entries use their own paired markers.
+# a path. Untracked entries use ??; ignored entries (!!) are not changes.
 _STATUS_CODES = frozenset(' MADRCUT')
 
 
 def _is_porcelain_change(line: str) -> bool:
-    """Require an actual file record, not arbitrary output or a torn line."""
+    """Require an actual changed-file record, not an ignored or torn line."""
     if len(line) < 4 or line[2] != ' ' or not line[3:].strip():
         return False
     code = line[:2]
-    return code in ('??', '!!') or (
+    return code == '??' or (
         code != '  ' and code[0] in _STATUS_CODES and code[1] in _STATUS_CODES
     )
+
+
+def _is_complete_ignored_record(line: str) -> bool:
+    """An ignored path may be present without making the worktree dirty."""
+    return line.startswith('!! ') and bool(line[3:].strip()) and line.endswith('\n')
 
 
 def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
     """Return True for changes, False for clean, None for incomplete output.
 
-    The caller must invoke 'git status --porcelain=v1 --branch'. A clean
-    result has exactly one complete '## <branch>' header ending in a newline.
-    Truncated or malformed branch-only output is not proof of a clean tree.
-    Changes can still be identified from a tail missing its branch header,
-    provided a complete porcelain file-status record remains.
+    The caller must invoke 'git status --porcelain=v1 --branch'. A complete
+    clean result has a valid newline-terminated branch header and, optionally,
+    complete ignored-file records (when Git was called with --ignored).
+    Unknown or torn output is never proof of a clean tree. Real changes can
+    still be identified from a tail missing its branch header.
     """
     if exit_code != 0 or not stdout.strip():
         return None
@@ -37,7 +42,8 @@ def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
     if any(_is_porcelain_change(line) for line in lines):
         return True
 
-    if (len(lines) == 1 and lines[0].startswith('## ')
-            and lines[0].endswith('\n') and lines[0][3:].strip()):
+    if (lines[0].startswith('## ') and lines[0].endswith('\n')
+            and lines[0][3:].strip()
+            and all(_is_complete_ignored_record(line) for line in lines[1:])):
         return False
     return None
