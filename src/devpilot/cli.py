@@ -173,7 +173,10 @@ def main(argv: list[str] | None = None) -> int:
             parser.error('--timeout must be between 0.1 and 30 seconds')
         if not 1 <= args.port <= 65535:
             parser.error('port must be between 1 and 65535')
-        result = tls_check(args.host, args.port, args.timeout) if args.tls else tcp_check(args.host, args.port, args.timeout)
+        try:
+            result = tls_check(args.host, args.port, args.timeout) if args.tls else tcp_check(args.host, args.port, args.timeout)
+        except ValueError as exc:
+            parser.error(str(exc))
         success = result['reachable']
     else:
         root = Path(args.path).expanduser().resolve()

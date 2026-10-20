@@ -14,8 +14,12 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     ``reachable`` means the requested TLS protocol is healthy. ``tcp_reachable``
     distinguishes a refused connection from a TLS or certificate failure.
     """
+    if not host or any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host):
+        raise ValueError('host must be a hostname or IP address without whitespace')
     if not 1 <= port <= 65535:
         raise ValueError('port must be between 1 and 65535')
+    if not 0.1 <= timeout <= 30:
+        raise ValueError('timeout must be between 0.1 and 30 seconds')
     result: dict[str, Any] = {
         'host': host, 'port': port, 'reachable': False,
         'tcp_reachable': False, 'tls_valid': False,
