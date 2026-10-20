@@ -24,10 +24,13 @@ def is_requirements_manifest(name: str) -> bool:
     """Accept pip and pip-tools filenames without matching unrelated files.
 
     Supports base manifests, separated variants, and prefixed requirements
-    files; rejects empty variants, backups, and partial word matches.
+    files regardless of ASCII letter case; rejects empty variants, backups,
+    double extensions, and partial word matches.
     """
+    if not isinstance(name, str):
+        return False
+    normalized = name.casefold()
     return (
-        isinstance(name, str)
-        and not name.endswith(_DOUBLE_EXTENSION)
-        and _REQUIREMENTS_MANIFEST.fullmatch(name) is not None
+        not normalized.endswith(_DOUBLE_EXTENSION)
+        and _REQUIREMENTS_MANIFEST.fullmatch(normalized) is not None
     )
