@@ -97,7 +97,7 @@ def _human(command: str, output: dict[str, Any]) -> str:
         lines += [f"  Warning: {escape_terminal(problem)}" for problem in output.get('problems', [])]
         return '\n'.join(lines)
     if command == 'doctor':
-        lines = [f"Project: {output['path']}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
+        lines = [f"Project: {escape_terminal(output['path'])}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
         lines += [f"  {'OK' if t['available'] else 'MISSING'} {t['name']}" + (f" (for {', '.join(t['required_by'])})" if t['required_by'] else ' (optional)') for t in output['tools']]
         env = output.get('environment', {})
         status = env.get('status')
