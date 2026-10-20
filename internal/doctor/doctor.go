@@ -192,16 +192,30 @@ func Inspect(root string) (Report, error) {
 					}
 				}
 				manager, executable := "npm", "npm"
-				// Lockfiles are authoritative where available. Avoid guessing from a package name.
-				for _, spec := range []struct{ file, name, exe string }{{"pnpm-lock.yaml", "pnpm", "pnpm"}, {"yarn.lock", "yarn", "yarn"}, {"bun.lock", "bun", "bun"}, {"bun.lockb", "bun", "bun"}, {"package-lock.json", "npm", "npm"}} {
+				// Prefer the first recognized lockfile, but report conflicting managers
+				// instead of silently presenting the choice as authoritative.
+				locks := []struct{ file, name, exe string }{{"pnpm-lock.yaml", "pnpm", "pnpm"}, {"yarn.lock", "yarn", "yarn"}, {"bun.lock", "bun", "bun"}, {"bun.lockb", "bun", "bun"}, {"package-lock.json", "npm", "npm"}}
+				foundManagers := map[string]bool{}
+				for _, spec := range locks {
 					if hasMarker(abs, spec.file) {
-						manager, executable = spec.name, spec.exe
-						break
+						if len(foundManagers) == 0 {
+							manager, executable = spec.name, spec.exe
+						}
+						foundManagers[spec.name] = true
 					}
 				}
+				if len(foundManagers) > 1 {
+					names := make([]string, 0, len(foundManagers))
+					for name := range foundManagers {
+						names = append(names, name)
+					}
+					sort.Strings(names)
+					add("warning", "node-lockfile-conflict", "Multiple package managers have lockfiles: "+strings.Join(names, ", "), "Keep the lockfile for the intended manager and remove outdated lockfiles after verification.")
+				}
 				r.PackageManager = manager
-				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
-					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
+				if script, exists := pkg.Scripts["test"]; exists && r.Tests == nil && strings.TrimSpace(script) != "" && !strings.Contains(strings.ToLower(script), "no test specified") {
+					// The npm init placeholder is not a real test runner.
+					// Other scripts can execute arbitrary code and require explicit --trust.
 					r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
 				}
 				tool(executable, manager+" package manager")
