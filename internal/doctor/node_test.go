@@ -14,7 +14,7 @@ func TestSelectNodePackageManager(t *testing.T) {
 		{name: "matching lockfile", declaration: "bun@1.2.0", fallback: "bun", locks: []string{"bun.lock"}, expected: "bun"},
 		{name: "mismatched lockfile", declaration: "yarn@4.0.0", fallback: "pnpm", locks: []string{"pnpm-lock.yaml"}, expected: "yarn", warning: "package-manager-lock-mismatch"},
 		{name: "multiple stale lockfiles", declaration: "npm@10.0.0", fallback: "pnpm", locks: []string{"pnpm-lock.yaml", "yarn.lock", "package-lock.json"}, expected: "npm", warning: "package-manager-lock-mismatch"},
-		{name: "unknown executable", declaration: "curl@1.0", fallback: "npm", expected: "npm", warning: "package-manager-invalid"},
+		{name: "unknown executable", declaration: "curl@1.0.0", fallback: "npm", expected: "npm", warning: "package-manager-invalid"},
 		{name: "missing version", declaration: "pnpm", fallback: "npm", expected: "npm", warning: "package-manager-invalid"},
 		{name: "blank version", declaration: "npm@", fallback: "npm", expected: "npm", warning: "package-manager-invalid"},
 		{name: "spaces", declaration: "npm@1 2", fallback: "npm", expected: "npm", warning: "package-manager-invalid"},
