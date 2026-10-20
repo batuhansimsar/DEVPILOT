@@ -19,6 +19,8 @@ WORKSPACE_FILES = {
     'requirements.txt': 'Python',
     'setup.py': 'Python',
     'setup.cfg': 'Python',
+    'environment.yml': 'Conda',
+    'environment.yaml': 'Conda',
     'Pipfile': 'Python',
     'Pipfile.lock': 'Python',
     'uv.lock': 'Python',
