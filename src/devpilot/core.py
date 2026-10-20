@@ -44,6 +44,7 @@ LANGUAGES = {
 KEY_FILES = frozenset({
     'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py',
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'build.gradle.kts',
+    'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
@@ -92,7 +93,10 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
         types.add('Go')
-    if names & {'pom.xml', 'build.gradle', 'build.gradle.kts'}:
+    # A settings-only Gradle build is still a Java project (for example,
+    # a root aggregator defining subprojects in settings.gradle[.kts]).
+    if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
+                'settings.gradle', 'settings.gradle.kts'}:
         types.add('Java')
     if any(Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'} for name in names):
         types.add('.NET')
