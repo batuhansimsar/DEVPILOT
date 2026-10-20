@@ -42,7 +42,9 @@ def execute_test_commands(
             result = {'exit_code': None, 'error': 'Test runner returned an invalid result'}
         item['result'] = result
         exit_code = result.get('exit_code')
-        if type(exit_code) is not int or exit_code != 0:
+        # Runner-reported errors invalidate the run even when a subprocess
+        # happens to return zero (e.g. a failed output-capture stage).
+        if type(exit_code) is not int or exit_code != 0 or result.get('error'):
             passed = False
             if fail_fast:
                 for skipped in commands[index + 1:]:
