@@ -135,8 +135,9 @@ def scan(path: str | Path) -> dict:
         raise ValueError("path is not a directory")
     manifests = []
     warnings = []
+    walk_problems: list[str] = []
     found = 0
-    for current, subdirs, filenames in walk_project(root, warnings):
+    for current, subdirs, filenames in walk_project(root, walk_problems):
         folder = Path(current)
         depth = len(folder.relative_to(root).parts)
         subdirs[:] = sorted(d for d in subdirs if d not in IGNORED and not (folder / d).is_symlink()) if depth < MAX_DEPTH else []
@@ -162,11 +163,12 @@ def scan(path: str | Path) -> dict:
                               "count": sum(len(items) for items in groups.values())})
         if found >= MAX_FILES:
             break
+    warnings.extend(walk_problems)
     totals: dict[str, int] = {}
     for item in manifests:
         totals[item["ecosystem"]] = totals.get(item["ecosystem"], 0) + item["count"]
     return {"root": str(root), "manifests": manifests, "totals": dict(sorted(totals.items())),
-            "warnings": warnings, "truncated": found >= MAX_FILES}
+            "warnings": warnings, "truncated": found >= MAX_FILES or bool(walk_problems)}
 
 
 def main(argv: list[str] | None = None) -> int:
