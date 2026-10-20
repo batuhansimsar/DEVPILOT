@@ -79,5 +79,37 @@ class TLSCheckTests(unittest.TestCase):
         check.assert_called_once_with('localhost', 443, 3)
 
 
+    @patch('devpilot.tlscheck.time.monotonic', side_effect=[10.0, 10.1234])
+    @patch('devpilot.tlscheck.socket.create_connection', side_effect=ConnectionRefusedError('refused'))
+    def test_failed_tcp_records_latency(self, connect, clock):
+        result = tls_check('localhost', 443, 2)
+        self.assertEqual(result['latency_ms'], 123.4)
+        self.assertFalse(result['tcp_reachable'])
+
+    @patch('devpilot.tlscheck.time.monotonic', side_effect=[10.0, 10.1234])
+    @patch('devpilot.tlscheck.ssl.create_default_context')
+    @patch('devpilot.tlscheck.socket.create_connection')
+    def test_verified_tls_records_latency(self, connect, context, clock):
+        connect.return_value = MagicMock()
+        secured = MagicMock()
+        secured.__enter__.return_value = secured
+        secured.getpeercert.return_value = {}
+        context.return_value.wrap_socket.return_value = secured
+        result = tls_check('example.com', 443, 2)
+        self.assertEqual(result['latency_ms'], 123.4)
+        self.assertTrue(result['tls_valid'])
+
+    @patch('devpilot.tlscheck.time.monotonic', side_effect=[10.0, 10.1234])
+    @patch('devpilot.tlscheck.ssl.create_default_context')
+    @patch('devpilot.tlscheck.socket.create_connection')
+    def test_invalid_certificate_records_latency(self, connect, context, clock):
+        connect.return_value = MagicMock()
+        context.return_value.wrap_socket.side_effect = ssl.SSLCertVerificationError('invalid cert')
+        result = tls_check('example.com', 443, 2)
+        self.assertEqual(result['latency_ms'], 123.4)
+        self.assertTrue(result['tcp_reachable'])
+        self.assertFalse(result['tls_valid'])
+
+
 if __name__ == '__main__':
     unittest.main()
