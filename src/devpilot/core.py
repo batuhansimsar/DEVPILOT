@@ -45,7 +45,7 @@ LANGUAGES = {
     '.sh': 'Shell', '.ps1': 'PowerShell',
 }
 KEY_FILES = frozenset({
-    'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py',
+    'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
@@ -145,7 +145,8 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if language:
                 languages[language] += 1
             rel = p.relative_to(root).as_posix()
-            if (filename in KEY_FILES or filename.lower().endswith('.gemspec')
+            if (filename in KEY_FILES or is_requirements_manifest(filename)
+                or filename.lower().endswith('.gemspec')
                 or is_pylock_manifest(filename) or is_container_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
