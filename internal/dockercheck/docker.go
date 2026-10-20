@@ -63,7 +63,14 @@ func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 		return nil, errors.New("Docker CLI not found on PATH")
 	}
 	if err != nil {
-		return nil, fmt.Errorf("Docker command failed: %s", strings.TrimSpace(out.String()))
+		// Docker stderr may include daemon URLs, private registry names,
+		// credentials, or other project-specific data. Never surface it in
+		// CLI diagnostics or JSON reports, even for a nonzero exit status.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("Docker command failed (exit code %d); check daemon access and permissions", exitErr.ExitCode())
+		}
+		return nil, errors.New("Docker command failed; check Docker CLI and daemon access")
 	}
 	return out.Bytes(), nil
 }
