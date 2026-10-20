@@ -24,6 +24,8 @@ WORKSPACE_FILES = {
     'bun.lockb': 'Node.js',
     'deno.json': 'Deno',
     'deno.jsonc': 'Deno',
+    # A lockfile alone identifies Deno even without deno.json or deno.jsonc.
+    'deno.lock': 'Deno',
     'pyproject.toml': 'Python',
     'requirements.txt': 'Python',
     'setup.py': 'Python',
