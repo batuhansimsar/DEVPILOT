@@ -27,6 +27,8 @@ WORKSPACE_FILES = {
     'Pipfile.lock': 'Python',
     'uv.lock': 'Python',
     'poetry.lock': 'Python',
+    'environment.yml': 'Conda',
+    'environment.yaml': 'Conda',
     'go.mod': 'Go',
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
