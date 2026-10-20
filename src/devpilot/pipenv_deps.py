@@ -39,7 +39,9 @@ def parse_pipfile_lock(content: str) -> dict[str, list[str]]:
     Lockfiles may contain authenticated indexes, URLs and hashes, so neither
     source metadata nor per-package values should reach diagnostic reports.
     """
-    lock = json.loads(content, parse_constant=_reject_nonfinite,
+    # Match the scanner's UTF-8-SIG handling for direct parser callers.
+    # Only the initial BOM is permitted; interior markers stay invalid JSON.
+    lock = json.loads(content.removeprefix('\ufeff'), parse_constant=_reject_nonfinite,
                       parse_float=_parse_finite_float,
                       object_pairs_hook=_unique_object_keys)
     if not isinstance(lock, dict):
