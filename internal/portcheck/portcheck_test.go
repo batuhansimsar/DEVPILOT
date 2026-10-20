@@ -2,6 +2,7 @@ package portcheck
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ func TestCheckReachable(t *testing.T) {
 	if result.Host != "127.0.0.1" || result.Port != port {
 		t.Fatalf("unexpected endpoint: %+v", result)
 	}
+	assertLatencyJSON(t, result)
 }
 
 func TestCheckUnreachable(t *testing.T) {
@@ -34,6 +36,23 @@ func TestCheckUnreachable(t *testing.T) {
 	result, err := Check(context.Background(), "127.0.0.1", port, time.Second)
 	if err != nil || result.Reachable || result.Error == "" {
 		t.Fatalf("result=%+v err=%v", result, err)
+	}
+	assertLatencyJSON(t, result)
+}
+
+func assertLatencyJSON(t *testing.T, result Result) {
+	t.Helper()
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var values map[string]any
+	if err := json.Unmarshal(encoded, &values); err != nil {
+		t.Fatal(err)
+	}
+	latency, ok := values["latency_ms"].(float64)
+	if !ok || latency < 0 {
+		t.Fatalf("missing or invalid latency in %s", encoded)
 	}
 }
 
@@ -66,4 +85,5 @@ func TestCheckHonorsCanceledContext(t *testing.T) {
 	if err != nil || result.Reachable || !strings.Contains(result.Error, "canceled") {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
+	assertLatencyJSON(t, result)
 }
