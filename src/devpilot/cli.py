@@ -239,7 +239,8 @@ def main(argv: list[str] | None = None) -> int:
                 success = execute_test_commands(commands, root, args.timeout, command_result,
                                                 fail_fast=args.fail_fast)
     if args.json:
-        print(json.dumps(result, indent=2, ensure_ascii=False))
+        # Escape Unicode format and direction controls in untrusted report fields.
+        print(json.dumps(result, indent=2, ensure_ascii=True))
     else:
         print(_human(args.command, result))
     return 0 if success else 1
