@@ -26,7 +26,9 @@ def parse_uv_lock(content: str) -> list[str]:
     original TOML or an untrusted package name into exception messages.
     """
     try:
-        document = tomllib.loads(content)
+        # The scanner reads UTF-8-SIG, but direct library callers may hand us
+        # decoded text that still includes a UTF-8 byte-order mark.
+        document = tomllib.loads(content.removeprefix('\ufeff'))
     except tomllib.TOMLDecodeError:
         raise ValueError("invalid uv.lock TOML") from None
 
