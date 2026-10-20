@@ -200,6 +200,15 @@ func Inspect(root string) (Report, error) {
 						add("warning", "js-package-manager-mismatch", "packageManager specifies "+declared+" but the lockfile selects "+manager, "Align packageManager and the committed lockfile before installing dependencies.")
 					}
 				}
+				// A packageManager declaration must never choose arbitrary executables.
+				// Keep lockfile precedence for existing workspaces but report invalid
+				// declarations and conflicts between multiple lockfile families.
+				_, metadataFindings := selectNodePackageManager(pkg.PackageManager, manager, lockfiles)
+				for _, issue := range metadataFindings {
+					if issue.Code == "package-manager-invalid" || (issue.Code == "package-manager-lock-mismatch" && len(lockfiles) > 1) {
+						add(issue.Level, issue.Code, issue.Message, issue.Remedy)
+					}
+				}
 				r.PackageManager = manager
 				if len(lockfiles) > 1 {
 					add("warning", "js-lockfiles-conflict", "Multiple JavaScript lockfiles detected: "+strings.Join(lockfiles, ", "), "Keep only the lockfile for the selected package manager after confirming which one is authoritative.")
