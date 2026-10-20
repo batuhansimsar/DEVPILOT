@@ -71,21 +71,21 @@ class EnvironmentIndexTests(unittest.TestCase):
 
 
     def test_control_and_bidi_characters_in_tracked_paths_are_escaped(self):
-        paths = b'backend/.env\\x1b[2J\\0backend/.env\\nline\\0backend/.env\\xe2\\x80\\xae\\0'
+        paths = b'backend/.env\x1b[2J\0backend/.env\nline\0backend/.env\xe2\x80\xae\0'
         with patch('devpilot.security.subprocess.run') as run:
             run.return_value = subprocess.CompletedProcess([], 0, paths)
             results = tracked_environment_files(self.root)
         self.assertEqual(results, [
-            r'backend/.env\\u000aline', r'backend/.env\\u001b[2J', r'backend/.env\\u202e'
+            r'backend/.env\u000aline', r'backend/.env\u001b[2J', r'backend/.env\u202e'
         ])
-        self.assertNotIn('\\x1b', ''.join(results))
-        self.assertNotIn('\\u202e', ''.join(results))
+        self.assertNotIn('\x1b', ''.join(results))
+        self.assertNotIn('\u202e', ''.join(results))
 
     def test_safe_template_filtering_precedes_escaping(self):
-        paths = b'backend/.env.example\\0backend/.env.secret\\x1b[2J\\0'
+        paths = b'backend/.env.example\0backend/.env.secret\x1b[2J\0'
         with patch('devpilot.security.subprocess.run') as run:
             run.return_value = subprocess.CompletedProcess([], 0, paths)
-            self.assertEqual(tracked_environment_files(self.root), [r'backend/.env.secret\\u001b[2J'])
+            self.assertEqual(tracked_environment_files(self.root), [r'backend/.env.secret\u001b[2J'])
 
 
 if __name__ == '__main__':
