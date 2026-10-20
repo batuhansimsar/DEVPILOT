@@ -128,10 +128,18 @@ def scan(path: str | Path) -> dict:
     warnings = []
     walk_problems: list[str] = []
     found = 0
+    depth_limited = False
     for current, subdirs, filenames in walk_project(root, walk_problems):
         folder = Path(current)
         depth = len(folder.relative_to(root).parts)
-        subdirs[:] = sorted(d for d in subdirs if d not in IGNORED and not (folder / d).is_symlink()) if depth < MAX_DEPTH else []
+        traversable = sorted(d for d in subdirs if d not in IGNORED and not (folder / d).is_symlink())
+        if depth >= MAX_DEPTH:
+            if traversable and not depth_limited:
+                warnings.append(f"Directory scan limited to depth {MAX_DEPTH}; nested manifests were not inspected")
+                depth_limited = True
+            subdirs[:] = []
+        else:
+            subdirs[:] = traversable
         for filename in sorted(filenames):
             if not (filename in ("package.json", "go.mod", "Cargo.toml")
                     or filename.startswith("requirements") and filename.endswith(".txt")
@@ -159,7 +167,7 @@ def scan(path: str | Path) -> dict:
     for item in manifests:
         totals[item["ecosystem"]] = totals.get(item["ecosystem"], 0) + item["count"]
     return {"root": str(root), "manifests": manifests, "totals": dict(sorted(totals.items())),
-            "warnings": warnings, "truncated": found >= MAX_FILES or bool(walk_problems)}
+            "warnings": warnings, "truncated": found >= MAX_FILES or depth_limited or bool(walk_problems)}
 
 
 def main(argv: list[str] | None = None) -> int:
