@@ -61,7 +61,7 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         raise ValueError('URL port must be between 1 and 65535')
     # urlsplit.hostname omits IPv6 brackets; put them back for valid display URLs.
     host = f'[{parts.hostname}]' if ':' in parts.hostname else parts.hostname
-    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (quote(parts.path, safe="/%:@!    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')'()*+,;=-._~") or '/')
+    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (quote(parts.path, safe="/%:@!    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (quote(parts.path, safe="/%:@!    display = f'{parts.scheme}://{host}' + (f':{port}' if port is not None else '') + (parts.path or '/')'()*+,;=-._~") or '/')'()*+,;=-._~") or '/')
     # Health checks must measure the requested endpoint, not an ambient proxy.
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     # Encode Unicode path/query data as UTF-8 without double-encoding existing
