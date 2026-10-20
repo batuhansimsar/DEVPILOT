@@ -30,6 +30,8 @@ EXACT_NAMES = frozenset({
 })
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore')
 STATE_SUFFIXES = ('.tfstate', '.tfstate.backup')
+VARIABLE_SUFFIXES = ('.tfvars', '.tfvars.json')
+TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
 # These names are ambiguous outside their well-known secret-bearing directories.
 SENSITIVE_LOCATIONS = frozenset({
     ('.aws', 'credentials'),
@@ -46,6 +48,8 @@ def classify(path: str) -> str | None:
     name = parts[-1]
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template')):
         return None
+    if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
+        return None
     if name == '.env' or (name.startswith('.env.') and not name.startswith(('.env.example', '.env.sample', '.env.template', '.env.defaults'))):
         return 'environment file'
     if len(parts) >= 2 and parts[-2:] in SENSITIVE_LOCATIONS:
@@ -56,6 +60,8 @@ def classify(path: str) -> str | None:
         return 'potential private key or certificate'
     if name.endswith(STATE_SUFFIXES):
         return 'potential Terraform state containing secrets'
+    if name.endswith(VARIABLE_SUFFIXES):
+        return 'potential Terraform variables containing secrets'
     return None
 
 
