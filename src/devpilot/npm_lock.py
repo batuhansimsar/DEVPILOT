@@ -14,6 +14,8 @@ from .node_deps import _valid_package_name
 # The dependency scanner limits files to 512 KB, but direct parser callers
 # need an independent limit before json.loads allocates memory.
 MAX_NPM_LOCK_INPUT_CHARS = 2 * 1024 * 1024
+# Preserve the direct-call character limit while bounding encoded input.
+MAX_NPM_LOCK_INPUT_BYTES = MAX_NPM_LOCK_INPUT_CHARS
 
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -84,6 +86,12 @@ def parse_npm_lock(content: str) -> list[str]:
     without printing any untrusted package names or source text.
     """
     if not isinstance(content, str) or len(content) > MAX_NPM_LOCK_INPUT_CHARS:
+        raise ValueError('npm lockfile input exceeds safe size limit or is invalid')
+    try:
+        encoded_size = len(content.encode('utf-8'))
+    except UnicodeError:
+        raise ValueError('npm lockfile must contain valid Unicode') from None
+    if encoded_size > MAX_NPM_LOCK_INPUT_BYTES:
         raise ValueError('npm lockfile input exceeds safe size limit or is invalid')
     try:
         document = json.loads(content.removeprefix('\ufeff'),
