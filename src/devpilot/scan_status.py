@@ -6,11 +6,12 @@ from typing import Any, Mapping
 
 
 def scan_succeeded(report: Mapping[str, Any]) -> bool:
-    """Fail closed if a scan is incomplete or has a malformed problem list.
+    """Fail closed if a scan is incomplete or has malformed diagnostics.
 
     A truncated inventory is not evidence that the omitted entries are safe.
-    Require an explicit boolean ``truncated=False`` and a real, empty list of
-    problems. Missing, null, or non-list diagnostics must never imply success.
+    Require an explicit boolean ``truncated=False``, a real empty list of
+    problems, and no recorded error. Missing or malformed diagnostics must
+    never imply success.
     """
     # Public callers may pass a missing or malformed scan report. Do not
     # mistake such a result for success or raise while interpreting it.
@@ -19,8 +20,9 @@ def scan_succeeded(report: Mapping[str, Any]) -> bool:
     try:
         problems = report.get('problems')
         truncated = report.get('truncated')
+        error = report.get('error')
     except Exception:
         # Custom mappings can raise while reading untrusted diagnostic keys.
         # If their contents cannot be inspected, the scan is not successful.
         return False
-    return truncated is False and type(problems) is list and not problems
+    return truncated is False and type(problems) is list and not problems and error is None
