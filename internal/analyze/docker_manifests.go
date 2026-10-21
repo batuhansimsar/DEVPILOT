@@ -6,8 +6,18 @@ import "strings"
 // filename only. Temporary, backup, and Docker ignore files must not appear as manifests.
 func dockerManifestKind(name string) (string, bool) {
 	lower := strings.ToLower(name)
-	for _, suffix := range []string{".bak", ".backup", ".tmp", ".swp", "~", ".dockerignore"} {
+	for _, suffix := range []string{".bak", ".backup", ".tmp", ".orig", ".save", ".rej", ".swp", "~", ".dockerignore"} {
 		if strings.HasSuffix(lower, suffix) {
+			return "", false
+		}
+	}
+	// Vim rotates .swp through .swa, then .svz down to .saa. These are
+	// editor swap files, not deployable Docker recipes.
+	if len(lower) >= 4 {
+		suffix := lower[len(lower)-4:]
+		if suffix[:2] == ".s" && (
+			(suffix[2] == 'w' && suffix[3] >= 'a' && suffix[3] <= 'p') ||
+			(suffix[2] >= 'a' && suffix[2] <= 'v' && suffix[3] >= 'a' && suffix[3] <= 'z')) {
 			return "", false
 		}
 	}
