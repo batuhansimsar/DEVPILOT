@@ -18,6 +18,13 @@ var supplementalSourceLanguages = map[string]string{
 	".glsl":    "GLSL",
 	".vert":    "GLSL",
 	".frag":    "GLSL",
+	// GLSL stage-specific files are source files, not binary SPIR-V assets.
+	".comp":    "GLSL",
+	".geom":    "GLSL",
+	".tesc":    "GLSL",
+	".tese":    "GLSL",
+	".vsh":     "GLSL",
+	".fsh":     "GLSL",
 	".hlsl":    "HLSL",
 	".metal":   "Metal Shading Language",
 }
