@@ -42,8 +42,12 @@ def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
                     or opened.st_size > max_bytes
                     or _identity(opened) != _identity(initial)):
                 return None
-            content = stream.read(max_bytes + 1)
-            if len(content) > max_bytes or _identity(os.fstat(stream.fileno())) != _identity(opened):
+            # Bound each read to the observed file size, not the caller's
+            # (potentially huge) byte limit, while detecting file growth.
+            content = stream.read(opened.st_size + 1)
+            if (len(content) != opened.st_size
+                    or _identity(os.fstat(stream.fileno())) != _identity(opened)):
+                # Never treat a short read as a complete manifest.
                 return None
         return content
     except (OSError, ValueError, TypeError):
