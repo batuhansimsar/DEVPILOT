@@ -42,6 +42,12 @@ func parseGitHeadBranch(data []byte) (string, bool) {
 			strings.HasSuffix(component, ".lock") {
 			return "", false
 		}
+		// Leading combining marks can modify the preceding terminal glyph
+		// (such as the slash separating branch components) and mislead users.
+		first, _ := utf8.DecodeRuneInString(component)
+		if unicode.IsMark(first) {
+			return "", false
+		}
 	}
 	return branch, true
 }
