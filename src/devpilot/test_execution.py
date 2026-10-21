@@ -65,7 +65,9 @@ def execute_test_commands(
         # it before rendering the report, whose human format requires this key.
         if type(exit_code) is not int:
             item['result']['exit_code'] = None
-            if not item['result'].get('error'):
+            # Do not invoke a custom error object's truth-value or equality hooks.
+            error_message = item['result'].get('error')
+            if error_message is None or (type(error_message) is str and not error_message):
                 item['result']['error'] = 'Test runner returned an invalid exit code'
             exit_code = None
         # Treat malformed captured streams/error values as runner failures,
@@ -76,9 +78,10 @@ def execute_test_commands(
                 del item['result'][stream]
                 invalid_stream = True
         error = item['result'].get('error')
-        if error is not None and not isinstance(error, str):
+        # A str subclass may override __bool__ or comparisons as well.
+        if error is not None and type(error) is not str:
             item['result']['error'] = 'Test runner returned an invalid error message'
-        elif invalid_stream and not error:
+        elif invalid_stream and (error is None or error == ''):
             item['result']['error'] = 'Test runner returned invalid captured output'
         # Runner-reported errors invalidate the run even when a subprocess
         # happens to return zero (e.g. a failed output-capture stage).
