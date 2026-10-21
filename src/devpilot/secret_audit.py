@@ -15,7 +15,7 @@ from threading import Thread
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
-from .publish_profiles import is_publish_profile
+from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
 
@@ -142,6 +142,8 @@ def classify(path: str) -> str | None:
     parts = (*parts[:-1], name)
     if is_publish_profile(parts):
         return 'potential .NET publish profile credentials'
+    if is_azure_publish_settings(parts):
+        return 'potential Azure publish settings credentials'
     if name in EXAMPLE_NAMES or name.endswith(('.example', '.sample', '.template', '.dist', '.defaults')):
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):

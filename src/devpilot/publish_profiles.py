@@ -18,3 +18,13 @@ def is_publish_profile(parts: tuple[str, ...]) -> bool:
         and parts[-3:-1] == ('properties', 'publishprofiles')
         and parts[-1].endswith(('.pubxml', '.pubxml.user'))
     )
+
+
+def is_azure_publish_settings(parts: tuple[str, ...]) -> bool:
+    """Identify exported Azure publish-settings XML by its distinctive suffix.
+
+    Azure ``*.PublishSettings`` exports can contain reusable publishing
+    credentials even when stored outside ``Properties/PublishProfiles``.
+    Callers handle template and backup suffixes before invoking this helper.
+    """
+    return bool(parts and parts[-1].endswith('.publishsettings'))

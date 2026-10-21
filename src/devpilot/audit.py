@@ -7,7 +7,7 @@ import shutil
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
-from .publish_profiles import is_publish_profile
+from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .secret_audit import _tracked_paths
 from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
@@ -102,7 +102,7 @@ def _potential_secret(path: str) -> bool:
     name = parts[-1]
     name, saw_vim_swap = strip_editor_backups(name, _BACKUP_SUFFIXES)
     parts = (*parts[:-1], name)
-    if is_publish_profile(parts):
+    if is_publish_profile(parts) or is_azure_publish_settings(parts):
         return True
     if name in _ENV_EXAMPLES or (
         (name.startswith('.env.') or '.env.' in name)
