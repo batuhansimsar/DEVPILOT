@@ -15,6 +15,9 @@ except ModuleNotFoundError:  # Python 3.10
 _CRATE_NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_-]*\Z")
 _MAX_CRATE_NAME_LENGTH = 214
 _MAX_VERSION_LENGTH = 256
+# Direct callers must obey the same 512 KB input budget as the dependency scanner.
+# Limit UTF-8 bytes, not just characters, to avoid oversized Unicode manifests.
+MAX_CARGO_LOCK_INPUT_BYTES = 512_000
 # Cargo.lock contains resolved versions, not Cargo.toml version requirements.
 # Each package version must be SemVer with a full major.minor.patch triplet.
 _SEMVER = re.compile(
@@ -37,13 +40,20 @@ def _valid_version(version: object) -> bool:
     )
 
 
-
 def parse_cargo_lock(content: str) -> list[str]:
     """Return unique, sorted crate names from Cargo.lock package tables.
 
     Reject malformed lockfiles and invalid package records rather than
     returning a partial inventory. Errors must never expose private sources.
     """
+    if not isinstance(content, str) or len(content) > MAX_CARGO_LOCK_INPUT_BYTES:
+        raise ValueError('Cargo.lock input exceeds safe size limit or is invalid')
+    try:
+        encoded_length = len(content.encode('utf-8'))
+    except UnicodeError:
+        raise ValueError('Cargo.lock input must contain valid Unicode') from None
+    if encoded_length > MAX_CARGO_LOCK_INPUT_BYTES:
+        raise ValueError('Cargo.lock input exceeds safe size limit or is invalid')
     try:
         document = tomllib.loads(content.removeprefix('\ufeff'))
     except (tomllib.TOMLDecodeError, RecursionError):
@@ -63,7 +73,6 @@ def parse_cargo_lock(content: str) -> list[str]:
             raise ValueError('Cargo.lock packages must be tables with valid names')
         # Every resolved Cargo.lock package has a version.  Do not turn
         # incomplete or corrupted records into seemingly valid dependencies.
-        # Validate only the shape; never put version data into reports/errors.
         if not _valid_version(package.get('version')):
             raise ValueError('Cargo.lock packages must have valid version strings')
         names.add(name)
