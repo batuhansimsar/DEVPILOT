@@ -62,13 +62,17 @@ def julia_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     a symlinked project manifest, lockfile, or anything in the test tree.
     """
     project_files = names.intersection(_JULIA_PROJECT_FILES)
-    # Julia may prefer Project.toml over JuliaProject.toml when both exist.
-    # Never accept an unsafe marker, even if another manifest is regular:
-    # --project=. could still load the symlink or malformed directory.
-    if not project_files or any(
-        (root / name).is_symlink() or not (root / name).is_file()
-        for name in project_files
-    ) or not _safe_package_manifests(root, names):
+    # Julia prefers Project.toml over JuliaProject.toml. Root filename scans
+    # can omit symlinks, so inspect *both* candidates even when not advertised;
+    # otherwise an unlisted linked Project.toml could be loaded by Pkg.test().
+    if any(
+        (root / name).is_symlink() or
+        ((root / name).exists() and not (root / name).is_file())
+        for name in _JULIA_PROJECT_FILES
+    ):
+        return None
+    if (not project_files or any(not (root / name).is_file() for name in project_files)
+            or not _safe_package_manifests(root, names)):
         return None
     test_dir = root / 'test'
     test_entry = test_dir / 'runtests.jl'
