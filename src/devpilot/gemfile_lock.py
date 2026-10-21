@@ -12,6 +12,7 @@ _SPEC = re.compile(
 )
 _SEPARATOR = re.compile(r'[-_.]+')
 _MAX_GEM_NAME_LENGTH = 214
+MAX_GEMFILE_LOCK_CHARS = 1_000_000
 
 
 def parse_gemfile_lock(content: str) -> list[str]:
@@ -21,11 +22,17 @@ def parse_gemfile_lock(content: str) -> list[str]:
     six-space entries are their nested dependency constraints, not packages.
     Remote URLs, ref hashes, versions and platforms are never included.
     """
+    if not isinstance(content, str) or len(content) > MAX_GEMFILE_LOCK_CHARS:
+        raise ValueError('Gemfile.lock input is invalid or exceeds safe size limit')
     names: set[str] = set()
     in_source = False
     in_specs = False
     # A UTF-8 BOM at the start is an encoding signature, not part of GEM.
-    for line in content.removeprefix('\ufeff').splitlines():
+    # splitlines() treats VT, FF, NEL and Unicode LS/PS as newlines even
+    # though Bundler lockfiles use physical CR/LF lines. Those characters
+    # must not invent GEM/specs sections inside malformed lockfile metadata.
+    physical_lines = content.removeprefix('\ufeff').replace('\r\n', '\n').replace('\r', '\n')
+    for line in physical_lines.split('\n'):
         if line and not line[0].isspace():
             in_source = line.strip() in {'GEM', 'GIT', 'PATH'}
             in_specs = False
