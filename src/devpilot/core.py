@@ -17,6 +17,7 @@ from .envcheck import inspect_env
 from typing import Any
 
 from .container_manifests import is_container_manifest
+from .dotnet_manifests import dotnet_test_target, is_dotnet_manifest
 from .gradle import gradle_test_command
 from .maven import maven_test_command
 from .git_state import is_git_dirty
@@ -114,9 +115,7 @@ def detect_projects(root: Path) -> list[str]:
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
                 'settings.gradle', 'settings.gradle.kts'}:
         types.add('Java')
-    if names & {'global.json', 'Directory.Packages.props'} or any(
-            Path(name).suffix.lower() in {'.csproj', '.sln', '.slnx', '.fsproj', '.vbproj'}
-            for name in names):
+    if any(is_dotnet_manifest(name) for name in names):
         types.add('.NET')
     if any(is_container_manifest(name) for name in names):
         types.add('Docker')
@@ -158,7 +157,8 @@ def analyze_project(root: Path) -> dict[str, Any]:
             rel = p.relative_to(root).as_posix()
             if (filename in KEY_FILES or is_requirements_manifest(filename)
                 or filename.lower().endswith('.gemspec')
-                or is_pylock_manifest(filename) or is_container_manifest(filename)) and (
+                or is_pylock_manifest(filename) or is_container_manifest(filename)
+                or is_dotnet_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
                 key_files.append(rel)
@@ -215,10 +215,7 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
-    solutions = sorted(name for name in names if Path(name).suffix.lower() in {'.sln', '.slnx'})
-    projects = sorted(name for name in names if Path(name).suffix.lower() in {'.csproj', '.fsproj', '.vbproj'})
-    dotnet_target = (solutions[0] if len(solutions) == 1 else
-                     projects[0] if not solutions and len(projects) == 1 else None)
+    dotnet_target = dotnet_test_target(names)
     if dotnet_target:
         commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test', dotnet_target],
                          'reason': 'unique .NET solution/project'})

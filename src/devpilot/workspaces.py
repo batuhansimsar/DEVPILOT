@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .container_manifests import is_container_manifest
+from .dotnet_manifests import DOTNET_SUFFIXES
 from .core import SKIP_DIRS
 from .walk import walk_project
 from .requirements_names import is_requirements_manifest
@@ -86,7 +87,7 @@ WORKSPACE_FILES = {
     'docker-compose.yml': 'Docker',
     'docker-compose.yaml': 'Docker',
 }
-DOTNET_SUFFIXES = {'.csproj', '.fsproj', '.vbproj', '.sln', '.slnx'}
+
 # Julia selects a version-specific lockfile for its matching minor release.
 # Match ASCII numeric versions only; backup files must not be treated as manifests.
 _JULIA_VERSIONED_MANIFEST = re.compile(r'Manifest-v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.toml\Z')
