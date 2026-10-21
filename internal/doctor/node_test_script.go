@@ -11,13 +11,44 @@ import (
 // prevents discarding real tests chained after the default message.
 var npmInitPlaceholder = regexp.MustCompile(`(?i)^echo[ \t]+(?:"(?:error:[ \t]*)?no test specified"|'(?:error:[ \t]*)?no test specified'|(?:error:[ \t]*)?no test specified)[ \t]*&&[ \t]*exit[ \t]+1[ \t]*;?$`)
 
-// shellOnlyOutput reports scripts that solely print text. Rejecting shell
-// metacharacters avoids hiding actual tests in pipelines, command substitutions,
-// multiline scripts, redirections, or chained commands. An ordinary semicolon
-// at the end of a single command is harmless.
+// shellOnlyOutput reports scripts that solely print text. Shell operators in
+// quoted literal output are harmless, but operators outside quotes (and shell
+// substitutions inside double quotes) may run real commands. Be conservative:
+// an ambiguous script stays runnable rather than hiding a test suite.
 func shellOnlyOutput(script string) bool {
 	script = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(script), ";"))
-	if strings.ContainsAny(script, ";&|$`<>\\\r\n") {
+	var quote byte
+	for i := 0; i < len(script); i++ {
+		ch := script[i]
+		if ch == '\r' || ch == '\n' {
+			return false
+		}
+		switch quote {
+		case '\'':
+			// No shell expansion occurs within single quotes.
+			if ch == '\'' {
+				quote = 0
+			}
+		case '"':
+			// Expansion/escaping within double quotes can execute commands.
+			if ch == '$' || ch == 96 || ch == '\\' {
+				return false
+			}
+			if ch == '"' {
+				quote = 0
+			}
+		default:
+			switch ch {
+			case '\'', '"':
+				quote = ch
+			case ';', '&', '|', '$', '<', '>', '\\':
+				return false
+			case 96:
+				return false
+			}
+		}
+	}
+	if quote != 0 {
 		return false
 	}
 	fields := strings.Fields(script)
