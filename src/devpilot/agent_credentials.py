@@ -11,6 +11,7 @@ _AGENT_CREDENTIAL_LOCATIONS = frozenset({
     ('.gemini', 'oauth_creds.json'),  # Gemini CLI OAuth credentials.
     # Gemini CLI persists per-MCP-server OAuth access and refresh tokens here.
     ('.gemini', 'mcp-oauth-tokens.json'),
+    ('.codex', 'auth.json'),  # Codex CLI login tokens and authentication state.
 })
 
 
