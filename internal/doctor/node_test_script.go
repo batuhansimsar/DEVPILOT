@@ -11,13 +11,19 @@ import (
 // prevents discarding real tests chained after the default message.
 var npmInitPlaceholder = regexp.MustCompile(`(?i)^echo[ \t]+(?:"(?:error:[ \t]*)?no test specified"|'(?:error:[ \t]*)?no test specified'|(?:error:[ \t]*)?no test specified)[ \t]*&&[ \t]*exit[ \t]+1[ \t]*;?$`)
 
-// shellOnlyOutput reports scripts that solely print text. Shell operators in
-// quoted literal output are harmless, but operators outside quotes (and shell
-// substitutions inside double quotes) may run real commands. Be conservative:
-// an ambiguous script stays runnable rather than hiding a test suite.
+// shellOnlyOutput reports scripts that only print text, including sequences of
+// output-only commands separated by semicolons. Shell operators inside quoted
+// literal output are harmless; operators outside quotes and expansion within
+// double quotes could execute tests and must remain classified as runnable.
 func shellOnlyOutput(script string) bool {
-	script = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(script), ";"))
+	script = strings.TrimSpace(script)
+	isOutputCommand := func(command string) bool {
+		fields := strings.Fields(strings.TrimSpace(command))
+		return len(fields) > 0 && (fields[0] == "echo" || fields[0] == "printf")
+	}
 	var quote byte
+	start := 0
+	sawOutput := false
 	for i := 0; i < len(script); i++ {
 		ch := script[i]
 		if ch == '\r' || ch == '\n' {
@@ -25,12 +31,11 @@ func shellOnlyOutput(script string) bool {
 		}
 		switch quote {
 		case '\'':
-			// No shell expansion occurs within single quotes.
 			if ch == '\'' {
 				quote = 0
 			}
 		case '"':
-			// Expansion/escaping within double quotes can execute commands.
+			// Shell substitutions and escapes are not literal output.
 			if ch == '$' || ch == 96 || ch == '\\' {
 				return false
 			}
@@ -41,7 +46,13 @@ func shellOnlyOutput(script string) bool {
 			switch ch {
 			case '\'', '"':
 				quote = ch
-			case ';', '&', '|', '$', '<', '>', '\\':
+			case ';':
+				if !isOutputCommand(script[start:i]) {
+					return false
+				}
+				sawOutput = true
+				start = i + 1
+			case '&', '|', '$', '<', '>', '\\':
 				return false
 			case 96:
 				return false
@@ -51,8 +62,8 @@ func shellOnlyOutput(script string) bool {
 	if quote != 0 {
 		return false
 	}
-	fields := strings.Fields(script)
-	return len(fields) > 0 && (fields[0] == "echo" || fields[0] == "printf")
+	last := strings.TrimSpace(script[start:])
+	return (last == "" && sawOutput) || isOutputCommand(last)
 }
 
 // hasRunnableNodeTestScript avoids recommending empty, no-op, or npm-init
