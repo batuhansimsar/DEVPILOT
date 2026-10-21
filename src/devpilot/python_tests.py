@@ -66,7 +66,7 @@ def _pytest_suites_are_safe(root: Path) -> bool:
             name = entry.name
             if entry.is_symlink() and (
                 name in ('conftest.py', 'pytest.ini', 'tox.ini', 'setup.cfg', 'pyproject.toml',
-                         'pytest.toml', '.pytest.toml')
+                         'pytest.toml', '.pytest.toml', '.pytest.ini', '.pytest_cache')
                 or (name.endswith('.py') and
                     (name.startswith('test') or name.endswith('_test.py')))
                 or name.startswith('test_')
