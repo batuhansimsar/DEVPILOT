@@ -74,6 +74,36 @@ class RootPythonTestDiscoveryTests(unittest.TestCase):
         self.assertEqual(self.discover(False)['argv'][-1], 'tests')
         self.assertEqual(self.discover(True)['reason'], 'tests directory (pytest importable)')
 
+    def test_empty_suite_does_not_shadow_root_pytest(self):
+        (self.root / 'tests').mkdir()
+        (self.root / 'test_actual.py').touch()
+        self.assertEqual(
+            self.discover(True)['argv'],
+            [sys.executable, '-m', 'pytest', './test_actual.py'],
+        )
+
+    def test_empty_suite_falls_back_to_test_directory(self):
+        (self.root / 'tests').mkdir()
+        (self.root / 'test').mkdir()
+        (self.root / 'test' / 'test_actual.py').touch()
+        self.assertEqual(
+            self.discover(True)['argv'],
+            [sys.executable, '-m', 'pytest', 'test'],
+        )
+
+    def test_nonempty_suite_keeps_priority(self):
+        (self.root / 'tests').mkdir()
+        (self.root / 'tests' / 'test_actual.py').touch()
+        (self.root / 'test_root.py').touch()
+        self.assertEqual(
+            self.discover(True)['argv'],
+            [sys.executable, '-m', 'pytest', 'tests'],
+        )
+
+    def test_empty_suite_without_tests_yields_no_command(self):
+        (self.root / 'tests').mkdir()
+        self.assertIsNone(self.discover(True))
+
     def test_empty_test_directory_falls_back_to_root_unittest(self):
         (self.root / 'tests').mkdir()
         (self.root / 'test_root.py').touch()
