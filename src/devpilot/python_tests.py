@@ -29,10 +29,7 @@ def _has_unittest_tests(tests: Path) -> bool:
                 if entries_seen > _MAX_TEST_DISCOVERY_ENTRIES:
                     return False
                 if entry.is_symlink():
-                    if ((entry.is_file() and entry.name.startswith('test') and entry.name.endswith('.py'))
-                            or (entry.is_dir() and (entry / '__init__.py').is_file())):
-                        return False
-                    continue
+                    return False
                 if (
                     entry.is_file()
                     and entry.name.startswith('test')
@@ -126,6 +123,8 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
         if not tests.is_dir() or not _has_unittest_tests(tests):
             tests = None
     if tests is not None and PathFinder.find_spec('pytest') is not None:
+        if not _pytest_suites_are_safe(root):
+            return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
                 'reason': f'{directory_name} directory (pytest importable)'}
     if tests is not None and not _has_unittest_tests(tests):
@@ -146,6 +145,8 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
         return None
     has_unittest, has_pytest = _root_test_modules(root)
     if has_pytest and PathFinder.find_spec('pytest') is not None:
+        if not _pytest_suites_are_safe(root):
+            return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
                 'reason': 'root-level pytest test files'}
     if has_unittest:
