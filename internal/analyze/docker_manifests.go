@@ -22,6 +22,13 @@ func dockerManifestKind(name string) (string, bool) {
 	if isRecipe("containerfile") {
 		return "Containerfile", true
 	}
+	// Compose accepts service-specific filenames such as api.compose.yaml.
+	// The leading component must be nonempty (not .compose.yaml).
+	for _, suffix := range []string{".compose.yml", ".compose.yaml"} {
+		if strings.HasSuffix(lower, suffix) && len(lower) > len(suffix) {
+			return "Docker Compose", true
+		}
+	}
 	for _, prefix := range []string{"compose", "docker-compose"} {
 		if lower == prefix+".yml" || lower == prefix+".yaml" {
 			return "Docker Compose", true
