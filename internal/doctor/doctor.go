@@ -124,16 +124,9 @@ func namesFromEnv(data []byte) []string {
 }
 
 func Inspect(root string) (Report, error) {
-	abs, err := filepath.Abs(root)
+	abs, err := validateProjectRoot(root)
 	if err != nil {
 		return Report{}, err
-	}
-	st, err := os.Stat(abs)
-	if err != nil {
-		return Report{}, fmt.Errorf("project directory: %w", err)
-	}
-	if !st.IsDir() {
-		return Report{}, fmt.Errorf("project path is not a directory: %s", abs)
 	}
 
 	r := Report{Path: abs, Languages: []string{}, Frameworks: []string{}, Findings: []Finding{}}
