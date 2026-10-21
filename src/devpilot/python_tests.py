@@ -10,6 +10,7 @@ from typing import Any
 from .unittest_tree_safety import root_unittest_imports_are_safe
 
 from .python_test_targets import root_pytest_targets
+from .scan_root import ensure_unlinked_scan_path
 
 _MAX_TEST_DISCOVERY_ENTRIES = 4096
 
@@ -137,6 +138,12 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     Never follow linked markers; only offer commands runnable by the chosen
     interpreter. Without pytest, use unittest's own test*.py discovery glob.
     """
+    # Reject linked project roots and ancestors before choosing any runner.
+    try:
+        ensure_unlinked_scan_path(root)
+    except ValueError:
+        return None
+
     tests = root / 'tests'
     directory_name = 'tests'
     if tests.is_symlink():
