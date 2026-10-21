@@ -60,7 +60,19 @@ class _NoDoctypeTreeBuilder(ET.TreeBuilder):
 
 def parse_xml_without_doctype(content: str) -> ET.Element:
     """Return an XML root while refusing DTDs and oversized XML trees."""
+    if not isinstance(content, str):
+        raise ValueError('XML input must be a string')
+    # The parser works on UTF-8, not character counts. Multi-byte text could
+    # previously exceed the advertised 2 MiB budget without being rejected.
+    # Check characters first to avoid encoding obviously oversized inputs.
     if len(content) > MAX_XML_INPUT_LENGTH:
-        raise ValueError(f'XML input exceeds {MAX_XML_INPUT_LENGTH} character limit')
+        raise ValueError(f'XML input exceeds {MAX_XML_INPUT_LENGTH} byte limit')
+    try:
+        encoded_length = len(content.encode('utf-8'))
+    except UnicodeEncodeError:
+        # Avoid propagating exceptions containing fragments of untrusted XML.
+        raise ValueError('XML input must contain valid Unicode') from None
+    if encoded_length > MAX_XML_INPUT_LENGTH:
+        raise ValueError(f'XML input exceeds {MAX_XML_INPUT_LENGTH} byte limit')
     parser = ET.XMLParser(target=_NoDoctypeTreeBuilder())
     return ET.fromstring(content, parser=parser)
