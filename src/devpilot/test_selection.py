@@ -50,7 +50,9 @@ ECOSYSTEM_ALIASES = {
     'c': 'cpp',
     'c++': 'cpp',
     'c/c++': 'cpp',
+    'c/cpp': 'cpp',
     'cxx': 'cpp',
+    'cplusplus': 'cpp',
 }
 
 
