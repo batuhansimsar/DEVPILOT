@@ -48,3 +48,14 @@ func TestCheckAllowsBoundaryDNSNamesAndIPAddresses(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckRejectsOversizedHostBeforeParsing(t *testing.T) {
+	host := strings.Repeat("x", 1<<20)
+	got, err := Check(context.Background(), host, 443, time.Second)
+	if err == nil || got != (Result{}) {
+		t.Fatalf("oversized host accepted: err=%v result=%+v", err, got)
+	}
+	if strings.Contains(err.Error(), host) {
+		t.Fatal("validation error exposed untrusted host")
+	}
+}
