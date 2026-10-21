@@ -40,6 +40,10 @@ func safeDialError(err error) string {
 	if errors.As(err, &networkError) && networkError.Timeout() {
 		return "connection timed out"
 	}
+	// Raw OS timeout errors do not always satisfy net.Error.
+	if errors.Is(err, syscall.ETIMEDOUT) {
+		return "connection timed out"
+	}
 	if errors.Is(err, syscall.ECONNREFUSED) {
 		return "connection refused"
 	}
@@ -106,6 +110,11 @@ func validHostnameLength(host string) bool {
 func Check(ctx context.Context, host string, port int, timeout time.Duration) (Result, error) {
 	if ctx == nil {
 		return Result{}, fmt.Errorf("context must not be nil")
+	}
+	// Reject enormous input before repeated Unicode scans and address parsing.
+	// DNS names have a stricter limit below; this also bounds scoped IPv6.
+	if len(host) > 1024 {
+		return Result{}, fmt.Errorf("host exceeds maximum supported length")
 	}
 	if host == "" || host != strings.TrimSpace(host) || strings.IndexFunc(host, func(r rune) bool {
 		return unicode.IsControl(r) || unicode.Is(unicode.Cf, r)
