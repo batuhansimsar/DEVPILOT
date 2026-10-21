@@ -17,6 +17,7 @@ ECOSYSTEMS = {
     'java': 'Java',
     'scala': 'Scala',
     'swift': 'Swift',
+    'elixir': 'Elixir',
 }
 
 

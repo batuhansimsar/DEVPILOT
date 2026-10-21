@@ -43,6 +43,7 @@ LANGUAGES = {
     '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
     '.scala': 'Scala', '.sc': 'Scala', '.sbt': 'Scala',
+    '.ex': 'Elixir', '.exs': 'Elixir',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
     '.cc': 'C++', '.cxx': 'C++', '.hpp': 'C++', '.hh': 'C++',
     '.hxx': 'C++', '.ixx': 'C++', '.cppm': 'C++', '.ipp': 'C++',
@@ -62,7 +63,7 @@ KEY_FILES = frozenset({
     'uv.lock', 'poetry.lock', 'go.work',
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
-    'Package.swift', 'Package.resolved',
+    'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -115,6 +116,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Scala')
     if 'Package.swift' in names:
         types.add('Swift')
+    if 'mix.exs' in names:
+        types.add('Elixir')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
@@ -231,6 +234,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append(ruby_command)
     if 'Package.swift' in names:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
+    if 'mix.exs' in names:
+        commands.append({'ecosystem': 'Elixir', 'argv': ['mix', 'test'], 'reason': 'mix.exs'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
     dotnet_target = dotnet_test_target(names)
@@ -258,7 +263,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix',
     }
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
