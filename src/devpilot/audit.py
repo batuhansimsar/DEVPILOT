@@ -13,6 +13,7 @@ from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
 from .sentry_credentials import is_sentry_auth_config
 from .agent_credentials import is_agent_credential_location
+from .sentry_credentials import is_sentry_auth_config
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
@@ -128,6 +129,7 @@ def _potential_secret(path: str) -> bool:
                  for suffix in _TERRAFORM_SENSITIVE_SUFFIXES)):
         return True
     found = (is_cargo_credential_location(parts) or is_agent_credential_location(parts)
+            or is_sentry_auth_config(parts)
             or is_sentry_auth_config(parts)
             or name in _PRIVATE_NAMES
             or name.endswith(('.kubeconfig', '.kubeconfig.yml', '.kubeconfig.yaml'))
