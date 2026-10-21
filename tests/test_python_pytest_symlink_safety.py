@@ -71,7 +71,7 @@ class PytestSymlinkSafetyTests(unittest.TestCase):
             nested.mkdir(parents=True)
             (nested / 'test_ok.py').touch()
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
-                self.assertEqual(python_test_command(root)['argv'][-2:], ['-m', 'pytest'])
+                self.assertEqual(python_test_command(root)['argv'][-3:], ['-m', 'pytest', 'tests'])
 
 
 if __name__ == '__main__':

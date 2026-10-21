@@ -52,9 +52,9 @@ def _pytest_suites_are_safe(root: Path) -> bool:
     """Do not propose pytest for linked or uninspectable conventional suites.
 
     Unlike unittest discovery, pytest walks test trees recursively, including
-    symlinked files and directories. Scan both conventional suite names, since
-    invoking pytest without explicit paths can collect either one. A bounded
-    scan avoids unlimited work on untrusted project trees.
+    symlinked files and directories. Scan both conventional suite names because
+    both may be passed as explicit collection targets. A bounded scan avoids
+    unlimited work on untrusted project trees.
     """
     # Bare pytest also imports root-level conftest.py/configuration and
     # collects root test modules. A linked entry point could execute code
@@ -145,7 +145,13 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     if tests is not None and PathFinder.find_spec('pytest') is not None and _pytest_suites_are_safe(root):
         if not _pytest_suites_are_safe(root):
             return None
-        return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+        # Only collect trees that were inspected above. An implicit pytest
+        # invocation would also discover root-level tests and other directories
+        # containing linked or otherwise untrusted test modules.
+        suites = ['tests'] if directory_name == 'tests' else ['test']
+        if directory_name == 'tests' and (root / 'test').is_dir():
+            suites.append('test')
+        return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', *suites],
                 'reason': f'{directory_name} directory (pytest importable)'}
     if tests is not None and not _has_unittest_tests(tests):
         fallback = root / 'test'

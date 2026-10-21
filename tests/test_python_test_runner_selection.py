@@ -18,7 +18,7 @@ class PythonTestRunnerSelectionTests(unittest.TestCase):
                 with patch('subprocess.Popen') as popen:
                     command = python_test_command(root)
             self.assertEqual(command, {
-                'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+                'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', 'tests'],
                 'reason': 'tests directory (pytest importable)',
             })
             spec.assert_called_once_with('pytest')

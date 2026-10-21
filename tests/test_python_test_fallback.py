@@ -43,7 +43,7 @@ class PythonTestFallbackTests(unittest.TestCase):
             self.make_project(root)
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
                 command = python_test_command(root)
-            self.assertEqual(command['argv'], [sys.executable, '-m', 'pytest'])
+            self.assertEqual(command['argv'], [sys.executable, '-m', 'pytest', 'tests', 'test'])
             self.assertIn('tests directory', command['reason'])
 
     def test_does_not_follow_linked_fallback(self):
