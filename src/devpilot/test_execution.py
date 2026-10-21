@@ -53,7 +53,9 @@ def execute_test_commands(
         # Keep each command's report independent of a custom runner's mutable
         # buffer, including nested metadata such as captured output chunks.
         try:
-            item['result'] = deepcopy(result)
+            # Normalize dict subclasses first: overridden get()/pop() and copy
+            # hooks must not spoof a successful exit or break report handling.
+            item['result'] = deepcopy(dict(result))
         except Exception:
             # A custom runner may return objects whose copy hooks raise.
             # Treat the result as a failed command without exposing private data.
