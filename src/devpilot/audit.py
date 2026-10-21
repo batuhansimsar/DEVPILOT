@@ -11,6 +11,7 @@ from .azure_functions_settings import is_azure_functions_local_settings
 from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .secret_audit import _tracked_paths
 from .editor_backups import strip_editor_backups
+from .envrc import is_sensitive_direnv_file
 from .cargo_credentials import is_cargo_credential_location
 from .bundler_credentials import is_bundler_credential_location
 from .sentry_credentials import is_sentry_auth_config
@@ -117,6 +118,8 @@ def _potential_secret(path: str) -> bool:
         and name.endswith(_ENV_TEMPLATE_SUFFIXES)
     ):
         return False
+    if is_sensitive_direnv_file(name):
+        return True
     # Cloudflare Workers loads local secrets from .dev.vars[.environment].
     # Example/template files are safe to track and should not trigger alerts.
     if name == '.dev.vars' or name.startswith('.dev.vars.'):
