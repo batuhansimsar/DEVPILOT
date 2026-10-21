@@ -60,7 +60,7 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('.pip', 'pip.conf'),
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
     # uv user configuration may embed authenticated private index URLs.
-    ('.config', 'uv', 'uv.toml'), ('uv', 'uv.toml'),
+    ('uv', 'uv.toml'),
     # Build-tool settings can contain plaintext package registry credentials.
     ('.m2', 'settings.xml'), ('.gradle', 'gradle.properties'),
     ('nuget', 'nuget.config'),
@@ -74,6 +74,7 @@ _SENSITIVE_LOCATIONS = frozenset({
     ('.streamlit', 'secrets.toml'),
 })
 _SENSITIVE_CLI_LOCATIONS = frozenset({
+    ('.config', 'uv', 'uv.toml'),
     ('.config', 'gh', 'hosts.yml'),
     # Copilot editor integrations persist OAuth credentials in these JSON stores.
     ('.config', 'github-copilot', 'apps.json'),
