@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .version import cli_version
 from .audit import audit_tracked_files
 from .console import escape_terminal
 from .git_output import format_git_status
@@ -30,7 +31,7 @@ def _add_repo_flags(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog='devpilot', description='Developer Control Center — diagnose projects safely')
-    parser.add_argument('--version', action='version', version='devpilot 0.1.0')
+    parser.add_argument('--version', action='version', version=cli_version())
     sub = parser.add_subparsers(dest='command', required=True)
     for name, description in (
         ('doctor', 'Check required developer tools and project configuration'),
