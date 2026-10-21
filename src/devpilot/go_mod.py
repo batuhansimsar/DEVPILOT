@@ -65,10 +65,11 @@ def _without_go_comments(content: str) -> str:
             index += 1
             continue
         if content.startswith('//', index):
-            end = content.find('\n', index)
-            if end == -1:
-                output.append(' ' * (len(content) - index))
-                break
+            # A comment ends at a *physical* CR or LF boundary. A CR-only
+            # go.mod must not hide the following declaration.
+            end = index + 2
+            while end < len(content) and content[end] not in '\r\n':
+                end += 1
             output.append(' ' * (end - index))
             index = end
             continue
@@ -122,7 +123,11 @@ def parse_go_requirements(content: str) -> list[str]:
     names: set[str] = set()
     in_require_block = False
     # Reject truncated comments instead of silently reporting an empty inventory.
-    for raw in _without_go_comments(content.removeprefix('\ufeff')).splitlines():
+    # splitlines() treats Unicode separators (NEL, LS, PS, etc.) as real
+    # newlines, inventing requirements inside malformed go.mod source.
+    # Only CR and LF delimit physical lines.
+    physical_lines = _without_go_comments(content.removeprefix('\ufeff'))
+    for raw in physical_lines.replace('\r\n', '\n').replace('\r', '\n').split('\n'):
         line = raw.strip()
         if not line:
             continue
