@@ -14,6 +14,12 @@ var supplementalSourceLanguages = map[string]string{
 	".gql":     "GraphQL",
 	".sol":     "Solidity",
 	".nix":     "Nix",
+	".wgsl":    "WGSL",
+	".glsl":    "GLSL",
+	".vert":    "GLSL",
+	".frag":    "GLSL",
+	".hlsl":    "HLSL",
+	".metal":   "Metal Shading Language",
 }
 
 func supplementalSourceLanguage(name string) (string, bool) {
