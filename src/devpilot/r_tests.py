@@ -67,8 +67,9 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
                 return None
             if candidate.is_symlink():
                 return None
+            # testthat accepts lower-case .r scripts as well as .R files.
             if (candidate.name.startswith('test-')
-                    and candidate.name.endswith('.R') and candidate.is_file()):
+                    and candidate.suffix in ('.R', '.r') and candidate.is_file()):
                 has_test = True
         if not has_test:
             return None
