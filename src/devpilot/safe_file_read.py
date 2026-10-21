@@ -20,6 +20,10 @@ def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
     read. O_NONBLOCK prevents a substituted FIFO from stalling the process;
     descriptor checks protect platforms without O_NOFOLLOW.
     """
+    # Reject malformed arguments before touching the filesystem. Fractional
+    # budgets can raise in read(); bool is an int subclass, not a byte limit.
+    if not isinstance(path, Path) or type(max_bytes) is not int or max_bytes < 0:
+        return None
     try:
         initial = path.lstat()
         if not stat.S_ISREG(initial.st_mode) or initial.st_size > max_bytes:
@@ -35,5 +39,6 @@ def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
             if len(content) > max_bytes or _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None
         return content
-    except OSError:
+    except (OSError, ValueError, TypeError):
+        # Malformed paths (including NUL) must fail closed without leaking text.
         return None
