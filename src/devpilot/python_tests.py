@@ -41,9 +41,9 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     """Discover a useful test command without executing project code.
 
     Prefer the conventional ``tests/`` folder, but recognize singular ``test/``
-    folders with a discoverable Python test module too. For ``test/`` the
-    module requirement also avoids mistaking another language's test folder
-    for a Python suite. Do not follow linked directories or test modules.
+    folders with a discoverable Python test module too. If ``tests/`` contains
+    no discoverable unittest tests, use ``test/`` as a fallback when pytest is
+    unavailable. Never follow linked test directories or test modules.
 
     A pytest launcher on PATH may belong to a different virtual environment.
     Since DevPilot invokes sys.executable -m pytest, inspect that interpreter's
@@ -63,7 +63,12 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
                 'reason': f'{directory_name} directory (pytest importable)'}
     if not _has_unittest_tests(tests):
-        return None
+        if directory_name != 'tests':
+            return None
+        fallback = root / 'test'
+        if fallback.is_symlink() or not fallback.is_dir() or not _has_unittest_tests(fallback):
+            return None
+        directory_name = 'test'
     return {'ecosystem': 'Python',
             'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', directory_name],
             'reason': f'{directory_name} directory'}
