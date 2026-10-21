@@ -38,6 +38,11 @@ def format_git_status(report: dict[str, Any]) -> str:
         warnings.append("Git status unavailable (worktree state inconclusive)")
     elif not stdout and report.get("dirty") is True:
         warnings.append("Git status reports changes but output is unavailable")
+    elif not stdout and report.get('exit_code') == 0 and 'dirty' not in report:
+        # --porcelain=v1 --branch always prints a branch header, even for a
+        # clean worktree. Missing output without an explicit clean verdict is
+        # incomplete, not evidence that the repository has no changes.
+        warnings.append('Git status unavailable (empty porcelain output)')
     elif not stdout and diagnostic:
         warnings.append(escape_terminal(str(diagnostic)))
 
