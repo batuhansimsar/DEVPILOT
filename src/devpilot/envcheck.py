@@ -80,6 +80,10 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
         return None, 'exceeds 256 KiB limit'
     # Never report success for a corrupted dotenv file: a lossy decode can
     # invent an apparently valid key inventory from invalid UTF-8 bytes.
+    # NUL bytes make dotenv content invalid even when the key names look
+    # correct. Fail closed without logging or returning secret values.
+    if b'\x00' in raw:
+        return None, 'contains NUL byte'
     try:
         content = raw.decode('utf-8-sig')
     except UnicodeDecodeError:
