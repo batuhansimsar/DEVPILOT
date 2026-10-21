@@ -15,6 +15,11 @@ def environment_status(root: Path) -> tuple[dict[str, Any], bool]:
     return result, result['status'] in ('matched', 'local_absent', 'no_template')
 
 
+def _safe_count(value: object) -> str:
+    """Only render nonnegative integer counts from potentially forged reports."""
+    return str(value) if type(value) is int and value >= 0 else 'unknown'
+
+
 def format_environment(result: dict[str, Any]) -> str:
     """Render variable names and counts safely, never environment values.
 
@@ -23,14 +28,14 @@ def format_environment(result: dict[str, Any]) -> str:
     """
     status = result['status']
     if status == 'matched':
-        return (f"Environment: all {result['expected_count']} names in "
+        return (f"Environment: all {_safe_count(result['expected_count'])} names in "
                 f"{escape_terminal(result['template'])} declared in .env (values not checked)")
     if status == 'missing_keys':
         missing = ', '.join(escape_terminal(key) for key in result['missing_keys'])
         return f"Environment: names missing from .env: {missing} (may be supplied externally)"
     if status == 'local_absent':
         return (f"Environment: {escape_terminal(result['template'])} declares "
-                f"{result['expected_count']} names; local .env is absent")
+                f"{_safe_count(result['expected_count'])} names; local .env is absent")
     if status == 'no_template':
         return 'Environment: no ' + ', '.join(TEMPLATES) + ' found'
     return (f"Environment: unable to inspect {escape_terminal(result['template'])} "
