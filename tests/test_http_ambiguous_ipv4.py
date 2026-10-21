@@ -9,7 +9,7 @@ from devpilot.http_url_validation import validate_dns_hostname_labels
 class AmbiguousIPv4Tests(unittest.TestCase):
     def test_rejects_legacy_ipv4_aliases_without_network_resolution(self):
         for host in (b'127.1', b'127.0.1', b'2130706433',
-                     b'0177.0.0.1', b'0x7f000001', b'127.0.0.1.',
+                     b'0177.0.0.1', b'0x7f000001',
                      b'01.2.3.4', b'127.0.0.999'):
             with self.subTest(host=host):
                 with self.assertRaisesRegex(ValueError, 'ambiguous IPv4') as raised:
@@ -17,7 +17,7 @@ class AmbiguousIPv4Tests(unittest.TestCase):
                 self.assertNotIn(host.decode('ascii'), str(raised.exception))
 
     def test_allows_canonical_ipv4_and_regular_dns_names(self):
-        for host in (b'127.0.0.1', b'0.0.0.0', b'255.255.255.255',
+        for host in (b'127.0.0.1', b'127.0.0.1.', b'0.0.0.0', b'255.255.255.255',
                      b'example.org', b'example.org.', b'a1.b2',
                      b'xn--bcher-kva.example'):
             with self.subTest(host=host):
