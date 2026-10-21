@@ -107,6 +107,11 @@ func Inspect(ctx context.Context, run DockerCLI) Daemon {
 	if err != nil {
 		return Daemon{Installed: true, Detail: err.Error()}
 	}
+	// Alternate DockerCLI implementations must obey the same output budget
+	// as SystemCLI before we allocate another copy while parsing it.
+	if len(out) > maxOutput {
+		return Daemon{Installed: true, Detail: "Docker returned oversized server version"}
+	}
 	version := strings.TrimSpace(string(out))
 	if !validDockerServerVersion(version) {
 		return Daemon{Installed: true, Detail: "Docker returned invalid server version"}
@@ -125,6 +130,11 @@ func List(ctx context.Context, run DockerCLI) Containers {
 	out, err := run(ctx, "ps", "--format", "{{json .}}")
 	if err != nil {
 		return Containers{Items: []json.RawMessage{}, Detail: err.Error()}
+	}
+	// Callers may provide an alternate CLI that does not apply SystemCLI's
+	// streaming size limit. Reject oversized JSONL before splitting it.
+	if len(out) > maxOutput {
+		return Containers{Items: []json.RawMessage{}, Detail: "Docker returned oversized container metadata"}
 	}
 	result := Containers{Available: true, Items: []json.RawMessage{}}
 	for _, line := range bytes.Split(out, []byte("\n")) {
