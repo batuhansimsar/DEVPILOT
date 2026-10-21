@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import sys
 from pathlib import Path
 
 
@@ -22,7 +23,7 @@ def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
     """
     # Reject malformed arguments before touching the filesystem. Fractional
     # budgets can raise in read(); bool is an int subclass, not a byte limit.
-    if not isinstance(path, Path) or type(max_bytes) is not int or max_bytes < 0:
+    if not isinstance(path, Path) or type(max_bytes) is not int or max_bytes < 0 or max_bytes >= sys.maxsize:
         return None
     try:
         initial = path.lstat()
