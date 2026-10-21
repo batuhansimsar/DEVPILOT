@@ -12,8 +12,8 @@ import (
 // is a symbolic link. The error does not reveal filesystem paths.
 var ErrLinkedPath = errors.New("project path contains a symbolic link")
 
-// EnsureUnlinkedPath checks every component of an absolute scan path, including
-// its ancestors. Callers must subsequently use that same absolute path for
+// EnsureUnlinkedPath verifies that the selected scan root is a directory
+// and checks every component of its absolute path, including its ancestors. Callers must subsequently use that same absolute path for
 // filesystem operations, rather than the original uncleaned user input.
 //
 // On macOS, /tmp, /var and /etc are standard root-level aliases pointing into
@@ -31,6 +31,11 @@ func EnsureUnlinkedPath(abs string) error {
 		}
 		if info.Mode()&os.ModeSymlink != 0 && !allowedMacOSAlias(current, abs, filesystemRoot) {
 			return ErrLinkedPath
+		}
+		// Fail closed even if a caller omits its own directory check. A file,
+		// socket, or device cannot be a valid directory scan root.
+		if current == abs && !info.IsDir() {
+			return errors.New("project path is not a directory")
 		}
 		if current == filesystemRoot {
 			break

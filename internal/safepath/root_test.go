@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -43,5 +44,21 @@ func TestEnsureUnlinkedPathRejectsRelativeAndMissingPaths(t *testing.T) {
 		if err := EnsureUnlinkedPath(path); err == nil {
 			t.Errorf("invalid path %q accepted", path)
 		}
+	}
+}
+
+func TestEnsureUnlinkedPathRejectsNonDirectoryRootWithoutLeakingPath(t *testing.T) {
+	base := t.TempDir()
+	file := filepath.Join(base, "private-project-name.txt")
+	if err := os.WriteFile(file, []byte("data"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnsureUnlinkedPath(file); err == nil {
+		t.Fatal("regular file accepted as project root")
+	} else if strings.Contains(err.Error(), base) || strings.Contains(err.Error(), filepath.Base(file)) {
+		t.Fatalf("path leaked into diagnostic: %v", err)
+	}
+	if err := EnsureUnlinkedPath(base); err != nil {
+		t.Fatalf("parent directory rejected: %v", err)
 	}
 }
