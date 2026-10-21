@@ -12,42 +12,32 @@ _JULIA_PROJECT_FILES = frozenset({'Project.toml', 'JuliaProject.toml'})
 _JULIA_MANIFEST_FILES = frozenset({'Manifest.toml', 'JuliaManifest.toml'})
 _VERSIONED_JULIA_MANIFEST = re.compile(r'Manifest-v[0-9]+\.[0-9]+\.toml\Z')
 _MAX_TEST_TREE_ENTRIES = 4096
+_MAX_PACKAGE_ROOT_ENTRIES = 10_000
 
 
 def _safe_package_manifests(root: Path, names: set[str]) -> bool:
-    """Avoid loading package lockfiles through links or special filesystem nodes.
+    """Reject unsafe Julia lockfiles, even if root discovery omits symlinks.
 
-    Julia's Pkg can use a version-specific Manifest-vX.Y.toml in preference
-    to Manifest.toml. Check those advertised by the root scan as well as both
-    conventional manifest names, including dangling symlinks.
+    The caller's root filename inventory can omit symlinks, but Julia may
+    still load a version-specific Manifest-vX.Y.toml. Inspect root entries
+    directly and fail closed on enumeration errors or excessive entries.
     """
-    candidates = _JULIA_MANIFEST_FILES | {
-        name for name in names if _VERSIONED_JULIA_MANIFEST.fullmatch(name)
-    }
-    for name in candidates:
-        manifest = root / name
-        if manifest.is_symlink() or (manifest.exists() and not manifest.is_file()):
-            return False
-
-    # Root scans can omit symlinks, but Julia may load a version-specific
-    # Manifest-vX.Y.toml regardless of which filenames were advertised.
-    # Inspect directory entries directly without following links, with a bound
-    # on hostile directories so discovery cannot be forced into a long walk.
+    candidates = set(_JULIA_MANIFEST_FILES)
+    candidates.update(name for name in names if _VERSIONED_JULIA_MANIFEST.fullmatch(name))
     try:
         with os.scandir(root) as entries:
-            inspected = 0
-            for entry in entries:
-                inspected += 1
-                if inspected > _MAX_TEST_TREE_ENTRIES:
+            for count, entry in enumerate(entries, 1):
+                if count > _MAX_PACKAGE_ROOT_ENTRIES:
                     return False
-                if _VERSIONED_JULIA_MANIFEST.fullmatch(entry.name) and (
-                    entry.is_symlink() or not entry.is_file(follow_symlinks=False)
-                ):
-                    return False
+                if _VERSIONED_JULIA_MANIFEST.fullmatch(entry.name):
+                    candidates.add(entry.name)
+        for name in candidates:
+            manifest = root / name
+            if manifest.is_symlink() or (manifest.exists() and not manifest.is_file()):
+                return False
     except OSError:
         return False
     return True
-
 
 def _safe_test_tree(test_dir: Path) -> bool:
     """Fail closed on linked, unreadable, or excessively large Julia test trees.
