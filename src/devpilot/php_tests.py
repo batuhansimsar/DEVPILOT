@@ -26,10 +26,15 @@ def _inspect_php_test_tree(tests: Path) -> tuple[bool, bool]:
                 if seen > _MAX_TEST_ENTRIES or path.is_symlink():
                     # Both runners can recursively discover linked files.
                     return False, False
-                if path.is_file() and path.name.endswith('Test.php'):
-                    has_tests = True
+                if path.is_file():
+                    if path.name.endswith('Test.php'):
+                        has_tests = True
                 elif path.is_dir():
                     pending.append(path)
+                else:
+                    # FIFOs, sockets and device nodes cannot be safely scanned
+                    # by a test runner and must not count as ordinary fixtures.
+                    return False, False
     except OSError:
         return False, False
     return True, has_tests
