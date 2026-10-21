@@ -4,13 +4,16 @@ from __future__ import annotations
 
 
 def tls_server_name(dial_host: str) -> str:
-    """Remove an optional DNS root dot for SNI and certificate verification.
+    """Canonicalize a DNS or IPv6 dial target for certificate verification.
 
-    DNS accepts ``example.org.`` as an absolute form of ``example.org``, but
-    certificates normally list the latter. Keep the original input for TCP
-    resolution and user-facing reports. IPv6 literals are never rewritten.
-    The caller must validate the host before using this helper.
+    DNS root dots are not part of certificate names. Likewise, an IPv6 zone
+    identifier (e.g. ``%eth0``) selects a local interface for dialing, not an
+    address component that can appear in an IP-address certificate SAN.
+    Keep the original host for TCP resolution and reports. The caller must
+    validate the host before using this helper.
     """
-    if dial_host.endswith('.') and ':' not in dial_host:
+    if ':' in dial_host:
+        return dial_host.partition('%')[0]
+    if dial_host.endswith('.'):
         return dial_host[:-1]
     return dial_host
