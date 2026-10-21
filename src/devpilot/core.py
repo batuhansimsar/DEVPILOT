@@ -65,6 +65,7 @@ KEY_FILES = frozenset({
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
+    'build.zig', 'build.zig.zon',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -115,6 +116,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Go')
     if 'build.sbt' in names:
         types.add('Scala')
+    if names & {'build.zig', 'build.zig.zon'}:
+        types.add('Zig')
     if names & {'deps.edn', 'project.clj'}:
         types.add('Clojure')
     if 'Package.swift' in names:
@@ -233,6 +236,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
     if 'build.sbt' in names:
         commands.append({'ecosystem': 'Scala', 'argv': ['sbt', 'test'], 'reason': 'build.sbt'})
+    if 'build.zig' in names:
+        commands.append({'ecosystem': 'Zig', 'argv': ['zig', 'build', 'test'], 'reason': 'build.zig'})
     # tools.deps does not mandate a test alias. Leiningen defines `lein test`.
     if 'project.clj' in names:
         commands.append({'ecosystem': 'Clojure', 'argv': ['lein', 'test'], 'reason': 'project.clj'})
@@ -270,7 +275,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Zig': 'zig',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'

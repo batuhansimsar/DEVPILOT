@@ -19,6 +19,7 @@ ECOSYSTEMS = {
     'clojure': 'Clojure',
     'swift': 'Swift',
     'elixir': 'Elixir',
+    'zig': 'Zig',
 }
 
 
