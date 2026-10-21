@@ -16,7 +16,8 @@ def is_r_manifest(filename: str) -> bool:
     if not filename.endswith('.Rproj'):
         return False
     stem = filename[:-len('.Rproj')]
-    return bool(stem and not stem.startswith('.') and not any(
-        char in '/\\' or ord(char) < 32 or ord(char) == 127
-        for char in filename
+    # Unsafe filename characters can alter terminal output (bidi controls,
+    # line separators, zero-width format characters) even without a slash.
+    return bool(stem and not stem.startswith('.') and all(
+        char not in '/\\' and char.isprintable() for char in filename
     ))
