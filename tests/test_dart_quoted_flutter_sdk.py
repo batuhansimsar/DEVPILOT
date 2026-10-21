@@ -28,11 +28,35 @@ class QuotedFlutterSDKTests(unittest.TestCase):
                 root = Path(folder)
                 (root / 'test').mkdir()
                 (root / 'pubspec.yaml').write_text(
-                    f'name: sample\ndependencies:\n  other:\n    sdk: {sdk}\n',
+                    f'name: sample\ndependencies:\n  flutter:\n    sdk: {sdk}\n',
                     encoding='utf-8',
                 )
                 command = dart_test_command(root, {'pubspec.yaml'})
                 self.assertEqual(command['argv'], ['dart', 'test'])
+
+    def test_crlf_flutter_sdk_and_inline_comment_are_recognized(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'test').mkdir()
+            (root / 'pubspec.yaml').write_bytes(
+                b'name: sample\r\ndependencies:\r\n'
+                b'  flutter: # SDK package\r\n    sdk: "flutter" # quoted\r\n'
+            )
+            self.assertEqual(
+                dart_test_command(root, {'pubspec.yaml'})['argv'], ['flutter', 'test']
+            )
+
+    def test_flutter_sdk_name_outside_dependencies_is_ignored(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'test').mkdir()
+            (root / 'pubspec.yaml').write_text(
+                'name: sample\ncustom_metadata:\n  flutter:\n    sdk: flutter\n',
+                encoding='utf-8',
+            )
+            self.assertEqual(
+                dart_test_command(root, {'pubspec.yaml'})['argv'], ['dart', 'test']
+            )
 
 
 if __name__ == '__main__':
