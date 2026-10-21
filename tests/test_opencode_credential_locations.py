@@ -12,6 +12,8 @@ class OpenCodeCredentialLocationTests(unittest.TestCase):
             ('home', 'user', '.local', 'share', 'opencode', 'auth.json'),
             ('data', 'opencode', 'mcp-auth.json'),
             ('home', 'user', '.local', 'share', 'opencode', 'opencode.db'),
+            ('opencode', 'opencode.db-wal'),
+            ('opencode', 'opencode.db-journal'),
         ):
             with self.subTest(path=path):
                 self.assertTrue(is_agent_credential_location(path))
@@ -26,6 +28,7 @@ class OpenCodeCredentialLocationTests(unittest.TestCase):
             ('opencode', 'opencode.db.template'),
             ('opencode', 'sessions.db'),
             ('other-tool', 'opencode.db'),
+            ('other-tool', 'opencode.db-wal'),
         ):
             with self.subTest(path=path):
                 self.assertFalse(is_agent_credential_location(path))
