@@ -48,9 +48,13 @@ def validate_dns_hostname_labels(hostname: bytes) -> None:
     # but reject ambiguous all-numeric DNS names before an OS resolver can
     # reinterpret them as legacy IPv4 addresses. Avoid DNS/network lookups.
     if len(labels) <= 4 and all(_LEGACY_IPV4_LABEL.fullmatch(label) for label in labels):
+        # A terminal root dot does not change a canonical IPv4 address.
+        # Strip only that optional dot before the strict canonicality check;
+        # abbreviated, octal, and hexadecimal aliases still fail validation.
+        numeric_host = hostname[:-1] if hostname.endswith(b'.') else hostname
         try:
-            canonical_ipv4 = ipaddress.IPv4Address(hostname.decode('ascii'))
+            canonical_ipv4 = ipaddress.IPv4Address(numeric_host.decode('ascii'))
         except ValueError:
             canonical_ipv4 = None
-        if canonical_ipv4 is None or str(canonical_ipv4).encode('ascii') != hostname:
+        if canonical_ipv4 is None or str(canonical_ipv4).encode('ascii') != numeric_host:
             raise ValueError('URL host contains an ambiguous IPv4 address')
