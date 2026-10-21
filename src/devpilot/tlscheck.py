@@ -14,6 +14,16 @@ from .tls_server_name import tls_server_name
 
 # Hostnames (rather than DNS record owner names) use ASCII LDH labels.
 _DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
+# Bound raw input before scanning Unicode or invoking the IDNA codec. DNS
+# names have much smaller wire limits, but IDNA can expand Unicode characters.
+MAX_TLS_HOST_LENGTH = 1024
+
+
+def _validate_host_length(host: object) -> None:
+    """Reject unreasonably large hostnames without exposing their contents."""
+    if isinstance(host, str) and len(host) > MAX_TLS_HOST_LENGTH:
+        raise ValueError(f'host exceeds {MAX_TLS_HOST_LENGTH}-character limit')
+
 
 
 class _TLSBudgetExhausted(TimeoutError):
@@ -43,6 +53,7 @@ def _tls_dial_host(host: str) -> str:
     Reject URL-like values and embedded ports before any DNS or TCP activity.
     Keep the original input for reporting while dialing the normalized host.
     """
+    _validate_host_length(host)
     if not isinstance(host, str) or not host or any(
         char.isspace() or not char.isprintable() for char in host
     ):
