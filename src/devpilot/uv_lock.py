@@ -6,6 +6,8 @@ source URLs, hashes, and other metadata are deliberately ignored.
 
 from __future__ import annotations
 
+from .toml_input import validate_utf8_toml_size
+
 import re
 
 try:
@@ -29,8 +31,8 @@ def parse_uv_lock(content: str) -> list[str]:
     make the reported dependency inventory misleading. Never reflect the
     original TOML or an untrusted package name into exception messages.
     """
-    if not isinstance(content, str) or len(content) > MAX_UV_LOCK_INPUT_CHARS:
-        raise ValueError('uv.lock input exceeds safe size limit or is invalid')
+    validate_utf8_toml_size(content, MAX_UV_LOCK_INPUT_CHARS,
+                            'uv.lock input exceeds safe size limit or is invalid')
     try:
         # The scanner reads UTF-8-SIG, but direct library callers may hand us
         # decoded text that still includes a UTF-8 byte-order mark.
