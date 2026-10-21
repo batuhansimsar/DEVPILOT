@@ -16,6 +16,7 @@ ECOSYSTEMS = {
     'dotnet': '.NET',
     'java': 'Java',
     'scala': 'Scala',
+    'clojure': 'Clojure',
     'swift': 'Swift',
     'elixir': 'Elixir',
 }
