@@ -268,6 +268,26 @@ func Inspect(root string) (Report, error) {
 		tool("deno", "Deno runtime")
 	}
 
+
+	// Discover standard JVM build systems without executing build scripts or
+	// wrappers. Conflicting Maven and Gradle manifests are ambiguous.
+	if jvm := discoverJVMBuild(abs); jvm.Found {
+		language("Java/Kotlin")
+		if jvm.Conflict {
+			add("warning", "jvm-build-conflict", "Both Maven and Gradle build files were found; JVM test runner is ambiguous", "Keep only the authoritative build manifest or choose a test command explicitly.")
+		} else {
+			framework(jvm.Tool)
+			executable := "mvn"
+			if jvm.Tool == "Gradle" {
+				executable = "gradle"
+			}
+			tool(executable, jvm.Tool+" build tool")
+			if r.Tests == nil {
+				r.Tests = &TestCommand{Executable: executable, Arguments: []string{"test"}}
+			}
+		}
+	}
+
 	dotnet, err := discoverDotnet(abs)
 	if err != nil {
 		add("warning", "dotnet-discovery-failed", "Cannot inspect .NET project entries: "+err.Error(), "Check directory access.")
