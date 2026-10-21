@@ -66,6 +66,7 @@ KEY_FILES = frozenset({
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
+    'pubspec.yaml', 'pubspec.lock',
     'build.zig', 'build.zig.zon',
 })
 MAX_FILES = 10000
@@ -123,6 +124,9 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Clojure')
     if 'Package.swift' in names:
         types.add('Swift')
+    # A Dart lockfile-only root is still a project, matching workspace discovery.
+    if names & {'pubspec.yaml', 'pubspec.lock'}:
+        types.add('Dart')
     # A Mix lockfile also identifies an Elixir workspace without mix.exs.
     if names & {'mix.exs', 'mix.lock'}:
         types.add('Elixir')
@@ -278,7 +282,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Julia': 'julia', 'Zig': 'zig',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
