@@ -43,6 +43,7 @@ LANGUAGES = {
     '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
     '.scala': 'Scala', '.sc': 'Scala', '.sbt': 'Scala',
+    '.clj': 'Clojure', '.cljs': 'Clojure', '.cljc': 'Clojure', '.edn': 'Clojure',
     '.ex': 'Elixir', '.exs': 'Elixir',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
     '.cc': 'C++', '.cxx': 'C++', '.hpp': 'C++', '.hh': 'C++',
@@ -55,7 +56,7 @@ LANGUAGES = {
 }
 KEY_FILES = frozenset({
     'package.json', 'deno.json', 'deno.jsonc', 'deno.lock', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
-    'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'build.gradle', 'build.gradle.kts',
+    'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'deps.edn', 'project.clj', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
@@ -114,6 +115,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Go')
     if 'build.sbt' in names:
         types.add('Scala')
+    if names & {'deps.edn', 'project.clj'}:
+        types.add('Clojure')
     if 'Package.swift' in names:
         types.add('Swift')
     # A Mix lockfile also identifies an Elixir workspace without mix.exs.
@@ -230,6 +233,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
     if 'build.sbt' in names:
         commands.append({'ecosystem': 'Scala', 'argv': ['sbt', 'test'], 'reason': 'build.sbt'})
+    # tools.deps does not mandate a test alias. Leiningen defines `lein test`.
+    if 'project.clj' in names:
+        commands.append({'ecosystem': 'Clojure', 'argv': ['lein', 'test'], 'reason': 'project.clj'})
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
@@ -266,6 +272,8 @@ def doctor_report(root: Path) -> dict[str, Any]:
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
         'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix',
     }
+    if 'Clojure' in found:
+        tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']
