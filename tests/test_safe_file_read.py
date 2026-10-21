@@ -33,6 +33,13 @@ class BoundedRegularFileTests(unittest.TestCase):
             outside = root / 'outside'
             outside.write_bytes(b'private data')
             path.write_bytes(b'original')
+            # Creating links may require elevated privileges on Windows.
+            probe = root / 'probe'
+            try:
+                probe.symlink_to(outside)
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unavailable')
+            probe.unlink()
             real_open = os.open
             def replace(path_arg, flags):
                 path.unlink()
