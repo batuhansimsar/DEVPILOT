@@ -16,7 +16,7 @@ SAFE_ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.def
 
 
 def tracked_environment_files(root: Path) -> list[str]:
-    """List staged or committed .env* files without unbounded Git buffering.
+    """List staged or committed dotenv files without unbounded Git buffering.
 
     Reuse the bounded, hook-disabled Git index reader. Missing Git, unreadable
     indexes and malformed/oversized results return no findings as before.
@@ -37,8 +37,9 @@ def tracked_environment_files(root: Path) -> list[str]:
     paths = raw.decode('utf-8', errors='surrogateescape').split('\0')
     return sorted({
         _printable(path) for path in paths if path and
-        (name := Path(path).name.lower()).startswith('.env') and not (
+        (name := Path(path).name.lower()) and
+        (name == '.env' or name.startswith('.env.') or name.endswith('.env') or '.env.' in name) and not (
             name in SAFE_ENV_NAMES or
-            (name.startswith('.env.') and name.endswith(SAFE_ENV_TEMPLATE_SUFFIXES))
+            name.endswith(SAFE_ENV_TEMPLATE_SUFFIXES)
         )
     })
