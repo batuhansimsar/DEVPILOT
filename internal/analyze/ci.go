@@ -28,6 +28,7 @@ func isCIConfig(path string) bool {
 		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
 		".semaphore/semaphore.yaml",
 		".teamcity/settings.kts", // TeamCity Kotlin DSL versioned settings.
+		"codefresh.yml", // Codefresh default root pipeline definition.
 		"wercker.yml": // Wercker's default pipeline definition.
 		return true
 	case ".cirrus.yml":
