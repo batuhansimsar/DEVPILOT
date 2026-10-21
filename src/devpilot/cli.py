@@ -20,6 +20,7 @@ from .core import analyze_project, command_result, doctor_report, docker_status,
 from .workspaces import discover_workspaces
 from .test_selection import ECOSYSTEMS, ECOSYSTEM_ALIASES, select_test_commands
 from .test_execution import execute_test_commands
+from .scan_status import scan_succeeded
 
 
 def _add_repo_flags(parser: argparse.ArgumentParser) -> None:
@@ -222,7 +223,7 @@ def main(argv: list[str] | None = None) -> int:
             success = not result['warnings']
         elif args.command == 'analyze':
             result = analyze_project(root)
-            success = not result['problems']
+            success = scan_succeeded(result)
         elif args.command == 'workspaces':
             if not 0 <= args.max_depth <= 50:
                 parser.error('--max-depth must be between 0 and 50')
@@ -230,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
                 parser.error('--max-directories must be between 1 and 100000')
             result = discover_workspaces(root, max_depth=args.max_depth,
                                          max_directories=args.max_directories)
-            success = not result.get('problems')
+            success = scan_succeeded(result)
         elif args.command == 'audit':
             result = audit_tracked_files(root)
             success = not result.get('error') and not result['candidates']
