@@ -13,6 +13,9 @@ MAX_XML_DEPTH = 128
 # Wide XML documents can exhaust memory without ever reaching the depth limit.
 # Count elements as they are opened so oversized manifests fail during parsing.
 MAX_XML_ELEMENTS = 100_000
+# Protect direct callers too: even a single text node can consume excessive
+# memory without exceeding either the element-count or nesting limit.
+MAX_XML_INPUT_LENGTH = 2 * 1024 * 1024
 
 
 class _NoDoctypeTreeBuilder(ET.TreeBuilder):
@@ -44,5 +47,7 @@ class _NoDoctypeTreeBuilder(ET.TreeBuilder):
 
 def parse_xml_without_doctype(content: str) -> ET.Element:
     """Return an XML root while refusing DTDs and oversized XML trees."""
+    if len(content) > MAX_XML_INPUT_LENGTH:
+        raise ValueError(f'XML input exceeds {MAX_XML_INPUT_LENGTH} character limit')
     parser = ET.XMLParser(target=_NoDoctypeTreeBuilder())
     return ET.fromstring(content, parser=parser)
