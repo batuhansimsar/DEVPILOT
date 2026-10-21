@@ -30,6 +30,40 @@ def _valid_package_description(path: Path) -> bool:
 
 
 
+def _safe_test_tree(tests: Path, suite: Path) -> bool:
+    """Inspect every test descendant before permitting testthat execution.
+
+    testthat helpers and fixtures can live in nested directories. A single
+    symlink anywhere beneath tests/ can escape the selected project; an
+    unreadable or oversized tree is inconclusive and must fail closed.
+    """
+    pending = [tests]
+    inspected = 0
+    has_test = False
+    try:
+        while pending:
+            directory = pending.pop()
+            for candidate in directory.iterdir():
+                inspected += 1
+                if inspected > _MAX_R_SUITE_ENTRIES or candidate.is_symlink():
+                    return False
+                if candidate.is_dir():
+                    pending.append(candidate)
+                elif candidate.is_file():
+                    # The standard testthat layout discovers test files at
+                    # tests/testthat/, not arbitrary fixture subdirectories.
+                    if (candidate.parent == suite
+                            and candidate.name.startswith(('test-', 'test_'))
+                            and candidate.suffix in ('.R', '.r')):
+                        has_test = True
+                else:
+                    # Do not approve FIFOs, sockets or other special nodes.
+                    return False
+    except OSError:
+        return False
+    return has_test
+
+
 def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     """Discover package tests, without reading or executing project R code.
 
@@ -53,28 +87,10 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     if (not _valid_package_description(description)
             or tests.is_symlink() or not tests.is_dir()
             or entry.is_symlink() or not entry.is_file()
-            or suite.is_symlink() or not suite.is_dir()):
+            or suite.is_symlink() or not suite.is_dir()
+            or not _safe_test_tree(tests, suite)):
         return None
 
-    try:
-        # testthat also sources helper/setup R scripts. A linked helper can
-        # execute code outside the selected project even when tests are local.
-        # Scan entries once and reject every linked suite entry, including
-        # lowercase R helpers and directories. Bound enormous suites.
-        has_test = False
-        for count, candidate in enumerate(suite.iterdir(), 1):
-            if count > _MAX_R_SUITE_ENTRIES:
-                return None
-            if candidate.is_symlink():
-                return None
-            # testthat accepts lower-case .r scripts as well as .R files.
-            if (candidate.name.startswith(('test-', 'test_'))
-                    and candidate.suffix in ('.R', '.r') and candidate.is_file()):
-                has_test = True
-        if not has_test:
-            return None
-    except OSError:
-        return None
 
     return {
         'ecosystem': 'R',
