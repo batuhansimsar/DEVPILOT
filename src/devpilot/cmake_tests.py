@@ -6,10 +6,16 @@ from pathlib import Path
 from typing import Any
 
 
-# CMake's conventional build directory comes first, followed by the default
-# CLion build directories. Keep this fixed rather than inspecting arbitrary
+# CMake's conventional build directory comes first, followed by common CLion
+# build configurations. Keep this fixed rather than inspecting arbitrary
 # directories (which might contain untrusted CTest configuration).
-_CTEST_BUILD_DIRS = ('build', 'cmake-build-debug', 'cmake-build-release')
+_CTEST_BUILD_DIRS = (
+    'build',
+    'cmake-build-debug',
+    'cmake-build-release',
+    'cmake-build-relwithdebinfo',
+    'cmake-build-minsizerel',
+)
 
 
 def cmake_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
