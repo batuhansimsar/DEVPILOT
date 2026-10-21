@@ -36,5 +36,34 @@ class TestResultSnapshotTests(unittest.TestCase):
                 self.assertEqual(json.loads(json.dumps(snapshot))['exit_code'], 0)
 
 
+class TestExecutionIntegrationTests(unittest.TestCase):
+    def test_json_report_survives_unknown_runner_metadata(self):
+        from pathlib import Path
+        from devpilot.test_execution import execute_test_commands
+
+        class NotSerializable:
+            def __deepcopy__(self, memo):
+                raise AssertionError('not meant to be copied')
+
+        commands = [{'argv': ['fake-test'], 'ecosystem': 'fake', 'reason': 'regression'}]
+        self.assertTrue(execute_test_commands(
+            commands, Path('/tmp'), 10,
+            lambda *args: {'exit_code': 0, 'stdout': 'ok', 'internal': NotSerializable()},
+        ))
+        self.assertEqual(json.loads(json.dumps(commands))[0]['result'],
+                         {'exit_code': 0, 'stdout': 'ok'})
+
+    def test_invalid_capture_metadata_makes_execution_fail(self):
+        from pathlib import Path
+        from devpilot.test_execution import execute_test_commands
+
+        commands = [{'argv': ['fake-test'], 'ecosystem': 'fake'}]
+        self.assertFalse(execute_test_commands(
+            commands, Path('/tmp'), 10,
+            lambda *args: {'exit_code': 0, 'stdout_truncated': object()},
+        ))
+        self.assertIn('invalid capture metadata', commands[0]['result']['error'])
+
+
 if __name__ == '__main__':
     unittest.main()
