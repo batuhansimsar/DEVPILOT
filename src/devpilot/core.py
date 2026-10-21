@@ -271,9 +271,6 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
-    julia_command = julia_test_command(root, names)
-    if julia_command is not None:
-        commands.append(julia_command)
     if 'Package.swift' in names:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     if 'mix.exs' in names:
