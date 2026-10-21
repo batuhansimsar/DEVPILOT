@@ -5,6 +5,10 @@ from __future__ import annotations
 import ast
 import re
 
+# Bound direct API calls before allocating a second copy of untrusted input.
+# Repository scanners have their own (smaller) manifest read limits.
+MAX_GO_MOD_INPUT_CHARS = 1_000_000
+
 # Go module path elements accept '+' and '~' in addition to letters, digits,
 # dots, underscores and hyphens. Go's modfile syntax is broader than package
 # identifiers; excluding these characters drops valid dependencies.
@@ -120,6 +124,8 @@ def parse_go_requirements(content: str) -> list[str]:
     Only require declarations are included: replace and exclude do not describe
     additional dependencies. Returned data contains names, no versions.
     """
+    if not isinstance(content, str) or len(content) > MAX_GO_MOD_INPUT_CHARS:
+        raise ValueError('go.mod input is invalid or exceeds safe size limit')
     names: set[str] = set()
     in_require_block = False
     # Reject truncated comments instead of silently reporting an empty inventory.
