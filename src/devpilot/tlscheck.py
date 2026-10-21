@@ -10,6 +10,8 @@ import ssl
 import time
 from typing import Any
 
+from .tls_server_name import tls_server_name
+
 # Hostnames (rather than DNS record owner names) use ASCII LDH labels.
 _DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
 
@@ -134,7 +136,7 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
             connection.settimeout(remaining)
             handshake_start = time.perf_counter()
             try:
-                secured_connection = context.wrap_socket(connection, server_hostname=dial_host)
+                secured_connection = context.wrap_socket(connection, server_hostname=tls_server_name(dial_host))
             finally:
                 # A failed handshake is still useful timing information.
                 result['tls_handshake_ms'] = round((time.perf_counter() - handshake_start) * 1000, 1)
