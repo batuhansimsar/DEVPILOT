@@ -59,12 +59,13 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     try:
         # testthat also sources helper/setup R scripts. A linked helper can
         # execute code outside the selected project even when tests are local.
-        # Scan directory entries once, with a bound against enormous suites.
+        # Scan entries once and reject every linked suite entry, including
+        # lowercase R helpers and directories. Bound enormous suites.
         has_test = False
         for count, candidate in enumerate(suite.iterdir(), 1):
             if count > _MAX_R_SUITE_ENTRIES:
                 return None
-            if candidate.name.endswith('.R') and candidate.is_symlink():
+            if candidate.is_symlink():
                 return None
             if (candidate.name.startswith('test-')
                     and candidate.name.endswith('.R') and candidate.is_file()):
