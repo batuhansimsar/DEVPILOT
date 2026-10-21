@@ -6,11 +6,15 @@ import (
 	"unicode/utf8"
 )
 
+// Cap terminal-facing branch names even if a repository contains a longer ref.
+// HEAD is untrusted workspace data and must not flood human-facing reports.
+const maxGitBranchNameBytes = 1024
+
 // parseGitHeadBranch extracts a symbolic branch reference without invoking git.
 // A project's .git/HEAD is untrusted input: control, invisible formatting,
 // and whitespace characters must never appear in terminal-facing findings.
 func parseGitHeadBranch(data []byte) (string, bool) {
-	if !utf8.Valid(data) {
+	if len(data) > len("ref: refs/heads/")+maxGitBranchNameBytes+2 || !utf8.Valid(data) {
 		return "", false
 	}
 	value := strings.TrimSuffix(string(data), "\n")
@@ -20,7 +24,7 @@ func parseGitHeadBranch(data []byte) (string, bool) {
 		return "", false
 	}
 	branch := strings.TrimPrefix(value, prefix)
-	if branch == "" || branch == "HEAD" || strings.Contains(branch, "\\") || strings.IndexFunc(branch, func(r rune) bool {
+	if len(branch) > maxGitBranchNameBytes || branch == "" || branch == "HEAD" || strings.Contains(branch, "\\") || strings.IndexFunc(branch, func(r rune) bool {
 		return unicode.IsControl(r) || unicode.Is(unicode.Cf, r) || unicode.IsSpace(r)
 	}) >= 0 {
 		return "", false
