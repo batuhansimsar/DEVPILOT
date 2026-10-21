@@ -20,7 +20,7 @@ func isCIConfig(path string) bool {
 		".circleci/config.yml", ".circleci/config.yaml",
 		"bitbucket-pipelines.yml", ".travis.yml", ".drone.yml", ".drone.yaml",
 		".buildkite/pipeline.yml", ".buildkite/pipeline.yaml",
-		".woodpecker.yml", ".woodpecker.yaml":
+		".woodpecker.yml", ".woodpecker.yaml", "bitrise.yml":
 		return true
 	default:
 		return false
