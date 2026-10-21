@@ -9,12 +9,12 @@ import (
 )
 
 func TestDotnetManifestExtensions(t *testing.T) {
-	for _, name := range []string{"App.csproj", "App.fsproj", "App.vbproj", "Solution.sln", "Solution.slnx", "APP.CSPROJ", "SOLUTION.SLNX"} {
+	for _, name := range []string{"App.csproj", "App.fsproj", "App.vbproj", "Solution.sln", "Solution.slnx", "Focused.slnf", "APP.CSPROJ", "SOLUTION.SLNX", "FOCUSED.SLNF"} {
 		if !isDotnetManifest(name) {
 			t.Errorf("missed .NET manifest %q", name)
 		}
 	}
-	for _, name := range []string{"NotSolution.slnx.bak", "app.cs", "project.json", "fakecsproj", "hello.slnx.txt"} {
+	for _, name := range []string{"NotSolution.slnx.bak", "Focused.slnf.bak", "app.cs", "project.json", "fakecsproj", "hello.slnx.txt"} {
 		if isDotnetManifest(name) {
 			t.Errorf("incorrectly classified %q as a .NET manifest", name)
 		}
@@ -23,7 +23,7 @@ func TestDotnetManifestExtensions(t *testing.T) {
 
 func TestAnalyzeDotnetWorkspaceManifests(t *testing.T) {
 	root := t.TempDir()
-	for _, name := range []string{"Backend/App.csproj", "Backend/Tests.fsproj", "Tools/Worker.vbproj", "Solution.slnx", "Legacy.sln", "UPPER.CSPROJ"} {
+	for _, name := range []string{"Backend/App.csproj", "Backend/Tests.fsproj", "Tools/Worker.vbproj", "Solution.slnx", "Legacy.sln", "Focused.slnf", "UPPER.CSPROJ"} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 			t.Fatal(err)
@@ -36,7 +36,7 @@ func TestAnalyzeDotnetWorkspaceManifests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"Backend/App.csproj (.NET)", "Backend/Tests.fsproj (.NET)", "Legacy.sln (.NET)", "Solution.slnx (.NET)", "Tools/Worker.vbproj (.NET)", "UPPER.CSPROJ (.NET)"}
+	want := []string{"Backend/App.csproj (.NET)", "Backend/Tests.fsproj (.NET)", "Focused.slnf (.NET)", "Legacy.sln (.NET)", "Solution.slnx (.NET)", "Tools/Worker.vbproj (.NET)", "UPPER.CSPROJ (.NET)"}
 	if !reflect.DeepEqual(r.Manifests, want) {
 		t.Fatalf("manifests=%v; want %v", r.Manifests, want)
 	}
