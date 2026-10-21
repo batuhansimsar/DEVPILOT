@@ -24,6 +24,7 @@ from .git_state import is_git_dirty
 from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
+from .ruby_tests import ruby_test_command
 from .walk import walk_project
 from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
@@ -224,6 +225,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
     if 'build.sbt' in names:
         commands.append({'ecosystem': 'Scala', 'argv': ['sbt', 'test'], 'reason': 'build.sbt'})
+    ruby_command = ruby_test_command(root, names)
+    if ruby_command is not None:
+        commands.append(ruby_command)
     if 'Package.swift' in names:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
