@@ -38,7 +38,7 @@ class NamedEnvironmentSecurityTests(unittest.TestCase):
 
     def test_non_utf8_name_remains_safe(self):
         with patch('devpilot.security._tracked_paths', return_value=b'backend/service.env.\xff\0'):
-            self.assertEqual(tracked_environment_files(Path('.')), ['backend/service.env.\udcff'])
+            self.assertEqual(tracked_environment_files(Path('.')), [r'backend/service.env.\udcff'])
 
 
 if __name__ == '__main__':
