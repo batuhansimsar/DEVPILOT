@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .http_url_validation import validate_http_url_length
+from .http_host_validation import validate_http_dns_labels
 
 import ipaddress
 import re
@@ -98,6 +99,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # A complete name may contain at most 253 text bytes (254 with a final dot).
     if len(idna_hostname) > (254 if idna_hostname.endswith(b'.') else 253):
         raise ValueError('URL host exceeds DNS hostname length limit')
+    # Avoid DNS/socket requests for non-hostname labels (including hyphen-edge and underscore labels).
+    if ':' not in parts.hostname:
+        validate_http_dns_labels(idna_hostname)
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
