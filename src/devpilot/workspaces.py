@@ -14,6 +14,7 @@ from .walk import walk_project
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
+from .haskell_manifests import is_haskell_manifest
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
@@ -49,6 +50,10 @@ WORKSPACE_FILES = {
     'build.sbt': 'Scala',
     'deps.edn': 'Clojure',
     'project.clj': 'Clojure',
+    'stack.yaml': 'Haskell',
+    'cabal.project': 'Haskell',
+    'cabal.project.freeze': 'Haskell',
+    'package.yaml': 'Haskell',
     'build.gradle': 'Java',
     'build.gradle.kts': 'Java',
     'settings.gradle': 'Java',
@@ -135,6 +140,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
             if path.is_symlink() or not path.is_file():
                 continue
             ecosystem = WORKSPACE_FILES.get(filename)
+            if not ecosystem and is_haskell_manifest(filename):
+                ecosystem = 'Haskell'
             if not ecosystem and is_requirements_manifest(filename):
                 ecosystem = 'Python'
             if not ecosystem and is_pylock_manifest(filename):

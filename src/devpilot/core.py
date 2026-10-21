@@ -30,6 +30,7 @@ from .walk import walk_project
 from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
+from .haskell_manifests import is_haskell_manifest
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -53,6 +54,7 @@ LANGUAGES = {
     '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
     '.dart': 'Dart', '.jl': 'Julia', '.lua': 'Lua',
+    '.hs': 'Haskell', '.lhs': 'Haskell',
     '.ex': 'Elixir', '.exs': 'Elixir', '.zig': 'Zig',
 }
 KEY_FILES = frozenset({
@@ -66,7 +68,7 @@ KEY_FILES = frozenset({
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
-    'build.zig', 'build.zig.zon',
+    'stack.yaml', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
     'pubspec.yaml', 'pubspec.lock',
     'build.zig', 'build.zig.zon',
 })
@@ -117,14 +119,14 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
         types.add('Go')
-    if names & {'build.zig', 'build.zig.zon'}:
-        types.add('Zig')
     if 'build.sbt' in names:
         types.add('Scala')
     if names & {'build.zig', 'build.zig.zon'}:
         types.add('Zig')
     if names & {'deps.edn', 'project.clj'}:
         types.add('Clojure')
+    if any(is_haskell_manifest(name) for name in names):
+        types.add('Haskell')
     if 'Package.swift' in names:
         types.add('Swift')
     # A Dart lockfile-only root is still a project, matching workspace discovery.
@@ -193,6 +195,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if (filename in KEY_FILES or is_requirements_manifest(filename)
                 or filename.lower().endswith('.gemspec')
                 or is_pylock_manifest(filename) or is_container_manifest(filename)
+                or is_haskell_manifest(filename)
                 or is_dotnet_manifest(filename) or is_julia_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
@@ -251,6 +254,10 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     # tools.deps does not mandate a test alias. Leiningen defines `lein test`.
     if 'project.clj' in names:
         commands.append({'ecosystem': 'Clojure', 'argv': ['lein', 'test'], 'reason': 'project.clj'})
+    if 'stack.yaml' in names:
+        commands.append({'ecosystem': 'Haskell', 'argv': ['stack', 'test'], 'reason': 'stack.yaml'})
+    elif 'cabal.project' in names or any(name.endswith('.cabal') and is_haskell_manifest(name) for name in names):
+        commands.append({'ecosystem': 'Haskell', 'argv': ['cabal', 'test'], 'reason': 'Cabal project'})
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
@@ -285,10 +292,12 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Zig': 'zig', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
+    if 'Haskell' in found:
+        tool_map['Haskell'] = 'stack' if 'stack.yaml' in _root_files(root) else 'cabal'
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
     issues = analyze_project(root)['problems']

@@ -1,25 +1,24 @@
-"""Recognize Cabal and Stack project manifests without opening their contents."""
+"""Identify Haskell project manifests without opening or executing project files."""
 
 from __future__ import annotations
 
 import re
 
+# Stack, hpack and Cabal support these project-level markers. Do not treat
+# generic Haskell source files or unrelated build artifacts as project roots.
 _HASKELL_MARKERS = frozenset({
-    'cabal.project',
-    'cabal.project.freeze',
-    'stack.yaml',
-    'stack.yaml.lock',
+    'stack.yaml', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
 })
-_CABAL_PACKAGE = re.compile(r'[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.cabal\Z', re.ASCII)
+_CABAL_PACKAGE_FILE = re.compile(r'[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.cabal\Z')
 
 
 def is_haskell_manifest(filename: str) -> bool:
-    """Recognize unambiguous Haskell markers, not backups or lookalikes.
+    """Match manifest basenames, excluding backups and lookalike suffixes.
 
-    A Cabal package manifest uses a nonempty ASCII alphanumeric/hyphen
-    package name. Match the complete filename so copies such as
-    'lib.cabal.bak' do not create phantom workspaces.
+    Cabal package names consist of hyphen-separated ASCII alphanumeric
+    components. This intentionally rejects hidden, malformed and suffixed
+    backup copies rather than treating them as additional workspaces.
     """
     return isinstance(filename, str) and (
-        filename in _HASKELL_MARKERS or _CABAL_PACKAGE.fullmatch(filename) is not None
+        filename in _HASKELL_MARKERS or _CABAL_PACKAGE_FILE.fullmatch(filename) is not None
     )
