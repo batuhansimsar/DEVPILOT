@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .toml_input import validate_utf8_toml_size
+
 import re
 
 try:
@@ -35,8 +37,8 @@ def is_pylock_manifest(filename: str) -> bool:
 
 def parse_pylock(content: str) -> list[str]:
     """Read valid locked package names, rejecting malformed files privately."""
-    if not isinstance(content, str) or len(content) > MAX_PYLOCK_INPUT_CHARS:
-        raise ValueError('pylock.toml input exceeds safe size limit or is invalid')
+    validate_utf8_toml_size(content, MAX_PYLOCK_INPUT_CHARS,
+                            'pylock.toml input exceeds safe size limit or is invalid')
     try:
         data = tomllib.loads(content.removeprefix('\ufeff'))
     except (tomllib.TOMLDecodeError, RecursionError, ValueError, OverflowError):
