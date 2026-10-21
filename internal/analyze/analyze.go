@@ -152,11 +152,18 @@ func Inspect(path string) (Report, error) {
 	return r, nil
 }
 
-// isDotnetManifest detects .NET project and solution files without opening them.
-// Extension matching is case-insensitive and includes modern .slnx files.
+// isDotnetManifest detects .NET project, solution, SDK, and restore
+// metadata using filenames only; it never reads project-controlled contents.
+// Known MSBuild and NuGet names must match exactly, while project/solution
+// extensions are case-insensitive (including solution filters).
 func isDotnetManifest(name string) bool {
+	switch name {
+	case "Directory.Packages.props", "Directory.Build.props", "Directory.Build.targets",
+		"global.json", "NuGet.Config", "nuget.config", "packages.lock.json":
+		return true
+	}
 	switch strings.ToLower(filepath.Ext(name)) {
-	case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx":
+	case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx", ".slnf":
 		return true
 	default:
 		return false
