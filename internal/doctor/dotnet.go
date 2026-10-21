@@ -40,7 +40,7 @@ func discoverDotnet(root string) (dotnetInventory, error) {
 		case ".vbproj":
 			languages["Visual Basic"] = true
 			projects = append(projects, name)
-		case ".sln", ".slnx":
+		case ".sln", ".slnx", ".slnf":
 			solutions = append(solutions, name)
 		}
 	}
