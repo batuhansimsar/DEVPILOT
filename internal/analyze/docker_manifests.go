@@ -11,10 +11,22 @@ func dockerManifestKind(name string) (string, bool) {
 			return "", false
 		}
 	}
+	// A qualified recipe/Compose name must have nonempty dot-delimited
+	// components. Do not mistake malformed names for deployable manifests.
+	validQualifier := func(value string) bool {
+		return value != "" && !strings.HasPrefix(value, ".") &&
+			!strings.HasSuffix(value, ".") && !strings.Contains(value, "..")
+	}
 	isRecipe := func(base string) bool {
-		return lower == base ||
-			(strings.HasPrefix(lower, base+".") && len(lower) > len(base)+1) ||
-			(strings.HasSuffix(lower, "."+base) && len(lower) > len(base)+1)
+		if lower == base {
+			return true
+		}
+		if strings.HasPrefix(lower, base+".") &&
+			validQualifier(strings.TrimPrefix(lower, base+".")) {
+			return true
+		}
+		return strings.HasSuffix(lower, "."+base) &&
+			validQualifier(strings.TrimSuffix(lower, "."+base))
 	}
 	if isRecipe("dockerfile") {
 		return "Docker", true
@@ -25,7 +37,8 @@ func dockerManifestKind(name string) (string, bool) {
 	// Compose accepts service-specific filenames such as api.compose.yaml.
 	// The leading component must be nonempty (not .compose.yaml).
 	for _, suffix := range []string{".compose.yml", ".compose.yaml"} {
-		if strings.HasSuffix(lower, suffix) && len(lower) > len(suffix) {
+		if strings.HasSuffix(lower, suffix) &&
+			validQualifier(strings.TrimSuffix(lower, suffix)) {
 			return "Docker Compose", true
 		}
 	}
@@ -41,9 +54,8 @@ func dockerManifestKind(name string) (string, bool) {
 				continue
 			}
 			qualifier := strings.TrimSuffix(strings.TrimPrefix(lower, prefix+"."), extension)
-			// Empty or dot-terminated qualifiers are not meaningful Compose
-			// variants (e.g. compose..yml or compose.prod..yaml).
-			if qualifier != "" && !strings.HasSuffix(qualifier, ".") {
+			// Reject empty or repeated qualifier segments for Compose variants.
+			if validQualifier(qualifier) {
 				return "Docker Compose", true
 			}
 		}
