@@ -28,6 +28,7 @@ from .python_tests import python_test_command
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
 from .julia_tests import julia_test_command
+from .dart_tests import dart_test_command
 from .walk import walk_project
 from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
@@ -253,6 +254,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
                          'reason': 'Deno configuration'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
+    dart_command = dart_test_command(root, names)
+    if dart_command is not None:
+        commands.append(dart_command)
     if 'go.mod' in names:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
     if 'build.sbt' in names:

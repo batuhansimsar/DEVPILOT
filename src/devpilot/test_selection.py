@@ -9,6 +9,7 @@ from typing import Any
 ECOSYSTEMS = {
     'node': 'Node.js',
     'deno': 'Deno',
+    'dart': 'Dart',
     'python': 'Python',
     'julia': 'Julia',
     'ruby': 'Ruby',
