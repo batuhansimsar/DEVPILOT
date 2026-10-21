@@ -62,6 +62,7 @@ KEY_FILES = frozenset({
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'deps.edn', 'project.clj', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+    'codefresh.yml',  # Codefresh's documented default root CI entrypoint.
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
     'uv.lock', 'poetry.lock', 'go.work',
