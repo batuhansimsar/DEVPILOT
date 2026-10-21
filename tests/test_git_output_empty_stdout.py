@@ -12,10 +12,10 @@ class GitStatusEmptyOutputTests(unittest.TestCase):
             'Git status unavailable (empty porcelain output)',
         )
 
-    def test_clean_verdict_remains_compatible_with_existing_reports(self):
+    def test_clean_verdict_cannot_override_missing_porcelain_output(self):
         self.assertEqual(
             format_git_status({'exit_code': 0, 'stdout': '', 'dirty': False}),
-            'No changes',
+            'Git status unavailable (empty porcelain output)',
         )
 
     def test_valid_branch_header_does_not_add_warning(self):

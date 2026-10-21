@@ -12,7 +12,7 @@ func TestInspectRecognizesExtendedSourceExtensions(t *testing.T) {
 		"include/a.hh", "include/b.HPP", "include/c.hxx",
 		"src/main.cxx", "src/helper.c++", "src/module.ixx", "src/module.cppm",
 		"build.gradle.kts", "tools/script.csx", "ios/View.mm",
-		"typing/models.pyi", "bin/tool.PYW", "native/core.pyx",
+		"typing/models.pyi", "scripts/tool.PYW", "native/core.pyx",
 		"native/header.pxd", "native/inline.pxi", "notes.json",
 	}
 	for _, name := range files {

@@ -17,7 +17,7 @@ class SingularPythonTestDirectoryTests(unittest.TestCase):
             (root / 'test' / 'test_example.py').write_text('def test_ok(): pass\n', encoding='utf-8')
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
                 self.assertEqual(python_test_command(root), {
-                    'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+                    'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', 'test'],
                     'reason': 'test directory (pytest importable)',
                 })
 

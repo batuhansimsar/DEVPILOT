@@ -49,7 +49,7 @@ class UnlistedJuliaVersionedManifestTests(unittest.TestCase):
             self.assertIsNone(self.discover())
 
     def test_root_scan_entry_limit(self):
-        for index in range(4097):
+        for index in range(10001):
             (self.root / f'unrelated-{index:04d}.txt').touch()
         self.assertIsNone(self.discover())
 

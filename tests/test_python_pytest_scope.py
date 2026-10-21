@@ -15,6 +15,7 @@ class PytestScopeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             (root / 'test').mkdir()
             (root / 'test_root.py').write_text('raise AssertionError("unexpected root collection")\n')
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
@@ -25,6 +26,7 @@ class PytestScopeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
                 command = python_test_command(root)
             self.assertEqual(command['argv'], [sys.executable, '-m', 'pytest', 'tests'])
@@ -33,6 +35,7 @@ class PytestScopeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             (root / 'tests' / 'test_safe.py').write_text('def test_pass():\n    assert True\n')
             (root / 'test_outside.py').write_text('def test_fail():\n    assert False\n')
             command = python_test_command(root)

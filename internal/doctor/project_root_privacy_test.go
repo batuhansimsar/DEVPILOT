@@ -23,10 +23,10 @@ func TestValidateProjectRootDoesNotExposeRejectedPath(t *testing.T) {
 
 	for _, tc := range []struct {
 		name, path string
-		wantErr error
+		wantErr    error
 	}{
 		{"not a directory", regularFile, nil},
-		{"missing directory", filepath.Join(root, secret + "-missing"), os.ErrNotExist},
+		{"missing directory", filepath.Join(root, secret+"-missing"), os.ErrNotExist},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := validateProjectRoot(tc.path)

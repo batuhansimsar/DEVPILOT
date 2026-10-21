@@ -22,7 +22,7 @@ class WalkUnicodeSeparatorTests(unittest.TestCase):
             list(walk_project(root, problems))
 
         self.assertEqual(problems, [
-            r'Cannot inspect secret\u2028new-line\u2029new-paragraph\U000e0001: failed'
+            r'Cannot inspect secret\u2028new-line\u2029new-paragraph\U000e0001: Permission denied'
         ])
         for invisible in ('\u2028', '\u2029', '\U000e0001'):
             self.assertNotIn(invisible, problems[0])
@@ -37,7 +37,7 @@ class WalkUnicodeSeparatorTests(unittest.TestCase):
 
         with patch('devpilot.walk.os.walk', side_effect=fake_walk):
             list(walk_project(root, problems))
-        self.assertEqual(problems, ['Cannot inspect çalışma: Giriş engellendi'])
+        self.assertEqual(problems, ['Cannot inspect çalışma: Permission denied'])
 
 
 if __name__ == '__main__':

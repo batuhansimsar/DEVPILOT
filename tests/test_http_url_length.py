@@ -10,7 +10,7 @@ class HTTPURLLengthTests(unittest.TestCase):
     def test_rejects_oversized_raw_url_without_exposing_query(self):
         url = 'https://example.org/ready?token=private-' + 'x' * MAX_HTTP_URL_LENGTH
         with patch('devpilot.httpcheck.build_opener') as opener:
-            with self.assertRaisesRegex(ValueError, 'URL exceeds 8192 character limit') as caught:
+            with self.assertRaisesRegex(ValueError, 'URL exceeds 8192-character limit') as caught:
                 http_check(url)
             opener.assert_not_called()
         self.assertNotIn('private-', str(caught.exception))
@@ -20,7 +20,7 @@ class HTTPURLLengthTests(unittest.TestCase):
         url = 'https://example.org/' + '€' * 1000
         self.assertLess(len(url), MAX_HTTP_URL_LENGTH)
         with patch('devpilot.httpcheck.build_opener') as opener:
-            with self.assertRaisesRegex(ValueError, 'Encoded URL exceeds 8192 character limit'):
+            with self.assertRaisesRegex(ValueError, 'Encoded URL exceeds 8192-character limit'):
                 http_check(url)
             opener.assert_not_called()
 

@@ -5,7 +5,7 @@ import "testing"
 func TestNodeTestScriptSemicolonPlaceholder(t *testing.T) {
 	tests := []struct {
 		name, script string
-		want bool
+		want         bool
 	}{
 		{"single quoted placeholder", `echo 'Error: no test specified'; exit 1`, false},
 		{"double quoted placeholder", `echo "Error: no test specified" ; exit 1;`, false},

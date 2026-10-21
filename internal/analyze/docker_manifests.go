@@ -15,8 +15,7 @@ func dockerManifestKind(name string) (string, bool) {
 	// editor swap files, not deployable Docker recipes.
 	if len(lower) >= 4 {
 		suffix := lower[len(lower)-4:]
-		if suffix[:2] == ".s" && (
-			(suffix[2] == 'w' && suffix[3] >= 'a' && suffix[3] <= 'p') ||
+		if suffix[:2] == ".s" && ((suffix[2] == 'w' && suffix[3] >= 'a' && suffix[3] <= 'p') ||
 			(suffix[2] >= 'a' && suffix[2] <= 'v' && suffix[3] >= 'a' && suffix[3] <= 'z')) {
 			return "", false
 		}

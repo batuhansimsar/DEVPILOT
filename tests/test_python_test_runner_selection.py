@@ -14,6 +14,7 @@ class PythonTestRunnerSelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()) as spec:
                 with patch('subprocess.Popen') as popen:
                     command = python_test_command(root)
@@ -68,6 +69,7 @@ class PythonTestRunnerSelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             target = Path(external) / 'test_external.py'
             target.write_text('')
             try:

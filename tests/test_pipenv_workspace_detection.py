@@ -42,6 +42,7 @@ class PipenvWorkspaceDetectionTests(unittest.TestCase):
             root = Path(directory)
             (root / 'Pipfile.lock').write_text('{}', encoding='utf-8')
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').touch()
             self.assertIn('Pipfile.lock', KEY_FILES)
             report = analyze_project(root)
             self.assertEqual(report['project_types'], ['Python'])

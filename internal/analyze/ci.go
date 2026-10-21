@@ -22,15 +22,15 @@ func isCIConfig(path string) bool {
 		".buildkite/pipeline.yml", ".buildkite/pipeline.yaml",
 		".woodpecker.yml", ".woodpecker.yaml", "bitrise.yml",
 		"appveyor.yml", ".appveyor.yml",
-		".semaphore/semaphore.yml", // Semaphore 2.0 default pipeline.
+		".semaphore/semaphore.yml",           // Semaphore 2.0 default pipeline.
 		"cloudbuild.yaml", "cloudbuild.json", // Google Cloud Build configs.
 		"buildspec.yml", "buildspec.yaml", // AWS CodeBuild
 		"amplify.yml", // AWS Amplify Hosting build specification.
 		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
 		".semaphore/semaphore.yaml",
 		".teamcity/settings.kts", // TeamCity Kotlin DSL versioned settings.
-		"codefresh.yml", // Codefresh default root pipeline definition.
-		"wercker.yml": // Wercker's default pipeline definition.
+		"codefresh.yml",          // Codefresh default root pipeline definition.
+		"wercker.yml":            // Wercker's default pipeline definition.
 		return true
 	case ".cirrus.yml":
 		return true

@@ -23,8 +23,8 @@ func TestCheckCLIJSON(t *testing.T) {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	var result struct {
-		Host      string `json:"host"`
-		Port      int    `json:"port"`
+		Host      string   `json:"host"`
+		Port      int      `json:"port"`
 		Reachable bool     `json:"reachable"`
 		LatencyMS *float64 `json:"latency_ms"`
 	}

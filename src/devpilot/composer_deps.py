@@ -6,6 +6,8 @@ import json
 import math
 import re
 
+from .json_nesting import JSONNestingError, validate_json_nesting
+
 # Composer dependencies are vendor/package names or platform requirements.
 # Reject other JSON object keys rather than exposing arbitrary text from a
 # potentially untrusted manifest in reports or terminal output.
@@ -43,10 +45,11 @@ def parse_composer_dependencies(content: str) -> dict[str, list[str]]:
     """Return require/require-dev package names, never version constraints or URLs."""
     # Match the scanner's UTF-8-SIG decoding for direct parser callers.
     try:
+        validate_json_nesting(content)
         manifest = json.loads(content.removeprefix('\ufeff'), object_pairs_hook=_unique_object_keys,
                               parse_constant=_reject_nonfinite_number,
                               parse_float=_parse_finite_float)
-    except (RecursionError, OverflowError):
+    except (JSONNestingError, RecursionError, OverflowError):
         # Even small JSON files can exhaust the decoder's nesting limit.
         # Keep direct parser calls safe without echoing manifest metadata.
         raise ValueError('invalid composer.json JSON: nesting exceeds parser limits') from None

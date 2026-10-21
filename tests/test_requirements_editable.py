@@ -15,11 +15,11 @@ class EditableRequirementsTests(unittest.TestCase):
         self.assertNotIn('secret', repr(names))
         self.assertNotIn('password', repr(names))
 
-    def test_anonymous_or_path_editables_are_not_inventoried(self):
+    def test_path_and_anonymous_editables_are_ignored_but_explicit_egg_is_kept(self):
         content = ('-e .\n-e ../package\n-e git+https://host/repo.git#egg=Pkg\n'
                    '--editable=git+https://host/repo.git\n-e requests==2\n'
                    '-e invalid @\n--index-url https://user:secret@example.invalid/simple\n')
-        self.assertEqual(parse_requirements_dependencies(content), [])
+        self.assertEqual(parse_requirements_dependencies(content), ['pkg'])
 
     def test_continued_named_editable_and_inline_comment(self):
         content = ('-e "Demo_Pkg @ \\\n'

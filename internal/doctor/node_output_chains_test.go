@@ -5,7 +5,7 @@ import "testing"
 func TestNodeTestOutputOnlyShellChains(t *testing.T) {
 	cases := []struct {
 		name, script string
-		runnable bool
+		runnable     bool
 	}{
 		{"and chain", `echo preparing && echo done`, false},
 		{"or chain", `echo unavailable || printf 'try again'`, false},

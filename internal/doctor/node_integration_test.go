@@ -4,7 +4,7 @@ import "testing"
 
 func TestInvalidNodePackageManagerReported(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, "package.json", `{"packageManager":"unexpected-runner@1.0","scripts":{"test":"echo testing"}}`)
+	write(t, root, "package.json", `{"packageManager":"unexpected-runner@1.0","scripts":{"test":"node --test"}}`)
 	report, err := Inspect(root)
 	if err != nil {
 		t.Fatal(err)

@@ -31,7 +31,7 @@ func TestAnalyzeCommandContainerInventory(t *testing.T) {
 	if code := analyzeCommand([]string{root}, &stdout, &stderr); code != 0 {
 		t.Fatalf("text exit=%d stderr=%s", code, stderr.String())
 	}
-	if !strings.Contains(stdout.String(), "Container: Dockerfile") {
+	if !strings.Contains(stdout.String(), `Container: "Dockerfile"`) {
 		t.Fatalf("missing container listing: %q", stdout.String())
 	}
 }

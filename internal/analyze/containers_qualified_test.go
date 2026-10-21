@@ -5,14 +5,14 @@ import "testing"
 func TestQualifiedComposeContainerConfigs(t *testing.T) {
 	cases := map[string]bool{
 		"compose.override.yml":        true,
-		"compose.dev.yaml":           true,
+		"compose.dev.yaml":            true,
 		"docker-compose.override.yml": true,
 		"docker-compose.prod.eu.yaml": true,
-		"compose.yml":                true,
+		"compose.yml":                 true,
 		"docker-compose.yaml":         true,
-		"api.compose.yml":            true,
-		"compose..yml":               false,
-		"compose.prod..yaml":         false,
+		"api.compose.yml":             true,
+		"compose..yml":                false,
+		"compose.prod..yaml":          false,
 		"compose.override.yml.bak":    false,
 		"Dockerfile.dev.BAK":          false,
 		"Dockerfile.dev.DOCKERIGNORE": false,
@@ -20,7 +20,7 @@ func TestQualifiedComposeContainerConfigs(t *testing.T) {
 		"compose.override.yml.BACKUP": false,
 		"docker-compose.dev.yaml.tmp": false,
 		"docker-compose.dev.json":     false,
-		"not-compose.dev.yml":        false,
+		"not-compose.dev.yml":         false,
 	}
 	for name, expected := range cases {
 		if got := isContainerConfig(name); got != expected {

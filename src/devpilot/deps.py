@@ -31,6 +31,7 @@ from .requirements_names import is_requirements_manifest as _is_requirements_man
 from .pipenv_deps import parse_pipfile_lock
 from .pipfile_deps import parse_pipfile_dependencies
 from .json_numbers import parse_finite_json_float
+from .json_nesting import JSONNestingError, validate_json_nesting
 from .gemfile_lock import parse_gemfile_lock
 from .node_deps import parse_node_dependency_groups
 from .npm_lock import parse_npm_lock
@@ -103,6 +104,7 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
     if name == "pyproject.toml":
         return "Python", parse_pyproject_dependencies(content)
     if name == "package.json":
+        validate_json_nesting(content)
         data = json.loads(content, parse_constant=_reject_nonfinite_number,
                           parse_float=parse_finite_json_float,
                           object_pairs_hook=_unique_node_keys)
@@ -187,7 +189,7 @@ def scan(path: str | Path) -> dict:
             rel = filepath.relative_to(root).as_posix()
             try:
                 ecosystem, groups = _parse(filepath)
-            except RecursionError:
+            except (JSONNestingError, RecursionError):
                 warnings.append(f"{rel}: manifest nesting exceeds parser limits")
                 continue
             except OSError as exc:

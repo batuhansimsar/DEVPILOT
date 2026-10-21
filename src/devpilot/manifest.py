@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .json_numbers import parse_finite_json_float
+from .json_nesting import validate_json_nesting
 
 MAX_MANIFEST_BYTES = 256 * 1024
 
@@ -84,7 +85,9 @@ def read_package_json(root: Path) -> tuple[dict[str, Any] | None, str | None]:
                 return None, 'package.json exceeds the 256 KiB inspection limit'
             if _identity(os.fstat(stream.fileno())) != _identity(opened):
                 return None, 'package.json changed during inspection'
-        data = json.loads(content.decode('utf-8-sig'), parse_constant=_reject_non_json_number,
+        text = content.decode('utf-8-sig')
+        validate_json_nesting(text)
+        data = json.loads(text, parse_constant=_reject_non_json_number,
                           parse_float=parse_finite_json_float, object_pairs_hook=_unique_json_keys)
         if not isinstance(data, dict):
             return None, 'package.json must contain a JSON object'

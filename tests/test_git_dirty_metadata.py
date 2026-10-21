@@ -27,7 +27,7 @@ class GitDirtyMetadataTests(unittest.TestCase):
         self.assertIn('invalid worktree state', output)
 
     def test_boolean_and_inconclusive_dirty_values_keep_existing_behavior(self):
-        self.assertEqual(format_git_status({'exit_code': 0, 'stdout': '', 'dirty': False}), 'No changes')
+        self.assertEqual(format_git_status({'exit_code': 0, 'stdout': '', 'dirty': False}), 'Git status unavailable (empty porcelain output)')
         self.assertIn('reports changes', format_git_status({'exit_code': 0, 'stdout': '', 'dirty': True}))
         self.assertIn('state inconclusive', format_git_status({'exit_code': 0, 'stdout': '', 'dirty': None}))
 

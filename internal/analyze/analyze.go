@@ -33,7 +33,7 @@ var languages = map[string]string{
 	".php": "PHP", ".swift": "Swift", ".dart": "Dart",
 	".sh": "Shell", ".sql": "SQL", ".vue": "Vue",
 	".svelte": "Svelte", ".html": "HTML", ".css": "CSS",
-	".tf": "Terraform",
+	".tf":  "Terraform",
 	".zig": "Zig", ".ex": "Elixir", ".exs": "Elixir",
 	".jl": "Julia", ".scala": "Scala", ".sc": "Scala",
 	".hs": "Haskell", ".lhs": "Haskell",
@@ -62,14 +62,14 @@ type LanguageCount struct {
 
 // Report contains only relative file paths and counts, never source contents.
 type Report struct {
-	Path      string          `json:"path"`
-	FileCount int             `json:"file_count"`
-	Truncated bool            `json:"truncated"`
-	Languages []LanguageCount `json:"languages"`
-	Manifests []string        `json:"manifests"`
-	CI        []string        `json:"ci"`
-	Containers []string       `json:"containers"`
-	Warnings  []string        `json:"warnings"`
+	Path       string          `json:"path"`
+	FileCount  int             `json:"file_count"`
+	Truncated  bool            `json:"truncated"`
+	Languages  []LanguageCount `json:"languages"`
+	Manifests  []string        `json:"manifests"`
+	CI         []string        `json:"ci"`
+	Containers []string        `json:"containers"`
+	Warnings   []string        `json:"warnings"`
 }
 
 // Inspect walks the project without following symlinked dirs or files.

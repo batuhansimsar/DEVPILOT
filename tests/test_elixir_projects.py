@@ -72,18 +72,18 @@ class ElixirProjectTests(unittest.TestCase):
             self.assertFalse(report['executed'])
             self.assertEqual([x['argv'] for x in report['commands']], [['mix', 'test']])
 
-    def test_lock_only_backups_and_symlink_do_not_trigger_root_mix(self):
+    def test_lock_identifies_elixir_but_backups_and_links_do_not_offer_tests(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / 'mix.lock').touch()
             (root / 'mix.exs.bak').touch()
-            self.assertNotIn('Elixir', detect_projects(root))
+            self.assertIn('Elixir', detect_projects(root))
             self.assertEqual(test_commands(root), [])
             try:
                 (root / 'mix.exs').symlink_to(root / 'mix.exs.bak')
             except (OSError, NotImplementedError):
                 self.skipTest('Symlinks unavailable')
-            self.assertNotIn('Elixir', detect_projects(root))
+            self.assertIn('Elixir', detect_projects(root))
             self.assertEqual(test_commands(root), [])
 
 

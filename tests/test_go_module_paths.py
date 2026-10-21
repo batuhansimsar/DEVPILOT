@@ -11,11 +11,11 @@ class GoModulePathTests(unittest.TestCase):
             'module example.org/app\nrequire example.com v1.2.3\n'
         ), ['example.com'])
 
-    def test_tilde_in_module_path(self):
+    def test_tilde_is_allowed_except_for_dos_short_name_aliases(self):
         self.assertEqual(parse_go_requirements(
             'require (\nexample.org/lib~next v1.2.3\n'
             'example.com/child~2/helper v0.0.1 // indirect\n)\n'
-        ), ['example.com/child~2/helper', 'example.org/lib~next'])
+        ), ['example.org/lib~next'])
 
     def test_plus_path_compatibility(self):
         self.assertEqual(parse_go_requirements(

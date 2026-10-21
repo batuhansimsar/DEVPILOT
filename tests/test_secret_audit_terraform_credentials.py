@@ -14,9 +14,11 @@ class TerraformCredentialsTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertEqual(classify(name), 'potential credential configuration')
 
+    def test_credential_basename_is_sensitive_outside_config_directory(self):
+        self.assertEqual(classify('docs/credentials.tfrc.json'), 'potential credential file')
+
     def test_unrelated_and_template_files_ignored(self):
         for name in (
-            'docs/credentials.tfrc.json',
             '.terraform.d/credentials.tfrc.json.example',
             '.terraform.d/credentials.tfrc.json.sample',
             'terraform/README.md',

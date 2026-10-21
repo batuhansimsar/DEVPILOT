@@ -27,6 +27,7 @@ class RootManifestDetectionTests(unittest.TestCase):
                 root = Path(directory)
                 (root / name).write_text(content, encoding='utf-8')
                 (root / 'tests').mkdir()
+                (root / 'tests' / 'test_example.py').touch()
                 self.assertIn('Python', core.detect_projects(root))
                 self.assertIn(name, core.analyze_project(root)['key_files'])
                 self.assertTrue(any(c['ecosystem'] == 'Python' for c in core.test_commands(root)))

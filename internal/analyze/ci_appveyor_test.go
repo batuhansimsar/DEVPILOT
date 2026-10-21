@@ -2,7 +2,7 @@ package analyze
 
 import "testing"
 
-// AppVeyor supports both root-level appveyor.yml and .appveyor.yml files.
+// Inventory recognizes root-level AppVeyor YAML filename variants.
 // Alternate paths are service-side settings and cannot be inferred here.
 func TestIsCIConfigAppVeyor(t *testing.T) {
 	cases := []struct {
@@ -11,8 +11,8 @@ func TestIsCIConfigAppVeyor(t *testing.T) {
 	}{
 		{"appveyor.yml", true},
 		{".appveyor.yml", true},
-		{"appveyor.yaml", false},
-		{".appveyor.yaml", false},
+		{"appveyor.yaml", true},
+		{".appveyor.yaml", true},
 		{"src/appveyor.yml", false},
 		{"src/.appveyor.yml", false},
 		{"appveyor.yml.bak", false},

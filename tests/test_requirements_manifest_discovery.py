@@ -25,18 +25,20 @@ class RequirementsManifestDiscoveryTests(unittest.TestCase):
 
     def test_alternative_requirements_files_discover_tests(self):
         (self.root / "tests").mkdir()
+        (self.root / "tests" / "test_example.py").touch()
         (self.root / "requirements-dev.txt").write_text("pytest\n", encoding="utf-8")
-        with patch("devpilot.core.shutil.which", return_value="/usr/bin/pytest"):
+        with patch("devpilot.python_tests.PathFinder.find_spec", return_value=object()):
             commands = test_commands(self.root)
         self.assertEqual(len(commands), 1)
         self.assertEqual(commands[0]["ecosystem"], "Python")
-        self.assertEqual(commands[0]["argv"], [sys.executable, "-m", "pytest"])
+        self.assertEqual(commands[0]["argv"], [sys.executable, "-m", "pytest", "tests"])
 
     def test_unittest_fallback_and_no_test_directory(self):
         (self.root / "requirements.in").write_text("requests\n", encoding="utf-8")
         self.assertEqual(test_commands(self.root), [])
         (self.root / "tests").mkdir()
-        with patch("devpilot.core.shutil.which", return_value=None):
+        (self.root / "tests" / "test_example.py").touch()
+        with patch("devpilot.python_tests.PathFinder.find_spec", return_value=None):
             commands = test_commands(self.root)
         self.assertEqual(len(commands), 1)
         self.assertEqual(
@@ -47,6 +49,7 @@ class RequirementsManifestDiscoveryTests(unittest.TestCase):
     def test_lookalike_manifest_does_not_count(self):
         (self.root / "requirements.md").write_text("notes", encoding="utf-8")
         (self.root / "tests").mkdir()
+        (self.root / "tests" / "test_example.py").touch()
         self.assertNotIn("Python", detect_projects(self.root))
         self.assertEqual(test_commands(self.root), [])
 

@@ -42,6 +42,11 @@ class DotnetNugetMarkerTests(unittest.TestCase):
                 (root / name).write_text("", encoding="utf-8")
                 self.assertFalse(is_dotnet_manifest(name))
 
+            self.assertNotIn(".NET", detect_projects(root))
+            self.assertEqual(discover_workspaces(root)["workspace_count"], 0)
+            # On case-insensitive filesystems the lookalike occupies the same
+            # path as the link below. Remove it after testing its exclusion.
+            (root / "NuGet.CONFIG").unlink()
             outside = Path(external) / "NuGet.Config"
             outside.write_text("secret", encoding="utf-8")
             try:

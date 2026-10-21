@@ -48,4 +48,4 @@ class RunnerOutputShapeTests(unittest.TestCase):
             Mock(return_value={'exit_code': 0, 'stdout': 'ok',
                                'stderr': '', 'metadata': {'chunks': [1]}})))
         self.assertEqual(self.commands[0]['result']['stdout'], 'ok')
-        self.assertEqual(self.commands[0]['result']['metadata'], {'chunks': [1]})
+        self.assertNotIn('metadata', self.commands[0]['result'])

@@ -19,22 +19,22 @@ class TestResultSnapshotTests(unittest.TestCase):
 
         self.assertFalse(execute_test_commands(commands, Path('/repo'), 5, runner))
         self.assertEqual(commands[0]['result'], {
-            'exit_code': 0, 'details': {'output': ['first passed']},
+            'exit_code': 0,
         })
         self.assertEqual(commands[1]['result'], {
-            'exit_code': 1, 'details': {'output': ['second failed']},
+            'exit_code': 1,
         })
         self.assertIsNot(commands[0]['result'], commands[1]['result'])
-        self.assertIsNot(commands[0]['result']['details'], commands[1]['result']['details'])
+        self.assertNotIn('details', commands[0]['result'])
 
     def test_mutations_after_run_do_not_change_stored_result(self):
         command = [{'argv': ['test']}]
-        shared = {'exit_code': 0, 'stdout': ['ok']}
+        shared = {'exit_code': 0, 'stdout': 'ok'}
         self.assertTrue(execute_test_commands(command, Path('/repo'), 5,
                                               lambda *_: shared))
         shared['exit_code'] = 2
-        shared['stdout'].append('later output')
-        self.assertEqual(command[0]['result'], {'exit_code': 0, 'stdout': ['ok']})
+        shared['stdout'] += 'later output'
+        self.assertEqual(command[0]['result'], {'exit_code': 0, 'stdout': 'ok'})
 
 
 if __name__ == '__main__':

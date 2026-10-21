@@ -1,5 +1,6 @@
 """Track each non-UTF-8 Git filename without lossy replacement or unsafe output."""
 
+import errno
 import os
 import shutil
 import subprocess
@@ -27,7 +28,12 @@ class NonUTF8GitPathTests(unittest.TestCase):
             subprocess.run(['git', 'init', '-q', str(root)], check=True)
             for suffix in (b'\xfe', b'\xff'):
                 filename = os.fsencode(str(root)) + b'/.env.' + suffix
-                fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                try:
+                    fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                except OSError as exc:
+                    if exc.errno == errno.EILSEQ:
+                        self.skipTest('Filesystem rejects invalid UTF-8 filenames')
+                    raise
                 os.close(fd)
             subprocess.run(['git', '-C', str(root), 'add', '--all'], check=True)
             self.assertEqual(tracked_environment_files(root), [r'.env.\udcfe', r'.env.\udcff'])

@@ -12,7 +12,7 @@ class FlutterInlineSDKTests(unittest.TestCase):
         fixtures = (
             b'dependencies:\n  flutter: {sdk: flutter}\n',
             b'dev_dependencies:\n  "flutter_test": {"sdk": "flutter"} # comment\n',
-            b"dependency_overrides:\n  'local_plugin': {'sdk': 'flutter'}\n",
+            b"dependency_overrides:\n  'flutter': {'sdk': 'flutter'}\n",
         )
         for contents in fixtures:
             with self.subTest(contents=contents):
@@ -26,6 +26,7 @@ class FlutterInlineSDKTests(unittest.TestCase):
 
     def test_rejects_unrelated_or_malformed_inline_lookalikes(self):
         fixtures = (
+            b'dependency_overrides:\n  local_plugin: {sdk: flutter}\n',
             b'name: example\nmetadata:\n  flutter_test: {sdk: flutter}\n',
             b'dependencies:\n  flutter: "{sdk: flutter}"\n',
             b'dependencies:\n  flutter_test: {sdk: dart}\n',

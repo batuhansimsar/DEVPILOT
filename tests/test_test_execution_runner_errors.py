@@ -34,9 +34,11 @@ class RunnerExceptionTests(unittest.TestCase):
         self.assertIn('fail-fast', self.commands[1]['skipped_reason'])
         self.assertNotIn('secret', str(self.commands))
 
-    def test_programming_errors_are_not_silenced(self):
-        with self.assertRaises(RuntimeError):
-            execute_test_commands(self.commands, self.root, 5, Mock(side_effect=RuntimeError('bug')))
+    def test_unexpected_runner_errors_become_private_failures(self):
+        self.assertFalse(execute_test_commands(
+            self.commands, self.root, 5, Mock(side_effect=RuntimeError('private bug'))))
+        self.assertEqual(self.commands[0]['result']['error'], 'Test runner failed unexpectedly')
+        self.assertNotIn('private bug', str(self.commands))
 
 
 if __name__ == '__main__':

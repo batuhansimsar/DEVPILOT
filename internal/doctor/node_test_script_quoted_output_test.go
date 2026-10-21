@@ -5,7 +5,7 @@ import "testing"
 func TestNodeTestScriptQuotedShellMetacharacters(t *testing.T) {
 	cases := []struct {
 		name, script string
-		runnable bool
+		runnable     bool
 	}{
 		{"pipe in double quotes", "echo \"Test results | pending\"", false},
 		{"ampersand in double quotes", "echo \"Build && test\"", false},

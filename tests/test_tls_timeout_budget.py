@@ -9,7 +9,7 @@ from devpilot.tlscheck import tls_check
 class TLSTimeoutBudgetTests(unittest.TestCase):
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
-    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.75, 10.80, 10.90])
+    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.75, 10.80, 10.80, 10.90])
     def test_handshake_receives_only_remaining_time(self, clock, connect, make_context):
         sock = MagicMock()
         connect.return_value = sock
@@ -19,14 +19,15 @@ class TLSTimeoutBudgetTests(unittest.TestCase):
         result = tls_check('example.org', 443, 2.0)
 
         connect.assert_called_once_with(('example.org', 443), timeout=2.0)
-        sock.settimeout.assert_called_once_with(1.25)
+        sock.settimeout.assert_called_once()
+        self.assertAlmostEqual(sock.settimeout.call_args.args[0], 1.2)
         self.assertTrue(result['tls_valid'])
         self.assertEqual(result['tcp_latency_ms'], 750.0)
         self.assertEqual(result['tls_handshake_ms'], 100.0)
 
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
-    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 12.01])
+    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 12.01, 12.01])
     def test_exhausted_tcp_budget_skips_handshake_and_closes_socket(self, clock, connect, make_context):
         sock = MagicMock()
         connect.return_value = sock
@@ -43,7 +44,7 @@ class TLSTimeoutBudgetTests(unittest.TestCase):
 
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
-    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.2, 10.3, 10.6])
+    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.2, 10.3, 10.3, 10.6])
     def test_failed_handshake_is_bounded_and_reported(self, clock, connect, make_context):
         sock = MagicMock()
         connect.return_value = sock
@@ -52,7 +53,7 @@ class TLSTimeoutBudgetTests(unittest.TestCase):
         result = tls_check('example.org', 443, 1.0)
 
         sock.settimeout.assert_called_once()
-        self.assertAlmostEqual(sock.settimeout.call_args.args[0], 0.8)
+        self.assertAlmostEqual(sock.settimeout.call_args.args[0], 0.7)
         self.assertFalse(result['tls_valid'])
         self.assertEqual(result['tls_handshake_ms'], 300.0)
         self.assertIn('handshake timed out', result['error'])

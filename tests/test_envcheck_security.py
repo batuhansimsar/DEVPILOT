@@ -43,7 +43,7 @@ class EnvReadSafetyTests(unittest.TestCase):
             return real_open(name, flags)
         with patch('devpilot.envcheck.os.open', side_effect=swap):
             result = _keys(path)
-        self.assertEqual(result, (None, 'changed during inspection'))
+        self.assertEqual(result, (None, 'file changed during inspection'))
 
     @unittest.skipUnless(hasattr(os, 'O_NOFOLLOW'), 'platform lacks O_NOFOLLOW')
     def test_late_symlink_swap_is_rejected(self):

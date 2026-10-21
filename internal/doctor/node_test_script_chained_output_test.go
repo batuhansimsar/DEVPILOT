@@ -5,7 +5,7 @@ import "testing"
 func TestNodeTestScriptChainedOutputCommands(t *testing.T) {
 	for _, tc := range []struct {
 		name, script string
-		runnable bool
+		runnable     bool
 	}{
 		{"two echoes", "echo \"starting\"; echo \"no tests\"", false},
 		{"echo followed by printf", "echo \"starting\" ; printf 'not configured'", false},
@@ -18,7 +18,7 @@ func TestNodeTestScriptChainedOutputCommands(t *testing.T) {
 		{"real test after echo", "echo preparing; node --test", true},
 		{"real test after printf", "printf 'ready'; vitest run", true},
 		{"command substitution", "echo ready; printf \"$(node --test)\"", true},
-		{"command chaining", "echo ready && printf 'pending'", true},
+		{"command chaining", "echo ready && printf 'pending'", false},
 		{"pipe to real tests", "echo ready | node --test", true},
 		{"shell redirect", "echo ready; printf 'pending' > log.txt", true},
 		{"quoted line break with test", "echo ready;\nnode --test", true},

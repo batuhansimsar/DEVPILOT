@@ -39,17 +39,13 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     if method not in ('HEAD', 'GET', 'OPTIONS'):
         raise ValueError('method must be HEAD, GET or OPTIONS')
     validate_http_url_length(url)
-    # Fragments never reach an HTTP server; reject instead of silently checking
-    # a different endpoint from the one the caller supplied.
-    reject_http_fragment(url)
-    # A giant input should not reach URL parsing, escaping, or the network.
-    if len(url) > MAX_HTTP_URL_LENGTH:
-        raise ValueError('URL exceeds 8192 character limit')
     # Lone UTF-16 surrogates cannot be encoded as UTF-8 for the request target.
     # Reject them before building an opener or triggering a low-level encoding
     # exception that might expose parts of the user-supplied URL.
     if any(0xD800 <= ord(char) <= 0xDFFF for char in url):
         raise ValueError('URL must not contain unpaired Unicode surrogates')
+    # Reject fragments after validating raw Unicode, before parsing or I/O.
+    reject_http_fragment(url)
     # urlsplit silently strips leading spaces and certain control characters;
     # reject raw whitespace and controls so the target matches the supplied URL.
     if any(char.isspace() or ord(char) < 32 or ord(char) == 127 for char in url):
@@ -144,7 +140,7 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     ))
     # Percent encoding can expand short Unicode input into a much larger URL.
     if len(request_url) > MAX_HTTP_URL_LENGTH:
-        raise ValueError('Encoded URL exceeds 8192 character limit')
+        raise ValueError('Encoded URL exceeds 8192-character limit')
     opener = build_opener(ProxyHandler({}), HTTPHandler(), HTTPSHandler(), _NoRedirect())
     request = Request(request_url, method=method, headers={'User-Agent': 'DevPilot/0.1'})
     start = time.monotonic()

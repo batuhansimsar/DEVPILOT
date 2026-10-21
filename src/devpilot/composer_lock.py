@@ -10,6 +10,7 @@ import json
 
 from .composer_deps import _PACKAGE_NAME, _reject_nonfinite_number, _unique_object_keys
 from .json_numbers import parse_finite_json_float
+from .json_nesting import validate_json_nesting
 
 _MAX_NAME_LENGTH = 214
 
@@ -21,6 +22,7 @@ def parse_composer_lock(content: str) -> dict[str, list[str]]:
     Error strings are intentionally constant and never include lockfile values.
     """
     try:
+        validate_json_nesting(content)
         document = json.loads(
             content.removeprefix('\ufeff'),
             object_pairs_hook=_unique_object_keys,

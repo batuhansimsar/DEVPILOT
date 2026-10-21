@@ -138,6 +138,8 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     result['tcp_reachable'] = True
     with connection:
         try:
+            if tcp_elapsed >= timeout:
+                raise _TLSBudgetExhausted
             context = ssl.create_default_context()
             # Certificate-store initialization also consumes the shared timeout.
             # Recalculate immediately before negotiating TLS, not before SSL setup.

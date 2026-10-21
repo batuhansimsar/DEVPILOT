@@ -77,6 +77,8 @@ DevPilot is designed to **inspect before acting**. Analysis skips symlinked file
 
 The language detector targets root-level manifests; this early release does not recursively detect every monorepo workspace or replace CI/security scanners. Docker must be installed and running to use `docker`.
 
+Package.json inspection and Composer dependency inventory reject JSON nested beyond 128 object/array levels before decoding. This bound is independent of the Python version; brackets inside JSON strings do not count toward nesting.
+
 The explicit `env` command performs the same variable-name comparison and exits unsuccessfully if expected names are missing. The Python `doctor` command also compares variable **names only** from root-level `.env.example`, `.env.sample`, or `.env.template` against `.env` (when present). No values are printed; missing local keys are informational because variables may be provided externally. Symlinked or oversized environment files are not inspected (256 KiB limit).
 
 ## Development

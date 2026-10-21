@@ -15,8 +15,9 @@ class WorkspaceCliOptionsTests(unittest.TestCase):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             status = main(['workspaces', *args, '--json'])
-        self.assertEqual(status, 0)
-        return json.loads(out.getvalue())
+        report = json.loads(out.getvalue())
+        self.assertEqual(status, 1 if report['truncated'] else 0)
+        return report
 
     def test_depth_zero_limits_discovery_to_root(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -27,7 +28,7 @@ class WorkspaceCliOptionsTests(unittest.TestCase):
             (nested / 'package.json').write_text('{}')
             result = self.invoke('--path', directory, '--max-depth', '0')
             self.assertEqual([entry['path'] for entry in result['workspaces']], ['.'])
-            self.assertFalse(result['truncated'])
+            self.assertTrue(result['truncated'])
             result = self.invoke('--path', directory, '--max-depth', '2')
             self.assertEqual([entry['path'] for entry in result['workspaces']], ['.', 'apps/web'])
 

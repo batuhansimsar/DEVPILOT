@@ -15,6 +15,28 @@ from .scan_root import ensure_unlinked_scan_path
 _MAX_TEST_DISCOVERY_ENTRIES = 4096
 
 
+def _has_pytest_tests(suite: Path) -> bool:
+    """Recognize Python tests in test/, which other languages also use."""
+    pending = [suite]
+    inspected = 0
+    found = False
+    try:
+        while pending:
+            for entry in pending.pop().iterdir():
+                inspected += 1
+                if inspected > _MAX_TEST_DISCOVERY_ENTRIES or entry.is_symlink():
+                    return False
+                if entry.is_dir():
+                    pending.append(entry)
+                elif entry.is_file() and entry.name.endswith('.py') and (
+                    entry.name.startswith('test') or entry.name.endswith('_test.py')
+                ):
+                    found = True
+    except OSError:
+        return False
+    return found
+
+
 def _has_unittest_tests(tests: Path) -> bool:
     """Find a conventional unittest module without importing project code.
 
@@ -163,7 +185,7 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
         # A singular test/ tree can contain pytest-only *_test.py modules.
         # Do not require unittest naming before checking whether pytest is
         # available; the unittest path validates discoverability below.
-        if not tests.is_dir():
+        if not tests.is_dir() or not _has_pytest_tests(tests):
             tests = None
     if tests is not None and PathFinder.find_spec('pytest') is not None:
         if not _pytest_suites_are_safe(root):

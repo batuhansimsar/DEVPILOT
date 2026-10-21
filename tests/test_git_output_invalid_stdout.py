@@ -23,9 +23,9 @@ class GitInvalidStdoutTests(unittest.TestCase):
             'Git status unavailable (invalid porcelain output)',
         )
 
-    def test_real_empty_string_keeps_existing_clean_semantics(self):
+    def test_empty_string_cannot_establish_clean_status(self):
         self.assertEqual(format_git_status({'stdout': '', 'exit_code': 0, 'dirty': False}),
-                         'No changes')
+                         'Git status unavailable (empty porcelain output)')
 
 
 if __name__ == '__main__':

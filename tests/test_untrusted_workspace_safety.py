@@ -56,7 +56,7 @@ class UntrustedWorkspaceSafetyTests(unittest.TestCase):
 
     def test_package_script_discovery_cannot_execute_script(self):
         self.write("package.json", '{"scripts":{"test":"echo unsafe"}}')
-        with patch.object(core.subprocess, "run", side_effect=AssertionError("must not execute")):
+        with patch("subprocess.Popen", side_effect=AssertionError("must not execute")):
             commands = core.test_commands(self.root)
         self.assertTrue(any(cmd["ecosystem"] == "Node.js" for cmd in commands))
 

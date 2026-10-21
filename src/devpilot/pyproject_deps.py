@@ -151,7 +151,7 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
             normalized_extras: set[str] = set()
             for group, values in optional.items():
                 if not _NAME.fullmatch(group):
-                    raise ValueError('pyproject.toml contains an invalid optional dependency group name')
+                    raise ValueError('pyproject.toml contains an invalid dependency group name')
                 normalized = _canonical(group)
                 if normalized in normalized_extras:
                     raise ValueError('pyproject.toml contains duplicate normalized optional dependency groups')
@@ -195,13 +195,13 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
                     # Track the longest nested include chain regardless of
                     # declaration order or already-cached child groups.
                     if longest_chain > 64:
-                        raise ValueError('pyproject.toml dependency-groups include depth too deep')
+                        raise ValueError('pyproject.toml dependency-groups include depth limit exceeded')
                     include_depth[current] = longest_chain
                     resolved[current] = names
                     visiting.remove(current)
                     continue
                 if current in visiting:
-                    raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
+                    raise ValueError('pyproject.toml dependency-groups contain a cyclic inclusion')
                 visiting.add(current)
                 pending.append((current, True))
                 entries = groups[current]
@@ -218,7 +218,7 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
                     if reference not in groups:
                         raise ValueError('pyproject.toml dependency-groups reference an unknown group')
                     if reference in visiting:
-                        raise ValueError('pyproject.toml dependency-groups contain an inclusion cycle')
+                        raise ValueError('pyproject.toml dependency-groups contain a cyclic inclusion')
                     if reference not in resolved:
                         pending.append((reference, False))
 

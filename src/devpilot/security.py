@@ -24,6 +24,7 @@ def _is_sensitive_env_filename(filename: str) -> bool:
         name = name[1:]
     return (
         (name == '.env' or name.startswith('.env.')
+         or (name.startswith('.env') and len(name) > 4 and not name[4].isprintable())
          or name.endswith('.env') or '.env.' in name)
         and name not in SAFE_ENV_NAMES
         and not name.endswith(SAFE_ENV_TEMPLATE_SUFFIXES)

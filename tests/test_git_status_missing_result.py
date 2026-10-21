@@ -14,10 +14,10 @@ class GitMissingResultTests(unittest.TestCase):
                     'Git status unavailable (missing command result)',
                 )
 
-    def test_successful_explicit_clean_verdict_is_preserved(self):
+    def test_clean_verdict_requires_porcelain_output(self):
         self.assertEqual(
             format_git_status({'exit_code': 0, 'dirty': False, 'stdout': ''}),
-            'No changes',
+            'Git status unavailable (empty porcelain output)',
         )
 
     def test_diagnostic_only_reporting_is_preserved(self):

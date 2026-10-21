@@ -24,7 +24,7 @@ func TestDryRunWithoutTrustOrInstalledTool(t *testing.T) {
 	}
 }
 
-func TestDryRunWithTrustStillDoesNotExecute(t *testing.T) {
+func TestDryRunWithTrustRejectsConflictingFlags(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module test\ngo 1.23\n"), 0600); err != nil {
 		t.Fatal(err)
@@ -32,7 +32,7 @@ func TestDryRunWithTrustStillDoesNotExecute(t *testing.T) {
 	t.Setenv("PATH", "")
 	var out, errOut bytes.Buffer
 	status := run(context.Background(), []string{"test", "--trust", "--dry-run", dir}, &out, &errOut)
-	if status != 0 || !strings.Contains(out.String(), "Dry run: no command executed.") {
+	if status != 2 || out.Len() != 0 || !strings.Contains(errOut.String(), "cannot be combined") {
 		t.Fatalf("status=%d stdout=%q stderr=%q", status, out.String(), errOut.String())
 	}
 }

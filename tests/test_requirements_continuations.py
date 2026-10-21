@@ -27,14 +27,14 @@ class RequirementsContinuationTests(unittest.TestCase):
                    '  --hash=sha512:ffee\n')
         self.assertEqual(parse_requirements_dependencies(content), ['urllib3'])
 
-    def test_continued_pip_directives_cannot_become_requirements(self):
+    def test_continued_directives_only_inventory_explicit_vcs_egg(self):
         content = ('--index-url \\\n'
                    '  https://user:secret@example.invalid/simple\n'
                    '-r \\\n'
                    '  other-requirements.txt\n'
                    '-e \\\n'
                    '  git+https://example.invalid/repo#egg=package\n')
-        self.assertEqual(parse_requirements_dependencies(content), [])
+        self.assertEqual(parse_requirements_dependencies(content), ['package'])
 
     def test_dangling_continuation_is_not_a_valid_requirement(self):
         self.assertEqual(parse_requirements_dependencies('requests==2 \\\n'), [])

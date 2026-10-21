@@ -5,7 +5,7 @@ import "testing"
 func TestHasPytestINISectionInlineComments(t *testing.T) {
 	cases := []struct {
 		name, data, section string
-		want bool
+		want                bool
 	}{
 		{"tox hash comment", "[tox]\nenv_list = py\n[pytest] # pytest options\naddopts = -q\n", "[pytest]", true},
 		{"setup semicolon comment", "[tool:pytest] ; options\r\n", "[tool:pytest]", true},

@@ -6,14 +6,14 @@ from devpilot.pyproject_deps import parse_pyproject_dependencies
 
 
 class DependencyGroupDepthTests(unittest.TestCase):
-    def test_deep_includes_remain_reportable(self):
+    def test_deep_includes_fail_with_bounded_error(self):
         content = '[dependency-groups]\ng0 = ["pytest"]\n'
         content += ''.join(
             f'g{i} = [{{include-group = "g{i-1}"}}]\n'
             for i in range(1, 1100)
         )
-        result = parse_pyproject_dependencies(content)
-        self.assertEqual(result['group:g1099'], ['pytest'])
+        with self.assertRaisesRegex(ValueError, 'depth limit'):
+            parse_pyproject_dependencies(content)
 
     def test_shared_and_duplicate_includes_do_not_trigger_false_cycles(self):
         content = '''[dependency-groups]

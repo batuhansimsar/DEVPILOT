@@ -61,7 +61,9 @@ func TestDoctorTerminalEscapesUntrustedWorkspacePaths(t *testing.T) {
 	if code := run(context.Background(), []string{"doctor", "--json", root}, &stdout, &stderr); code != exit {
 		t.Fatalf("JSON exit=%d text exit=%d stderr=%q", code, exit, stderr.String())
 	}
-	var report struct{ Path string `json:"path"` }
+	var report struct {
+		Path string `json:"path"`
+	}
 	if err := json.Unmarshal(stdout.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +82,9 @@ func TestDoctorErrorEscapesPath(t *testing.T) {
 		if code := run(context.Background(), args, &stdout, &stderr); code != 2 {
 			t.Fatalf("args=%q exit=%d", args, code)
 		}
-		if strings.ContainsRune(stderr.String(), '\x1b') || !strings.Contains(stderr.String(), `\x1b`) || !strings.Contains(stderr.String(), `\n`) {
+		// Error messages may omit paths entirely; neither raw controls nor
+		// private path components should be required in a sanitized diagnostic.
+		if strings.ContainsRune(stderr.String(), '\x1b') || strings.ContainsRune(strings.TrimSuffix(stderr.String(), "\n"), '\n') || strings.Contains(stderr.String(), path) {
 			t.Fatalf("unescaped error for args=%q: %q", args, stderr.String())
 		}
 	}

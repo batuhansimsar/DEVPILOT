@@ -79,8 +79,7 @@ class PytestTreeSafetyTests(unittest.TestCase):
         outside.touch()
         self.make_link(nested / 'test_external.py', outside)
         command = self.discover()
-        self.assertIsNotNone(command)
-        self.assertEqual(command['argv'][1:3], ['-m', 'unittest'])
+        self.assertIsNone(command)
 
     def test_other_conventional_suite_must_not_select_pytest(self):
         other = self.root / 'test'
@@ -89,8 +88,7 @@ class PytestTreeSafetyTests(unittest.TestCase):
         outside.touch()
         self.make_link(other / 'test_external.py', outside)
         command = self.discover()
-        self.assertIsNotNone(command)
-        self.assertEqual(command['argv'][1:3], ['-m', 'unittest'])
+        self.assertIsNone(command)
 
     def test_root_level_pytest_cannot_bypass_unsafe_suite(self):
         (self.tests / 'test_safe.py').unlink()

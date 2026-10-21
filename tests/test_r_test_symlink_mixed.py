@@ -29,7 +29,7 @@ class MixedRTestSymlinkTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
             root = Path(directory)
             (root / 'renv.lock').touch()
-            (root / 'DESCRIPTION').touch()
+            (root / 'DESCRIPTION').write_text('Package: sample\n', encoding='utf-8')
             tests = root / 'tests'
             tests.mkdir()
             (tests / 'testthat.R').touch()

@@ -9,7 +9,7 @@ from devpilot.tlscheck import tls_check
 
 class TLSPhaseTimingTests(unittest.TestCase):
     @patch('devpilot.tlscheck.time.monotonic', side_effect=[5.0, 5.3])
-    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.05, 10.06, 10.26])
+    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.05, 10.06, 10.06, 10.26])
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
     def test_splits_successful_connection_and_handshake(self, connect, make_context, clock, total_clock):
@@ -38,7 +38,7 @@ class TLSPhaseTimingTests(unittest.TestCase):
         self.assertFalse(result['tls_valid'])
 
     @patch('devpilot.tlscheck.time.monotonic', side_effect=[5.0, 5.2])
-    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.01, 10.02, 10.17])
+    @patch('devpilot.tlscheck.time.perf_counter', side_effect=[10.0, 10.01, 10.02, 10.02, 10.17])
     @patch('devpilot.tlscheck.ssl.create_default_context')
     @patch('devpilot.tlscheck.socket.create_connection')
     def test_tls_failure_still_reports_handshake_duration(self, connect, make_context, clock, total_clock):

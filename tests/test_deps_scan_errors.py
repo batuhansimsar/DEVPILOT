@@ -14,7 +14,7 @@ from devpilot.deps import main, scan
 class DependencyScanErrorsTests(unittest.TestCase):
     def test_scandir_failure_reports_partial_inventory_without_absolute_path(self):
         with TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
             (root / 'go.mod').write_text('module demo')
 
             def broken_walk(path, *, followlinks=False, onerror=None):
@@ -33,7 +33,7 @@ class DependencyScanErrorsTests(unittest.TestCase):
 
     def test_cli_fails_instead_of_claiming_success_for_incomplete_scan(self):
         with TemporaryDirectory() as tmp:
-            root = Path(tmp)
+            root = Path(tmp).resolve()
 
             def broken_walk(path, *, followlinks=False, onerror=None):
                 yield str(root), [], []

@@ -16,6 +16,7 @@ class PythonConfigWorkspaceTests(unittest.TestCase):
                 root = Path(directory)
                 (root / filename).write_text('[pytest]\n', encoding='utf-8')
                 (root / 'tests').mkdir()
+                (root / 'tests' / 'test_example.py').touch()
 
                 self.assertIn('Python', detect_projects(root))
                 report = analyze_project(root)
@@ -28,10 +29,10 @@ class PythonConfigWorkspaceTests(unittest.TestCase):
                     {'file': filename, 'ecosystem': 'Python'},
                 ])
 
-                with patch('devpilot.core.shutil.which', return_value='/usr/bin/pytest'):
+                with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
                     commands = test_commands(root)
                 self.assertTrue(any(cmd['ecosystem'] == 'Python'
-                                    and cmd['argv'][-2:] == ['-m', 'pytest']
+                                    and cmd['argv'][-3:] == ['-m', 'pytest', 'tests']
                                     for cmd in commands))
 
     def test_nested_config_only_workspace_is_detected(self):

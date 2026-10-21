@@ -27,7 +27,7 @@ class PyprojectGroupSafetyTests(unittest.TestCase):
         "test-suite" = [{include-group = "dev"}, "coverage>=7"]
         ''')
         self.assertEqual(result, {
-            'optional:docs.api': ['sphinx'],
+            'optional:docs-api': ['sphinx'],
             'group:dev': ['pytest'],
             'group:test-suite': ['coverage', 'pytest'],
         })

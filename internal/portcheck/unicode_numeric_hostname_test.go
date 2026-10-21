@@ -9,7 +9,7 @@ func TestRejectsUnicodeNumericIPv4Aliases(t *testing.T) {
 		"１２７.０.０.１", // fullwidth digits
 		"١٢٧.٠.٠.١", // Arabic-Indic digits
 		"１２７.0.0.1", // mixed Unicode and ASCII digits
-		"１２７", // all-numeric single-label address
+		"１２７",       // all-numeric single-label address
 	} {
 		t.Run(host, func(t *testing.T) {
 			if !ambiguousNumericHost(host) {

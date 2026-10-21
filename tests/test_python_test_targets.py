@@ -1,5 +1,6 @@
 """Root pytest arguments must not widen collection beyond detected files."""
 
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -33,6 +34,8 @@ class RootPytestTargetsTests(unittest.TestCase):
                 self.skipTest('symlinks unavailable')
             self.assertIsNone(root_pytest_targets(root, 100))
 
+    @unittest.skipUnless(importlib.util.find_spec('pytest'),
+                         'pytest unavailable in selected interpreter')
     def test_root_pytest_ignores_nested_external_tests(self):
         with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryDirectory() as outside:
             root = Path(folder)

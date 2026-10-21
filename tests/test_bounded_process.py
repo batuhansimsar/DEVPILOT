@@ -84,7 +84,7 @@ class BoundedProcessTests(unittest.TestCase):
 
     def test_working_directory_is_used(self):
         result = self.call_python('import os; print(os.getcwd())')
-        self.assertEqual(Path(result['stdout'].strip()), self.root)
+        self.assertEqual(Path(result['stdout'].strip()).resolve(), self.root.resolve())
 
     def test_invalid_utf8_replaced(self):
         result = self.call_python("import os; os.write(1, b'\\xff')")

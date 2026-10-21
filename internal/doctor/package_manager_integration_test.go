@@ -48,7 +48,7 @@ func TestInvalidNodeManagerCannotSelectRunner(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			write(t, dir, "package.json", `{"packageManager":"`+tc.spec+`","scripts":{"test":"echo ok"}}`)
+			write(t, dir, "package.json", `{"packageManager":"`+tc.spec+`","scripts":{"test":"node --test"}}`)
 			if tc.lockfile {
 				write(t, dir, "package-lock.json", "{}")
 			}

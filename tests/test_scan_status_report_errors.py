@@ -31,7 +31,7 @@ class ScanStatusReportErrorTests(unittest.TestCase):
 
         self.assertFalse(scan_succeeded(BrokenErrorReport(
             truncated=False, problems=[],
-        ))
+        )))
 
 
 if __name__ == '__main__':

@@ -307,7 +307,6 @@ func Inspect(root string) (Report, error) {
 		tool("deno", "Deno runtime")
 	}
 
-
 	// Discover standard JVM build systems without executing build scripts or
 	// wrappers. Conflicting Maven and Gradle manifests are ambiguous.
 	if jvm := discoverJVMBuild(abs); jvm.Found {

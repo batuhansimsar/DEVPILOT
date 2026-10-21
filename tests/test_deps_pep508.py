@@ -19,7 +19,8 @@ class PEP508DirectReferenceTests(unittest.TestCase):
             result = scan(directory)
             self.assertEqual(result["manifests"][0]["groups"]["requirements"],
                              ["another-lib", "fancy-pkg", "flask"])
-            serialized = json.dumps(result)
+            # The canonical macOS temp path contains '/private'; it is not a URL leak.
+            serialized = json.dumps({key: value for key, value in result.items() if key != 'root'})
             for secret in ("secret", "token", "private", "downloads.example.test", "git.example.test"):
                 self.assertNotIn(secret, serialized)
 

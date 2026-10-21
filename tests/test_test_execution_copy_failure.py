@@ -1,4 +1,4 @@
-"""Unexpected copy failures must not crash CLI test execution or leak metadata."""
+"""Unknown runner metadata must be discarded without invoking copy hooks."""
 
 import unittest
 from pathlib import Path
@@ -12,7 +12,7 @@ class _Uncopyable:
 
 
 class TestExecutionCopyFailureTests(unittest.TestCase):
-    def test_uncopyable_result_is_safe_failure_and_skips_next_in_fail_fast(self):
+    def test_unknown_metadata_is_discarded_without_copying_in_fail_fast(self):
         commands = [{'argv': ['test-one']}, {'argv': ['test-two']}]
         called = []
 
@@ -20,13 +20,13 @@ class TestExecutionCopyFailureTests(unittest.TestCase):
             called.append(argv)
             return {'exit_code': 0, 'metadata': _Uncopyable()}
 
-        self.assertFalse(execute_test_commands(commands, Path('.'), 10, runner, fail_fast=True))
-        self.assertEqual(called, [['test-one']])
-        self.assertIsNone(commands[0]['result']['exit_code'])
+        self.assertTrue(execute_test_commands(commands, Path('.'), 10, runner, fail_fast=True))
+        self.assertEqual(called, [['test-one'], ['test-two']])
+        self.assertEqual(commands[0]['result'], {'exit_code': 0})
         self.assertNotIn('private-token', repr(commands))
-        self.assertIn('fail-fast', commands[1]['skipped_reason'])
+        self.assertNotIn('skipped_reason', commands[1])
 
-    def test_uncopyable_first_result_does_not_stop_default_execution(self):
+    def test_unknown_metadata_does_not_stop_default_execution(self):
         commands = [{'argv': ['a']}, {'argv': ['b']}]
         count = 0
 
@@ -35,7 +35,7 @@ class TestExecutionCopyFailureTests(unittest.TestCase):
             count += 1
             return {'exit_code': 0, 'metadata': _Uncopyable()} if count == 1 else {'exit_code': 0}
 
-        self.assertFalse(execute_test_commands(commands, Path('.'), 10, runner))
+        self.assertTrue(execute_test_commands(commands, Path('.'), 10, runner))
         self.assertEqual(count, 2)
         self.assertEqual(commands[1]['result']['exit_code'], 0)
 

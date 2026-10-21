@@ -60,12 +60,12 @@ class PythonSuiteScanSafetyTests(unittest.TestCase):
                 result = python_test_command(root)
             self.assertEqual(result['argv'][-3:], ['discover', '-s', 'tests'])
 
-    def test_empty_pytest_suite_remains_supported(self):
+    def test_empty_suite_does_not_offer_an_empty_test_run(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=object()):
-                self.assertEqual(python_test_command(root)['argv'][-2:], ['-m', 'pytest'])
+                self.assertIsNone(python_test_command(root))
 
 
 if __name__ == '__main__':

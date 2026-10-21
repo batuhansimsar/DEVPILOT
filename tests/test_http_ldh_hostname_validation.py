@@ -13,7 +13,7 @@ class HTTPDNSLabelValidationTests(unittest.TestCase):
             'bad+name.example', 'bad!name.example', 'bad~name.example',
         ):
             with self.subTest(host=host), patch('devpilot.httpcheck.build_opener') as opener:
-                with self.assertRaisesRegex(ValueError, 'invalid IDNA hostname') as caught:
+                with self.assertRaisesRegex(ValueError, 'invalid DNS label') as caught:
                     http_check(f'https://{host}/ready?token=private-token')
                 self.assertNotIn('private-token', str(caught.exception))
                 opener.assert_not_called()

@@ -19,7 +19,7 @@ class ZigRootDetectionTests(unittest.TestCase):
                 self.assertEqual(analysis['project_types'], ['Zig'])
                 self.assertIn(manifest, analysis['key_files'])
                 self.assertEqual(discover_workspaces(root)['workspaces'][0]['ecosystems'], ['Zig'])
-                self.assertFalse(any(command['ecosystem'] == 'Zig'
+                self.assertEqual(manifest == 'build.zig', any(command['ecosystem'] == 'Zig'
                                      for command in core.test_commands(root)))
                 with patch('devpilot.core.shutil.which', return_value=None):
                     doctor = core.doctor_report(root)

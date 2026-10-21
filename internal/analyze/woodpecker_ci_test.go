@@ -2,7 +2,7 @@ package analyze
 
 import "testing"
 
-func TestIsCIConfigWoodpecker(t *testing.T) {
+func TestWoodpeckerCIPathVariants(t *testing.T) {
 	cases := []struct {
 		path string
 		want bool
