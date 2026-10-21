@@ -33,3 +33,7 @@ The `containers` field inventories Dockerfiles, Podman Containerfiles, and Docke
 Compose YAML files, including nested service directories. It stores relative
 paths only; files are never opened or executed. Backups and dependency/build
 trees are excluded from this list.
+
+## Bitrise and AppVeyor CI
+
+Bitrise and AppVeyor CI are detected by their default root-level files (`bitrise.yml`, `appveyor.yml`, and `.appveyor.yml`). Custom CI paths configured in the providers' web interfaces cannot be inferred from a read-only filename scan.
