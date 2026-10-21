@@ -11,6 +11,7 @@ from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .secret_audit import _tracked_paths
 from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
+from .agent_credentials import is_agent_credential_location
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
@@ -125,7 +126,8 @@ def _potential_secret(path: str) -> bool:
         ) or any(name.endswith(suffix) or suffix + '.' in name
                  for suffix in _TERRAFORM_SENSITIVE_SUFFIXES)):
         return True
-    found = (is_cargo_credential_location(parts) or name in _PRIVATE_NAMES
+    found = (is_cargo_credential_location(parts) or is_agent_credential_location(parts)
+            or name in _PRIVATE_NAMES
             or name.endswith(('.kubeconfig', '.kubeconfig.yml', '.kubeconfig.yaml'))
             or is_firebase_service_account_key(name)
             or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
