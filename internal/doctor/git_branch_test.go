@@ -24,6 +24,10 @@ func TestParseGitHeadBranch(t *testing.T) {
 		{"trailing space", "ref: refs/heads/main \n", "", false},
 		{"backslash", "ref: refs/heads/bad\\name\n", "", false},
 		{"non UTF8", "ref: refs/heads/\xff\n", "", false},
+		{"leading combining mark", "ref: refs/heads/\u0301spoof\n", "", false},
+		{"nested leading combining mark", "ref: refs/heads/fix/\u0301spoof\n", "", false},
+		{"leading variation selector", "ref: refs/heads/\ufe0fspoof\n", "", false},
+		{"combining mark inside component", "ref: refs/heads/cafe\u0301\n", "cafe\u0301", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
