@@ -7,6 +7,7 @@ import shutil
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
+from .azure_functions_settings import is_azure_functions_local_settings
 from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .secret_audit import _tracked_paths
 from .editor_backups import strip_editor_backups
@@ -142,6 +143,7 @@ def _potential_secret(path: str) -> bool:
             or name in _PRIVATE_NAMES
             or name.endswith(('.kubeconfig', '.kubeconfig.yml', '.kubeconfig.yaml'))
             or is_firebase_service_account_key(name)
+            or is_azure_functions_local_settings(parts)
             or PurePosixPath(name).suffix in _PRIVATE_EXTENSIONS
             or len(parts) >= 2 and parts[-2:] in _SENSITIVE_LOCATIONS
             or len(parts) >= 3 and parts[-3:] in _SENSITIVE_CLI_LOCATIONS
