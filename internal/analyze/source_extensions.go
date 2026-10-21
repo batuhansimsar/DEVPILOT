@@ -30,6 +30,16 @@ func extendedLanguage(extension string) (string, bool) {
 		return "Python", true
 	case ".pyx", ".pxd", ".pxi":
 		return "Cython", true
+	case ".ps1", ".psm1", ".psd1":
+		return "PowerShell", true
+	case ".gd":
+		return "GDScript", true
+	case ".nim":
+		return "Nim", true
+	case ".ml", ".mli":
+		return "OCaml", true
+	case ".typ":
+		return "Typst", true
 	default:
 		return "", false
 	}
