@@ -47,7 +47,7 @@ devpilot doctor --path /path/to/project --json
 | Command | Behavior |
 | --- | --- |
 | `env` | Compares environment variable names against an `.env` template without printing secret values. Missing keys return exit status 1; no local `.env` is advisory. |
-| `workspaces` | Discovers nested Python, Node.js, Deno, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir, Zig, Julia and Docker/Compose projects without following symlinks or reading file contents. | 
+| `workspaces` | Discovers nested Python, Node.js, Deno, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir, Zig, Julia, R and Docker/Compose projects without following symlinks or reading file contents. | 
 | `analyze` | Detects Node.js, Deno, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only Git porcelain status with no shell; JSON includes `dirty` (`true`, `false`, or `null` on Git failure). `--fail-on-dirty` exits nonzero for changed files. |
@@ -60,6 +60,8 @@ devpilot doctor --path /path/to/project --json
 Elixir Mix projects are recognized from a root `mix.exs`: `analyze` counts `.ex` and `.exs` sources, `doctor` checks for `mix`, and `test --ecosystem elixir` previews `mix test` without executing it unless `--yes` is supplied.
 
 Julia discovery recognizes `Project.toml`, `JuliaProject.toml`, `Manifest.toml`, `JuliaManifest.toml`, and versioned lockfiles such as `Manifest-v1.11.toml`. It inspects only filenames and does not execute or parse Julia project code.
+
+R and RStudio discovery recognizes `renv.lock` and named `*.Rproj` project files at repository roots or within monorepos. `analyze` counts `.R`, `.Rmd`, and `.Rnw` source files, while `doctor` checks for `Rscript` on `PATH`. Discovery reads filenames only and does not run R code. A generic `DESCRIPTION` file alone is not treated as an R project, and `devpilot test` does not guess a test command from these markers.
 
 ## Security and limits
 

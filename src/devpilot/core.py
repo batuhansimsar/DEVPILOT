@@ -32,6 +32,7 @@ from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
+from .r_manifests import is_r_manifest
 from .julia_tests import julia_test_command
 
 SKIP_DIRS = frozenset({
@@ -56,6 +57,7 @@ LANGUAGES = {
     '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
     '.dart': 'Dart', '.jl': 'Julia', '.lua': 'Lua',
+    '.r': 'R', '.rmd': 'R', '.rnw': 'R',
     '.hs': 'Haskell', '.lhs': 'Haskell',
     '.ex': 'Elixir', '.exs': 'Elixir', '.zig': 'Zig',
 }
@@ -140,6 +142,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Elixir')
     if any(is_julia_manifest(name) for name in names):
         types.add('Julia')
+    if any(is_r_manifest(name) for name in names):
+        types.add('R')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
@@ -198,7 +202,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if (filename in KEY_FILES or is_requirements_manifest(filename)
                 or filename.lower().endswith('.gemspec')
                 or is_pylock_manifest(filename) or is_container_manifest(filename)
-                or is_haskell_manifest(filename)
+                or is_haskell_manifest(filename) or is_r_manifest(filename)
                 or is_dotnet_manifest(filename) or is_julia_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
@@ -302,6 +306,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
         'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
+        'R': 'Rscript',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'

@@ -14,7 +14,7 @@ from .walk import walk_project
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
-from .haskell_manifests import is_haskell_manifest
+from .r_manifests import is_r_manifest
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
@@ -150,14 +150,14 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 ecosystem = 'Python'
             if not ecosystem and is_julia_manifest(filename):
                 ecosystem = 'Julia'
+            if not ecosystem and is_r_manifest(filename):
+                ecosystem = 'R'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'
             if not ecosystem and path.suffix.lower() == '.gemspec':
                 ecosystem = 'Ruby'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
                 ecosystem = '.NET'
-            if not ecosystem and is_haskell_manifest(filename):
-                ecosystem = 'Haskell'
             if ecosystem:
                 manifests.append({'file': filename, 'ecosystem': ecosystem})
         if manifests:
