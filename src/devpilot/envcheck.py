@@ -13,18 +13,21 @@ MAX_ENV_BYTES = 256 * 1024
 _KEY = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 
 
-def _has_closing_quote(text: str, quote: str) -> bool:
-    """Find the end of a quoted dotenv value, respecting escaped quotes."""
-    escaped = False
+def _closing_quote_state(text: str, quote: str, escaped: bool = False) -> tuple[bool, bool]:
+    """Track a multiline quoted value, including escapes across line endings.
+
+    Return whether a closing quote was found and whether an escape is pending.
+    A trailing backslash escapes the next physical line's first character;
+    resetting this state would treat escaped quotes as closing delimiters.
+    """
     for char in text:
         if escaped:
             escaped = False
         elif char == '\\':
             escaped = True
         elif char == quote:
-            return True
-    return False
-
+            return True, False
+    return False, escaped
 
 def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     """Read names only from an unchanged, regular file; never follow symlinks.
@@ -79,10 +82,13 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     # Only CR and LF delimit physical .env lines. Unicode NEL/LS/PS,
     # VT and FF within values must never forge additional declarations.
     quoted: str | None = None
+    quote_escaped = False
     for line in re.split(r'\r\n|\r|\n', raw.decode('utf-8-sig', errors='replace')):
         if quoted is not None:
-            if _has_closing_quote(line, quoted):
+            closed, quote_escaped = _closing_quote_state(line, quoted, quote_escaped)
+            if closed:
                 quoted = None
+                quote_escaped = False
             continue
         # Limit syntax whitespace to horizontal ASCII whitespace: str.strip()
         # would otherwise accept Unicode line separators before a fake key.
@@ -96,8 +102,10 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
             # Dotenv supports multi-line quoted values. Lines inside a quoted
             # value are not declarations, even when they look like KEY=value.
             value = value.lstrip(' \t')
-            if value.startswith(("'", '"')) and not _has_closing_quote(value[1:], value[0]):
-                quoted = value[0]
+            if value.startswith(("'", '"')):
+                closed, quote_escaped = _closing_quote_state(value[1:], value[0])
+                if not closed:
+                    quoted = value[0]
     return names, None
 
 
