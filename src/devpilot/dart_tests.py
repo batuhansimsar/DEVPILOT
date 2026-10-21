@@ -8,7 +8,12 @@ from typing import Any
 
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
-_FLUTTER_SDK = re.compile(rb'(?m)^[ \t]*sdk:[ \t]*flutter[ \t]*(?:#.*)?$')
+# YAML allows quoted scalar values and CRLF line endings in pubspec.yaml.
+# Keep the value anchored so flutterish (or a trailing YAML token) cannot
+# accidentally select Flutter's runner for an ordinary Dart package.
+_FLUTTER_SDK = re.compile(
+    rb'''(?m)^[ \t]*sdk:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*(?:#[^\r\n]*)?\r?$'''
+)
 
 
 def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
