@@ -1,4 +1,4 @@
-"""Conservative, read-only PHPUnit discovery for Composer projects."""
+"""Conservative, read-only PHPUnit and Pest discovery for Composer projects."""
 
 from __future__ import annotations
 
@@ -11,29 +11,35 @@ _MAX_TEST_ENTRIES = 4096
 
 
 def php_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
-    """Detect configured PHPUnit or a conventional tests/ suite.
+    """Detect configured PHPUnit/Pest or a conventional tests/ suite.
 
+    A regular tests/Pest.php selects the Pest launcher rather than PHPUnit.
     Only inspect ordinary files; never follow symlinked manifests, config,
-    or suite paths. Directory traversal is bounded and runs no project code.
+    suite paths or Pest markers. Traversal is bounded and runs no project code.
     Test execution requires explicit CLI --yes consent.
     """
     manifest = root / 'composer.json'
     if 'composer.json' not in names or manifest.is_symlink() or not manifest.is_file():
         return None
 
-    # When a config exists, PHPUnit reads the configured suite itself.
+    # When a config exists, the selected runner reads the configured suite.
     # A linked config may point outside the selected project: do not trust it.
     present = [name for name in _PHPUNIT_CONFIGS if name in names]
     if any((root / name).is_symlink() or not (root / name).is_file() for name in present):
         return None
+
+    tests = root / 'tests'
+    pest_marker = tests / 'Pest.php'
+    uses_pest = (not tests.is_symlink() and tests.is_dir()
+                 and not pest_marker.is_symlink() and pest_marker.is_file())
+    runner = 'vendor/bin/pest' if uses_pest else 'vendor/bin/phpunit'
     if present:
         return {
             'ecosystem': 'PHP',
-            'argv': ['php', 'vendor/bin/phpunit', '--configuration', present[0]],
-            'reason': f'Composer project with {present[0]}',
+            'argv': ['php', runner, '--configuration', present[0]],
+            'reason': f'Composer project with {present[0]}' + (' (Pest)' if uses_pest else ''),
         }
 
-    tests = root / 'tests'
     if tests.is_symlink() or not tests.is_dir():
         return None
     pending = [tests]
@@ -44,9 +50,8 @@ def php_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
             for path in pending.pop().iterdir():
                 seen += 1
                 if seen > _MAX_TEST_ENTRIES or path.is_symlink():
-                    # PHPUnit recursively discovers the complete test tree.
-                    # A link anywhere can escape the selected project, even
-                    # after an ordinary test has already been found.
+                    # Both test runners can recursively discover linked files.
+                    # Fail closed even if an ordinary test was already found.
                     return None
                 if path.is_file() and path.name.endswith('Test.php'):
                     has_tests = True
@@ -58,6 +63,7 @@ def php_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         return None
     return {
         'ecosystem': 'PHP',
-        'argv': ['php', 'vendor/bin/phpunit', 'tests'],
-        'reason': 'Composer project with conventional PHPUnit tests',
+        'argv': ['php', runner, 'tests'],
+        'reason': 'Composer project with conventional '
+                  + ('Pest' if uses_pest else 'PHPUnit') + ' tests',
     }
