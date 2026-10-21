@@ -39,6 +39,14 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     if (tests.is_symlink() or not tests.is_dir()
             or helper.is_symlink() or not helper.is_file()):
         return None
+    # A test helper alone is not a runnable suite. Keep the dry-run plan
+    # accurate rather than suggesting a command that would only abort.
+    try:
+        if not any(path.is_file() and not path.is_symlink()
+                   for path in tests.rglob('*_test.rb')):
+            return None
+    except OSError:
+        return None
     return {
         'ecosystem': 'Ruby',
         'argv': ['bundle', 'exec', 'ruby', '-Itest', '-e', _MINITEST_LOADER],

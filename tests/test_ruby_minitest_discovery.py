@@ -14,11 +14,35 @@ class RubyMinitestDiscoveryTests(unittest.TestCase):
             root = Path(directory)
             (root / 'test').mkdir()
             (root / 'test' / 'test_helper.rb').write_text('')
+            (root / 'test' / 'widgets').mkdir()
+            (root / 'test' / 'widgets' / 'widget_test.rb').write_text('')
             command = ruby_test_command(root, {'Gemfile'})
             self.assertEqual(command['ecosystem'], 'Ruby')
             self.assertEqual(command['argv'][:5], ['bundle', 'exec', 'ruby', '-Itest', '-e'])
             self.assertIn('test/**/*_test.rb', command['argv'][5])
             self.assertIn('files.empty?', command['argv'][5])
+
+    def test_does_not_suggest_minitest_for_helper_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'test').mkdir()
+            (root / 'test' / 'test_helper.rb').write_text('')
+            self.assertIsNone(ruby_test_command(root, {'Gemfile'}))
+            (root / 'test' / 'test_widget.rb').write_text('')
+            self.assertIsNone(ruby_test_command(root, {'Gemfile'}))
+
+    def test_symlinked_test_file_not_used_as_evidence(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as outside:
+            root = Path(directory)
+            (root / 'test').mkdir()
+            (root / 'test' / 'test_helper.rb').write_text('')
+            target = Path(outside) / 'outside_test.rb'
+            target.write_text('')
+            try:
+                (root / 'test' / 'outside_test.rb').symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest('Symlinks not supported')
+            self.assertIsNone(ruby_test_command(root, {'Gemfile'}))
 
     def test_rspec_wins_when_both_test_styles_are_present(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -27,6 +51,7 @@ class RubyMinitestDiscoveryTests(unittest.TestCase):
             (root / 'spec' / 'spec_helper.rb').write_text('')
             (root / 'test').mkdir()
             (root / 'test' / 'test_helper.rb').write_text('')
+            (root / 'test' / 'user_test.rb').write_text('')
             self.assertEqual(ruby_test_command(root, {'Gemfile'})['argv'], ['bundle', 'exec', 'rspec'])
 
     def test_unbundled_and_missing_helper_are_ignored(self):
@@ -58,6 +83,7 @@ class RubyMinitestDiscoveryTests(unittest.TestCase):
             root = Path(directory)
             (root / 'test').mkdir()
             (root / 'test' / 'test_helper.rb').write_text('')
+            (root / 'test' / 'thing_test.rb').write_text('')
             with patch('subprocess.run') as run, patch('subprocess.Popen') as popen:
                 self.assertIsNotNone(ruby_test_command(root, {'Gemfile'}))
                 run.assert_not_called()
