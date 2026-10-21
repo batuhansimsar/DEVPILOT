@@ -4,7 +4,6 @@ package analyze
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -67,16 +66,9 @@ type Report struct {
 // Inspect walks the project without following symlinked dirs or files.
 // It deliberately skips generated/dependency trees and bounds the scan.
 func Inspect(path string) (Report, error) {
-	root, err := filepath.Abs(path)
+	root, err := projectRoot(path)
 	if err != nil {
 		return Report{}, err
-	}
-	stat, err := os.Stat(root)
-	if err != nil {
-		return Report{}, fmt.Errorf("project directory: %w", err)
-	}
-	if !stat.IsDir() {
-		return Report{}, fmt.Errorf("not a directory: %s", root)
 	}
 
 	r := Report{Path: root, Languages: []LanguageCount{}, Manifests: []string{}, CI: []string{}, Containers: []string{}, Warnings: []string{}}
