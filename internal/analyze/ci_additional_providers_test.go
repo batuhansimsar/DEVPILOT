@@ -17,7 +17,7 @@ func TestAdditionalCIProviderEntrypoints(t *testing.T) {
 		{"service/.cirrus.yml", false},
 		{"service/buildspec.yml", false},
 		{".cirrus.yaml", false},
-		{"buildspec.yaml", false},
+		{"buildspec.yaml", true},
 		{"buildspec.yml.bak", false},
 		{".cirrus.yml.disabled", false},
 	} {
