@@ -20,6 +20,18 @@ def is_dotnet_manifest(name: str) -> bool:
     )
 
 
+def _safe_dotnet_test_name(name: str) -> bool:
+    """Only pass literal root filenames as dotnet test arguments.
+
+    Leading hyphens could be parsed as command options; separators and
+    control characters are unsafe or platform-dependent file targets.
+    """
+    return (isinstance(name, str) and bool(name)
+            and not name.startswith('-')
+            and '/' not in name and '\\' not in name
+            and not any(ord(char) < 32 or ord(char) == 127 for char in name))
+
+
 def dotnet_test_target(names: set[str]) -> str | None:
     """Prefer a unique full solution, then a filter, then a project.
 
@@ -28,7 +40,8 @@ def dotnet_test_target(names: set[str]) -> str | None:
     Multiple targets at the same priority are ambiguous and never guessed.
     """
     for suffixes in (DOTNET_SOLUTION_SUFFIXES, DOTNET_FILTER_SUFFIXES, DOTNET_PROJECT_SUFFIXES):
-        candidates = sorted(name for name in names if Path(name).suffix.lower() in suffixes)
+        candidates = sorted(name for name in names if _safe_dotnet_test_name(name)
+                            and Path(name).suffix.lower() in suffixes)
         if candidates:
             return candidates[0] if len(candidates) == 1 else None
     return None
