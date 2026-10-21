@@ -21,7 +21,7 @@ _DEPENDENCY_ENTRY = re.compile(
 _FLUTTER_SDK = re.compile(rb'''(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
 
 _INLINE_FLUTTER_SDK = re.compile(
-    rb'''(?:flutter|"flutter"|'flutter')[ \t]*:[ \t]*\{[ \t]*(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*\}[ \t]*(?:#.*)?\Z'''
+    rb'''(?:[A-Za-z][A-Za-z0-9_]*|'[A-Za-z][A-Za-z0-9_]*'|"[A-Za-z][A-Za-z0-9_]*")[ \t]*:[ \t]*\{[ \t]*(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*\}[ \t]*(?:#.*)?\Z'''
 )
 
 def _has_flutter_sdk_dependency(data: bytes) -> bool:
