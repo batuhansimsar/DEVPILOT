@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/batuhansimsar/DEVPILOT/internal/safepath"
 )
 
-// validateProjectRoot resolves an absolute path without following a symbolic
-// link at the selected project root. This keeps doctor consistent with analyze
-// and avoids inspecting an unexpected directory outside the chosen workspace.
+// validateProjectRoot rejects symbolic links at the selected directory or in
+// its ancestors, preventing checks from escaping the intended workspace.
 func validateProjectRoot(path string) (string, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
@@ -23,6 +24,9 @@ func validateProjectRoot(path string) (string, error) {
 	}
 	if !st.IsDir() {
 		return "", fmt.Errorf("project path is not a directory: %s", abs)
+	}
+	if err := safepath.EnsureUnlinkedPath(abs); err != nil {
+		return "", err
 	}
 	return abs, nil
 }
