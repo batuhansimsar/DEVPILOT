@@ -54,11 +54,14 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     if (tests.is_symlink() or not tests.is_dir()
             or helper.is_symlink() or not helper.is_file()):
         return None
-    # A test helper alone is not a runnable suite. Keep the dry-run plan
-    # accurate rather than suggesting a command that would only abort.
+    # Ruby's Dir.glob without FNM_DOTMATCH ignores hidden files and directories.
+    # The discovery signal must only count tests that its loader can run.
     try:
-        if not any(path.is_file() and not path.is_symlink()
-                   for path in tests.rglob('*_test.rb')):
+        if not any(
+            path.is_file() and not path.is_symlink()
+            and all(not part.startswith('.') for part in path.relative_to(tests).parts)
+            for path in tests.rglob('*_test.rb')
+        ):
             return None
     except OSError:
         return None
