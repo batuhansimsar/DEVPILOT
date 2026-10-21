@@ -66,6 +66,12 @@ WORKSPACE_FILES = {
     'pubspec.lock': 'Dart',
     'mix.exs': 'Elixir',
     'mix.lock': 'Elixir',
+    # Both flake-based and legacy Nix projects have distinctive root markers.
+    # A lockfile alone is enough to identify a flake workspace.
+    'flake.nix': 'Nix',
+    'flake.lock': 'Nix',
+    'shell.nix': 'Nix',
+    'default.nix': 'Nix',
     'Directory.Packages.props': '.NET',
     'global.json': '.NET',
     'Dockerfile': 'Docker',
