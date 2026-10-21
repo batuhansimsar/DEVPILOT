@@ -3,12 +3,32 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 
 _JULIA_PROJECT_FILES = frozenset({'Project.toml', 'JuliaProject.toml'})
+_JULIA_MANIFEST_FILES = frozenset({'Manifest.toml', 'JuliaManifest.toml'})
+_VERSIONED_JULIA_MANIFEST = re.compile(r'Manifest-v[0-9]+\.[0-9]+\.toml\Z')
 _MAX_TEST_TREE_ENTRIES = 4096
+
+
+def _safe_package_manifests(root: Path, names: set[str]) -> bool:
+    """Avoid loading package lockfiles through links or special filesystem nodes.
+
+    Julia's Pkg can use a version-specific Manifest-vX.Y.toml in preference
+    to Manifest.toml. Check those advertised by the root scan as well as both
+    conventional manifest names, including dangling symlinks.
+    """
+    candidates = _JULIA_MANIFEST_FILES | {
+        name for name in names if _VERSIONED_JULIA_MANIFEST.fullmatch(name)
+    }
+    for name in candidates:
+        manifest = root / name
+        if manifest.is_symlink() or (manifest.exists() and not manifest.is_file()):
+            return False
+    return True
 
 
 def _safe_test_tree(test_dir: Path) -> bool:
@@ -39,7 +59,7 @@ def julia_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
 
     A Manifest.toml by itself does not define a package suitable for Pkg.test.
     Require a project manifest and a regular test/runtests.jl, and never follow
-    a symlinked project manifest or anything in the test tree during discovery.
+    a symlinked project manifest, lockfile, or anything in the test tree.
     """
     project_files = names.intersection(_JULIA_PROJECT_FILES)
     # Julia may prefer Project.toml over JuliaProject.toml when both exist.
@@ -48,7 +68,7 @@ def julia_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     if not project_files or any(
         (root / name).is_symlink() or not (root / name).is_file()
         for name in project_files
-    ):
+    ) or not _safe_package_manifests(root, names):
         return None
     test_dir = root / 'test'
     test_entry = test_dir / 'runtests.jl'
