@@ -18,7 +18,13 @@ def format_git_status(report: dict[str, Any]) -> str:
     stdout = report.get('stdout')
     rendered = ('\n'.join(escape_terminal(line) for line in str(stdout).split('\n'))
                 if stdout else '')
-    diagnostic = report.get('error') or report.get('stderr')
+    # A command can produce both a capture/spawn error and Git's stderr.
+    # Keep distinct diagnostics, safely escaped, instead of silently dropping
+    # stderr when the error field is nonempty.
+    diagnostics = tuple(dict.fromkeys(
+        escape_terminal(str(value)) for value in (report.get('error'), report.get('stderr'))
+        if value
+    ))
     warnings: list[str] = []
 
     if report.get('stdout_truncated'):
@@ -32,8 +38,7 @@ def format_git_status(report: dict[str, Any]) -> str:
             warnings.append('Git status unavailable (command did not complete)')
         else:
             warnings.append(f'Git status failed (exit code {escape_terminal(str(code))})')
-        if diagnostic:
-            warnings.append(escape_terminal(str(diagnostic)))
+        warnings.extend(diagnostics)
     elif report.get("dirty", False) is None and "dirty" in report:
         warnings.append("Git status unavailable (worktree state inconclusive)")
     elif not stdout and report.get("dirty") is True:
@@ -43,14 +48,14 @@ def format_git_status(report: dict[str, Any]) -> str:
         # clean worktree. Missing output without an explicit clean verdict is
         # incomplete, not evidence that the repository has no changes.
         warnings.append('Git status unavailable (empty porcelain output)')
-    elif not stdout and diagnostic:
-        warnings.append(escape_terminal(str(diagnostic)))
+    elif not stdout and diagnostics:
+        warnings.extend(diagnostics)
 
     # A successful exit can still carry Git warnings (such as repository
     # configuration or filesystem diagnostics). Do not silently discard them
     # when porcelain stdout is available, and never trust their line breaks.
-    if report.get('exit_code') == 0 and stdout and diagnostic:
-        warnings.append('Git diagnostic: ' + escape_terminal(str(diagnostic)))
+    if report.get('exit_code') == 0 and stdout:
+        warnings.extend('Git diagnostic: ' + message for message in diagnostics)
 
     if warnings:
         return '\n'.join(([rendered.rstrip('\n')] if rendered else []) + warnings)
