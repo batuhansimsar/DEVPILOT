@@ -41,6 +41,7 @@ WORKSPACE_FILES = {
     'Cargo.toml': 'Rust',
     'Cargo.lock': 'Rust',
     'pom.xml': 'Java',
+    'build.sbt': 'Scala',
     'build.gradle': 'Java',
     'build.gradle.kts': 'Java',
     'settings.gradle': 'Java',
