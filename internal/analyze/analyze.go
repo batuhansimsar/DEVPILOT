@@ -95,7 +95,7 @@ func Inspect(path string) (Report, error) {
 			return nil
 		}
 		if entry.IsDir() {
-			if ignored[entry.Name()] {
+			if ignored[strings.ToLower(entry.Name())] {
 				return filepath.SkipDir
 			}
 			return nil
