@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Iterator
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 def _printable(text: str) -> str:
     """Escape all nonprinting characters in untrusted scan errors."""
@@ -30,21 +32,16 @@ def walk_project(root: Path, problems: list[str]) -> Iterator[tuple[str, list[st
     os.walk ordinarily suppresses scandir errors, so ignoring its onerror
     argument makes inaccessible source folders look like an empty, complete scan.
     """
-    # followlinks=False only protects descendants: os.walk still traverses a
-    # symlink when that symlink is the starting directory. Treat this as an
-    # incomplete scan rather than inspecting files outside the chosen root.
+    # Preserve the specific diagnostic for an explicitly linked root.
     if root.is_symlink():
         problems.append('Cannot inspect .: project root is a symbolic link')
         return
 
-    # A non-symlink root can still be reached through a symlinked ancestor,
-    # such as project-link/src. Reject that path before os.walk follows it.
-    # Ignore OS-managed aliases immediately below the filesystem root (e.g.
-    # macOS /var -> /private/var), which commonly back temporary directories.
-    # Avoid resolve(), which erases evidence of project-local aliases.
-    absolute = root.absolute()
-    anchor = Path(absolute.anchor)
-    if any(parent.is_symlink() for parent in absolute.parents if parent.parent != anchor):
+    # Share the ancestor preflight with other scans, rejecting arbitrary
+    # root-level aliases without dereferencing the selected workspace.
+    try:
+        ensure_unlinked_scan_path(root)
+    except ValueError:
         problems.append('Cannot inspect .: project path contains a symbolic link')
         return
 
