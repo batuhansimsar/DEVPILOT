@@ -198,7 +198,12 @@ def main(argv: list[str] | None = None) -> int:
             parser.error(str(exc))
         success = result['reachable']
     else:
-        root = Path(args.path).expanduser().resolve()
+        selected_root = Path(args.path).expanduser()
+        # Keep the original path for deps: resolving it first would conceal a
+        # symlink and bypass the inventory scanner's linked-root protection.
+        if args.command == 'deps' and selected_root.is_symlink():
+            parser.error('Dependency scan path must not be a symbolic link')
+        root = selected_root.resolve()
         if not root.is_dir():
             parser.error(f'Not a directory: {root}')
         if args.command == 'env':
@@ -207,7 +212,11 @@ def main(argv: list[str] | None = None) -> int:
             result = doctor_report(root)
             success = result['ok']
         elif args.command == 'deps':
-            result = dependency_scan(root)
+            try:
+                result = dependency_scan(selected_root)
+            except (OSError, ValueError):
+                # Do not echo filesystem errors with potentially private paths.
+                parser.error('Cannot scan dependency directory (invalid or unsafe path)')
             success = not result['warnings']
         elif args.command == 'analyze':
             result = analyze_project(root)
