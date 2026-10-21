@@ -12,6 +12,7 @@ class MCPConfigAuditTests(unittest.TestCase):
         for path in (
             '.cursor/mcp.json', '.vscode/mcp.json', '.mcp.json',
             '.copilot/mcp-config.json', 'nested/.cursor/mcp.json',
+            '.codex/config.toml', 'home/user/.codex/config.toml',
             'home/user/.vscode/mcp.json',
         ):
             with self.subTest(path=path):
@@ -20,7 +21,8 @@ class MCPConfigAuditTests(unittest.TestCase):
 
     def test_backup_and_windows_paths(self):
         for path in (r'HOME\.CURSOR\MCP.JSON', '.vscode/mcp.json.bak',
-                     '.mcp.json.~4~', '.copilot/mcp-config.json.swp'):
+                     '.mcp.json.~4~', '.copilot/mcp-config.json.swp',
+                     r'HOME\.CODEX\CONFIG.TOML', '.codex/config.toml.bak'):
             with self.subTest(path=path):
                 self.assertTrue(_potential_secret(path))
                 self.assertEqual(classify(path), 'potential MCP server configuration with embedded credentials')
@@ -29,13 +31,15 @@ class MCPConfigAuditTests(unittest.TestCase):
         for path in ('docs/mcp.json', 'mcp.json', '.vscode/settings.json',
                      '.cursor/mcp.json.example', '.mcp.json.sample',
                      '.copilot/mcp-config.json.template',
-                     'docs/mcp-config.json'):
+                     'docs/mcp-config.json', '.codex/config.toml.example',
+                     'docs/config.toml', 'codex/config.toml'):
             with self.subTest(path=path):
                 self.assertFalse(_potential_secret(path))
                 self.assertIsNone(classify(path))
 
     def test_helper_requires_known_exact_locations(self):
         self.assertTrue(is_agent_mcp_config(('.cursor', 'mcp.json')))
+        self.assertTrue(is_agent_mcp_config(('.codex', 'config.toml')))
         self.assertTrue(is_agent_mcp_config(('projects', '.mcp.json')))
         self.assertFalse(is_agent_mcp_config(('docs', 'mcp.json')))
         self.assertFalse(is_agent_mcp_config(()))

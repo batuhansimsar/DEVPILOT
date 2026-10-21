@@ -22,6 +22,8 @@ _MCP_CONFIG_LOCATIONS = frozenset({
     ('.cursor', 'mcp.json'),
     ('.vscode', 'mcp.json'),
     ('.copilot', 'mcp-config.json'),
+    # Codex CLI MCP server definitions can embed bearer tokens in env/headers.
+    ('.codex', 'config.toml'),
 })
 
 
