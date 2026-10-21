@@ -46,6 +46,12 @@ def format_git_status(report: dict[str, Any]) -> str:
     elif not stdout and diagnostic:
         warnings.append(escape_terminal(str(diagnostic)))
 
+    # A successful exit can still carry Git warnings (such as repository
+    # configuration or filesystem diagnostics). Do not silently discard them
+    # when porcelain stdout is available, and never trust their line breaks.
+    if report.get('exit_code') == 0 and stdout and diagnostic:
+        warnings.append('Git diagnostic: ' + escape_terminal(str(diagnostic)))
+
     if warnings:
         return '\n'.join(([rendered.rstrip('\n')] if rendered else []) + warnings)
     return rendered or 'No changes'
