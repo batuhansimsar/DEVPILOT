@@ -144,10 +144,17 @@ func Check(ctx context.Context, host string, port int, timeout time.Duration) (R
 		if ip, err := netip.ParseAddr(dialHost); err != nil || !ip.Is6() {
 			return Result{}, fmt.Errorf("host contains an invalid IPv6 address or embedded port")
 		}
-	} else if _, err := netip.ParseAddr(dialHost); err != nil && !validHostnameLength(dialHost) {
-		// Bound malformed DNS names before invoking the resolver. IP literals,
-		// bracketed IPv6 and fully qualified names ending in '.' remain valid.
-		return Result{}, fmt.Errorf("host has invalid DNS hostname labels or exceeds DNS name limits")
+	} else if _, err := netip.ParseAddr(dialHost); err != nil {
+		// Avoid platform-specific numeric IPv4 aliases such as 127.1 and
+		// 127.000.000.001, which could connect to an unexpected address.
+		if ambiguousNumericHost(dialHost) {
+			return Result{}, fmt.Errorf("host contains ambiguous numeric IPv4 syntax")
+		}
+		if !validHostnameLength(dialHost) {
+			// Bound malformed DNS names before invoking the resolver. IP literals,
+			// bracketed IPv6 and fully qualified names ending in '.' remain valid.
+			return Result{}, fmt.Errorf("host has invalid DNS hostname labels or exceeds DNS name limits")
+		}
 	}
 	if port < 1 || port > 65535 {
 		return Result{}, fmt.Errorf("port must be between 1 and 65535")
