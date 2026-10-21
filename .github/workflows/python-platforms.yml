@@ -1,0 +1,54 @@
+# Cross-platform coverage for the Python CLI, complementing existing Linux CI.
+name: Python CLI platform checks
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/python-platforms.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'pyproject.toml'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/python-platforms.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-platforms-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+        python: ['3.10', '3.13']
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install CLI
+        run: python -m pip install .
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Smoke test installed CLI
+        shell: bash
+        run: |
+          devpilot --version
+          devpilot analyze --json
+          devpilot doctor --json
+          devpilot test --json
