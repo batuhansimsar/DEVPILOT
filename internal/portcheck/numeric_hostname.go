@@ -3,6 +3,7 @@ package portcheck
 import (
 	"net/netip"
 	"strings"
+	"unicode"
 )
 
 // ambiguousNumericHost identifies non-canonical numeric IPv4 spellings.
@@ -28,9 +29,9 @@ func ambiguousNumericHost(host string) bool {
 	return true
 }
 
-// numericIPv4Component accepts the legacy inet_aton component formats that
-// some system resolvers still recognize. This check is deliberately limited
-// to ASCII; Unicode digits do not have those IPv4 parsing semantics.
+// numericIPv4Component recognizes numeric-only hostname labels, including
+// legacy ASCII inet_aton forms and Unicode decimal digits. Some DNS libraries
+// normalize Unicode digits; reject numeric-looking aliases before resolution.
 func numericIPv4Component(label string) bool {
 	if label == "" {
 		return false
@@ -44,8 +45,8 @@ func numericIPv4Component(label string) bool {
 		}
 		return true
 	}
-	for i := 0; i < len(label); i++ {
-		if label[i] < '0' || label[i] > '9' {
+	for _, r := range label {
+		if !unicode.IsDigit(r) {
 			return false
 		}
 	}
