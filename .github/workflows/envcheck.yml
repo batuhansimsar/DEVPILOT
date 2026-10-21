@@ -1,0 +1,36 @@
+name: Environment audit CLI
+
+on:
+  push:
+    paths:
+      - 'tools/envcheck/**'
+      - '.github/workflows/envcheck.yml'
+  pull_request:
+    paths:
+      - 'tools/envcheck/**'
+      - '.github/workflows/envcheck.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/envcheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/envcheck/go.mod
+          cache-dependency-path: tools/envcheck/go.mod
+      - name: Format
+        run: |
+          test -z "$(gofmt -l .)"
+      - name: Unit tests
+        run: go test ./...
+      - name: Static checks
+        run: go vet ./...
+      - name: Build CLI
+        run: go build ./cmd/devpilot-env
