@@ -47,6 +47,8 @@ LANGUAGES = {
     '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
     '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
+    '.dart': 'Dart', '.jl': 'Julia', '.lua': 'Lua',
+    '.ex': 'Elixir', '.exs': 'Elixir', '.zig': 'Zig',
 }
 KEY_FILES = frozenset({
     'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
