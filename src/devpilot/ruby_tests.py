@@ -6,6 +6,35 @@ from pathlib import Path
 from typing import Any
 
 
+_MAX_DISCOVERY_ENTRIES = 4096
+
+
+def _has_test_file(directory: Path, suffix: str, *, skip_hidden: bool = False) -> bool:
+    """Bound recursive test discovery without following symbolic links.
+
+    Fail closed when the directory tree is too large or unreadable. Minitest's
+    glob ignores hidden entries, unlike RSpec's regular filesystem scan.
+    """
+    pending = [directory]
+    scanned = 0
+    while pending:
+        current = pending.pop()
+        try:
+            for entry in current.iterdir():
+                scanned += 1
+                if scanned > _MAX_DISCOVERY_ENTRIES:
+                    return False
+                if entry.is_symlink() or (skip_hidden and entry.name.startswith('.')):
+                    continue
+                if entry.is_file() and entry.name.endswith(suffix):
+                    return True
+                if entry.is_dir():
+                    pending.append(entry)
+        except OSError:
+            return False
+    return False
+
+
 # Use a fixed Ruby expression rather than interpolating untrusted filenames.
 # Abort rather than falsely reporting a successful run if no tests are found.
 _MINITEST_LOADER = (
@@ -35,16 +64,7 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
                    specs / 'spec_helper.rb', specs / 'rails_helper.rb')
         found_rspec = any(marker.is_file() and not marker.is_symlink() for marker in markers)
         if not found_rspec:
-            # Find real spec files nested under spec/, not only at its root.
-            # pathlib.rglob does not recurse into symlinked directories by
-            # default, and symlinked spec files never count as evidence.
-            try:
-                found_rspec = any(
-                    candidate.is_file() and not candidate.is_symlink()
-                    for candidate in specs.rglob('*_spec.rb')
-                )
-            except OSError:
-                found_rspec = False
+            found_rspec = _has_test_file(specs, '_spec.rb')
         if found_rspec:
             return {
                 'ecosystem': 'Ruby',
@@ -59,14 +79,7 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         return None
     # Ruby's Dir.glob without FNM_DOTMATCH ignores hidden files and directories.
     # The discovery signal must only count tests that its loader can run.
-    try:
-        if not any(
-            path.is_file() and not path.is_symlink()
-            and all(not part.startswith('.') for part in path.relative_to(tests).parts)
-            for path in tests.rglob('*_test.rb')
-        ):
-            return None
-    except OSError:
+    if not _has_test_file(tests, '_test.rb', skip_hidden=True):
         return None
     return {
         'ecosystem': 'Ruby',
