@@ -122,7 +122,11 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
                 try:
                     os.killpg(process.pid, signal.SIGKILL)
                 except ProcessLookupError:
-                    pass  # Process group has already exited.
+                    # The child may have moved to another process group (or
+                    # session). A missing original group does not prove that
+                    # the direct child has exited; kill it if still running.
+                    if process.poll() is None:
+                        process.kill()
                 except OSError:
                     process.kill()
             else:
