@@ -60,6 +60,8 @@ LANGUAGES = {
     '.c': 'C', '.h': 'C/C++', '.vue': 'Vue',
     '.svelte': 'Svelte', '.astro': 'Astro', '.html': 'HTML', '.css': 'CSS', '.sql': 'SQL',
     '.sh': 'Shell', '.ps1': 'PowerShell',
+    '.vhd': 'VHDL', '.vhdl': 'VHDL',
+    '.sv': 'SystemVerilog', '.svh': 'SystemVerilog',
     '.dart': 'Dart', '.jl': 'Julia', '.lua': 'Lua',
     '.r': 'R', '.rmd': 'R', '.rnw': 'R',
     '.hs': 'Haskell', '.lhs': 'Haskell',
