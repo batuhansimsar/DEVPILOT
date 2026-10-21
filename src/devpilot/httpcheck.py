@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .http_url_validation import validate_http_url_length
+
 import ipaddress
 import re
 from http.client import HTTPException
@@ -35,8 +37,7 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     """
     if method not in ('HEAD', 'GET'):
         raise ValueError('method must be HEAD or GET')
-    if not isinstance(url, str):
-        raise ValueError('URL must be a string')
+    validate_http_url_length(url)
     # A giant input should not reach URL parsing, escaping, or the network.
     if len(url) > MAX_HTTP_URL_LENGTH:
         raise ValueError('URL exceeds 8192 character limit')
