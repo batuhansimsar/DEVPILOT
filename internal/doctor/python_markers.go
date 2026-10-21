@@ -1,7 +1,5 @@
 package doctor
 
-import "strings"
-
 // hasPythonProjectMarker recognizes supported Python project metadata without
 // executing project-controlled commands. A pyproject.toml identifies a Python
 // project, but is not itself evidence of a pytest configuration.
@@ -32,15 +30,7 @@ func hasPytestConfig(root string) bool {
 	if err != nil || !found {
 		return false
 	}
-	for _, raw := range strings.Split(strings.TrimPrefix(string(data), "\ufeff"), "\n") {
-		line := strings.TrimSpace(raw)
-		line, _, _ = strings.Cut(line, "#")
-		line = strings.TrimSpace(line)
-		if line == "[tool.pytest.ini_options]" || line == "[tool.pytest]" {
-			return true
-		}
-	}
-	return false
+	return hasPytestTOMLTable(data)
 }
 
 func hasPythonProjectMarker(root string) bool {
