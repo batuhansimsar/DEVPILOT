@@ -33,6 +33,8 @@ _PRIVATE_NAMES = frozenset({
     '.s3cfg', '.boto', 'rclone.conf',
     # Legacy Docker registry config stores reusable registry authentication.
     '.dockercfg',
+    # Aider YAML configs can embed LLM API credentials.
+    '.aider.conf.yml', '.aider.conf.yaml',
     # Kubernetes client configs and Terraform plans may hold reusable secrets.
     'kubeconfig', 'kubeconfig.yml', 'kubeconfig.yaml', 'tfplan',
 })
