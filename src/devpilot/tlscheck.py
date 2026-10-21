@@ -71,9 +71,17 @@ def _tls_dial_host(host: str) -> str:
         # uncaught UnicodeEncodeError for invalid or oversized DNS labels.
         # Validate without network activity or echoing the supplied hostname.
         try:
-            dial_host.encode('idna')
+            ascii_host = dial_host.encode('idna')
         except UnicodeError:
             raise ValueError('host contains an invalid IDNA hostname') from None
+        # DNS labels cannot be empty or begin/end with a hyphen. A single
+        # trailing root dot is valid; it is excluded from the 253-byte limit.
+        # Check the encoded wire name so internationalized labels are bounded.
+        labels = ascii_host[:-1].split(b'.') if ascii_host.endswith(b'.') else ascii_host.split(b'.')
+        if (len(ascii_host.rstrip(b'.')) > 253
+                or any(not label or label.startswith(b'-') or label.endswith(b'-')
+                       for label in labels)):
+            raise ValueError('host contains an invalid IDNA hostname')
     return dial_host
 
 
