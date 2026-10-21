@@ -17,12 +17,14 @@ def format_git_status(report: dict[str, Any]) -> str:
     """
     stdout = report.get('stdout')
     invalid_stdout = stdout is not None and not isinstance(stdout, str)
-    has_stdout = isinstance(stdout, str) and bool(stdout)
+    # Git --porcelain=v1 --branch always emits a nonblank branch header.
+    # Whitespace-only capture is missing output, not a complete status.
+    has_stdout = isinstance(stdout, str) and bool(stdout.strip())
     exit_code_present = 'exit_code' in report
     exit_code = report.get('exit_code')
     exit_succeeded = type(exit_code) is int and exit_code == 0
     rendered = ('\n'.join(escape_terminal(line) for line in stdout.split('\n'))
-                if isinstance(stdout, str) and stdout else '')
+                if has_stdout else '')
     # Do not call __str__, __repr__, or __bool__ on malformed runner values:
     # diagnostic objects may embed secrets, raise, or have side effects.
     # Preserve each actual string diagnostic and report other types generically.
