@@ -9,7 +9,8 @@ DOTNET_SOLUTION_SUFFIXES = frozenset({'.sln', '.slnx'})
 DOTNET_FILTER_SUFFIXES = frozenset({'.slnf'})
 DOTNET_SUFFIXES = DOTNET_PROJECT_SUFFIXES | DOTNET_SOLUTION_SUFFIXES | DOTNET_FILTER_SUFFIXES
 DOTNET_ROOT_MARKERS = frozenset({'global.json', 'Directory.Packages.props',
-                                 'Directory.Build.props', 'Directory.Build.targets'})
+                                 'Directory.Build.props', 'Directory.Build.targets',
+                                 'NuGet.Config', 'nuget.config', 'packages.lock.json'})
 
 
 def is_dotnet_manifest(name: str) -> bool:
