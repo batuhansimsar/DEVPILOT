@@ -24,6 +24,7 @@ from .git_state import is_git_dirty
 from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .julia_manifests import is_julia_manifest
+from .python_tests import python_test_command
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
 from .julia_tests import julia_test_command
@@ -292,13 +293,10 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if dotnet_target:
         commands.append({'ecosystem': '.NET', 'argv': ['dotnet', 'test', dotnet_target],
                          'reason': 'unique .NET solution/project'})
-    if _has_python_manifest(names) and (root / 'tests').is_dir():
-        if (root / 'tests').is_symlink():
-            pass
-        elif shutil.which('pytest'):
-            commands.append({'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'], 'reason': 'tests directory (pytest available)'})
-        else:
-            commands.append({'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests'], 'reason': 'tests directory'})
+    if _has_python_manifest(names):
+        python_command = python_test_command(root)
+        if python_command is not None:
+            commands.append(python_command)
     if 'pom.xml' in names:
         argv, reason = maven_test_command(root, names, os.name)
         commands.append({'ecosystem': 'Java', 'argv': argv, 'reason': reason})
