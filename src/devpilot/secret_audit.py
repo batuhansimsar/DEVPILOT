@@ -86,6 +86,8 @@ SENSITIVE_LOCATIONS = frozenset({
     ('glab-cli', 'config.yaml'),
     # Only flag ambiguous package-manager config names in credential locations.
     ('pypoetry', 'auth.toml'),
+    # Legacy pip user settings may contain private package-index credentials.
+    ('.pip', 'pip.conf'),
     ('pip', 'pip.conf'),
     ('pip', 'pip.ini'),
     # These conventional build-tool settings may store registry passwords.
