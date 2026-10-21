@@ -46,7 +46,7 @@ LANGUAGES = {
     '.mjs': 'JavaScript', '.cjs': 'JavaScript',
     '.ts': 'TypeScript', '.tsx': 'TypeScript',
     '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
-    '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
+    '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin', '.kts': 'Kotlin',
     '.scala': 'Scala', '.sc': 'Scala', '.sbt': 'Scala',
     '.clj': 'Clojure', '.cljs': 'Clojure', '.cljc': 'Clojure', '.edn': 'Clojure',
     '.ex': 'Elixir', '.exs': 'Elixir',
