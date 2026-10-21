@@ -59,9 +59,11 @@ def _logical_lines(content: str) -> Iterator[str]:
     A dangling continuation is incomplete and must not create an inventory
     entry. Accumulate fragments in a list so long, bounded files remain cheap.
     A single UTF-8 BOM at the beginning of the document is permitted.
+    Only CR, LF, and CRLF delimit physical lines: str.splitlines() also
+    splits at Unicode separators and can invent dependencies inside comments.
     """
     fragments: list[str] = []
-    for raw in content.removeprefix('\ufeff').splitlines():
+    for raw in content.removeprefix('\ufeff').replace('\r\n', '\n').replace('\r', '\n').split('\n'):
         line = raw.strip()
         if not line and fragments:
             continue
