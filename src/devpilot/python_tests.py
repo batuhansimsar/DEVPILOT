@@ -153,7 +153,10 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
         directory_name = 'test'
         if tests.is_symlink():
             return None
-        if not tests.is_dir() or not _has_unittest_tests(tests):
+        # A singular test/ tree can contain pytest-only *_test.py modules.
+        # Do not require unittest naming before checking whether pytest is
+        # available; the unittest path validates discoverability below.
+        if not tests.is_dir():
             tests = None
     if tests is not None and PathFinder.find_spec('pytest') is not None:
         if not _pytest_suites_are_safe(root):
