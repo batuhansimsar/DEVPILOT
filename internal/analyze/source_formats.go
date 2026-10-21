@@ -27,6 +27,12 @@ var supplementalSourceLanguages = map[string]string{
 	".fsh":     "GLSL",
 	".hlsl":    "HLSL",
 	".metal":   "Metal Shading Language",
+	// HDL design and verification sources. The .v suffix is deliberately
+	// excluded because it is shared by Verilog and the V language.
+	".vhd":    "VHDL",
+	".vhdl":   "VHDL",
+	".sv":     "SystemVerilog",
+	".svh":    "SystemVerilog",
 	".astro":   "Astro",
 	".prisma":  "Prisma Schema",
 	".mdx":     "MDX",
