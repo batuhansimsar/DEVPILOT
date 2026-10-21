@@ -28,6 +28,24 @@ def _safe_package_manifests(root: Path, names: set[str]) -> bool:
         manifest = root / name
         if manifest.is_symlink() or (manifest.exists() and not manifest.is_file()):
             return False
+
+    # Root scans can omit symlinks, but Julia may load a version-specific
+    # Manifest-vX.Y.toml regardless of which filenames were advertised.
+    # Inspect directory entries directly without following links, with a bound
+    # on hostile directories so discovery cannot be forced into a long walk.
+    try:
+        with os.scandir(root) as entries:
+            inspected = 0
+            for entry in entries:
+                inspected += 1
+                if inspected > _MAX_TEST_TREE_ENTRIES:
+                    return False
+                if _VERSIONED_JULIA_MANIFEST.fullmatch(entry.name) and (
+                    entry.is_symlink() or not entry.is_file(follow_symlinks=False)
+                ):
+                    return False
+    except OSError:
+        return False
     return True
 
 
