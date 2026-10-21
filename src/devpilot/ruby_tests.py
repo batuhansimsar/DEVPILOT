@@ -64,6 +64,31 @@ def _inspect_rspec_tree(directory: Path) -> tuple[bool, bool]:
     return True, found
 
 
+def _rspec_tree_is_safe(directory: Path) -> bool:
+    """Reject linked or uninspectable RSpec files even when a helper exists.
+
+    An RSpec config/helper is sufficient for discovery, but its implicit test
+    loader may still visit linked entries. Do not stop at the first real spec.
+    """
+    pending = [directory]
+    scanned = 0
+    while pending:
+        try:
+            for entry in pending.pop().iterdir():
+                scanned += 1
+                if scanned > _MAX_DISCOVERY_ENTRIES:
+                    return False
+                if entry.name.startswith('.'):
+                    continue
+                if entry.is_symlink():
+                    return False
+                if entry.is_dir():
+                    pending.append(entry)
+        except OSError:
+            return False
+    return True
+
+
 # Use a fixed Ruby expression rather than interpolating untrusted filenames.
 # Abort rather than falsely reporting a successful run if no tests are found.
 _MINITEST_LOADER = (
@@ -104,6 +129,8 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
             return None
         found_rspec = any(marker.is_file() for marker in markers) or found_spec
         if found_rspec:
+            if not _rspec_tree_is_safe(specs):
+                return None
             return {
                 'ecosystem': 'Ruby',
                 'argv': ['bundle', 'exec', 'rspec'],
