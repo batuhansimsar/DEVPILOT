@@ -13,8 +13,14 @@ func hasPytestINISection(data []byte, section string) bool {
 		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
 			continue
 		}
-		if line == section {
-			return true
+		// INI parsers used by pytest allow a trailing '#' or ';' comment
+		// after the closing bracket, with or without intervening spaces.
+		// Keep matching anchored at column zero and reject unrelated suffixes.
+		if strings.HasPrefix(line, section) {
+			tail := strings.TrimSpace(line[len(section):])
+			if tail == "" || strings.HasPrefix(tail, "#") || strings.HasPrefix(tail, ";") {
+				return true
+			}
 		}
 	}
 	return false
