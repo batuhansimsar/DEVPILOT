@@ -15,7 +15,7 @@ class QuotedFlutterSDKTests(unittest.TestCase):
                 (root / 'test').mkdir()
                 (root / 'pubspec.yaml').write_text(
                     'name: sample\ndev_dependencies:\n'
-                    f'  flutter_test:\n    sdk: {sdk} # Flutter SDK\n',
+                    f'  flutter:\n    sdk: {sdk} # Flutter SDK\n',
                     encoding='utf-8',
                 )
                 command = dart_test_command(root, {'pubspec.yaml'})
