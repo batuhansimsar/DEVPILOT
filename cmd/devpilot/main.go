@@ -55,7 +55,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		report, err := doctor.Inspect(path)
 		if err != nil {
-			fmt.Fprintln(stderr, "doctor:", err)
+			fmt.Fprintln(stderr, "doctor:", escapeTerminalText(err.Error()))
 			return 2
 		}
 		if *jsonOut {
@@ -66,7 +66,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 				return 2
 			}
 		} else {
-			fmt.Fprintf(stdout, "DevPilot doctor: %s\n", report.Path)
+			fmt.Fprintf(stdout, "DevPilot doctor: %s\n", quoteTerminalPath(report.Path))
 			fmt.Fprintf(stdout, "Languages: %s\n", strings.Join(report.Languages, ", "))
 			if len(report.Frameworks) > 0 {
 				fmt.Fprintf(stdout, "Frameworks: %s\n", strings.Join(report.Frameworks, ", "))
@@ -75,9 +75,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 				fmt.Fprintf(stdout, "Package manager: %s\n", report.PackageManager)
 			}
 			for _, f := range report.Findings {
-				fmt.Fprintf(stdout, "[%s] %s\n", strings.ToUpper(f.Level), f.Message)
+				fmt.Fprintf(stdout, "[%s] %s\n", strings.ToUpper(f.Level), escapeTerminalText(f.Message))
 				if f.Remedy != "" {
-					fmt.Fprintf(stdout, "       Next: %s\n", f.Remedy)
+					fmt.Fprintf(stdout, "       Next: %s\n", escapeTerminalText(f.Remedy))
 				}
 			}
 		}
@@ -164,7 +164,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		report, err := doctor.Inspect(path)
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			fmt.Fprintln(stderr, escapeTerminalText(err.Error()))
 			return 2
 		}
 		if report.Tests == nil {
@@ -192,7 +192,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		cmd.Dir = report.Path
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
-		fmt.Fprintf(stderr, "Running trusted project tests: %s %s\n", report.Tests.Executable, strings.Join(report.Tests.Arguments, " "))
+		fmt.Fprintf(stderr, "Running trusted project tests: %s %s\n", report.Tests.Executable, escapeTerminalText(strings.Join(report.Tests.Arguments, " ")))
 		if err := cmd.Run(); err != nil {
 			if errors.Is(cctx.Err(), context.DeadlineExceeded) {
 				fmt.Fprintln(stderr, "Test timed out.")
@@ -255,10 +255,18 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		}
 		return 0
 	default:
-		fmt.Fprintf(stderr, "Unknown command: %s\n", args[0])
+		fmt.Fprintf(stderr, "Unknown command: %s\n", escapeTerminalText(args[0]))
 		usage(stderr)
 		return 2
 	}
 }
 
 func main() { os.Exit(run(context.Background(), os.Args[1:], os.Stdout, os.Stderr)) }
+
+// escapeTerminalText prevents control characters from untrusted workspace paths
+// and diagnostic messages from altering the terminal display. Quotes are not
+// added around ordinary prose; JSON output retains the original values.
+func escapeTerminalText(value string) string {
+	quoted := strconv.QuoteToASCII(value)
+	return quoted[1 : len(quoted)-1]
+}
