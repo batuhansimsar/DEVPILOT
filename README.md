@@ -46,7 +46,7 @@ devpilot doctor --path /path/to/project --json
 | Command | Behavior |
 | --- | --- |
 | `env` | Compares environment variable names against an `.env` template without printing secret values. Missing keys return exit status 1; no local `.env` is advisory. |
-| `workspaces` | Discovers nested Python, Node.js, Deno, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir and Docker/Compose projects without following symlinks or reading file contents. | 
+| `workspaces` | Discovers nested Python, Node.js, Deno, Go, Rust, Java, .NET, Ruby, PHP, Swift, Dart, Elixir, Zig and Docker/Compose projects without following symlinks or reading file contents. | 
 | `analyze` | Detects Node.js, Deno, Python, .NET, Go, Rust, Java and Docker markers; counts source files by language; lists manifests and npm script names. |
 | `doctor` | Checks whether relevant language runtimes and CLI tools are on your `PATH`, and reports malformed package manifests. |
 | `git` | Executes read-only Git porcelain status with no shell; JSON includes `dirty` (`true`, `false`, or `null` on Git failure). `--fail-on-dirty` exits nonzero for changed files. |

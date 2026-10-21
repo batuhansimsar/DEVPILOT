@@ -40,6 +40,8 @@ WORKSPACE_FILES = {
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
     'Cargo.lock': 'Rust',
+    'build.zig': 'Zig',
+    'build.zig.zon': 'Zig',
     'pom.xml': 'Java',
     'build.sbt': 'Scala',
     'build.gradle': 'Java',
