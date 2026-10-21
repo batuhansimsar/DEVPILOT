@@ -5,7 +5,7 @@ package doctor
 // Pipenv projects may contain only Pipfile or a committed Pipfile.lock.
 // Legacy setuptools projects may use setup.py or setup.cfg without pyproject.toml.
 func hasPythonProjectMarker(root string) bool {
-	for _, name := range []string{"requirements.txt", "pyproject.toml", "pytest.ini", "Pipfile", "Pipfile.lock", "setup.py", "setup.cfg"} {
+	for _, name := range []string{"requirements.txt", "pyproject.toml", "pytest.ini", "Pipfile", "Pipfile.lock", "setup.py", "setup.cfg", "tox.ini"} {
 		if hasMarker(root, name) {
 			return true
 		}
