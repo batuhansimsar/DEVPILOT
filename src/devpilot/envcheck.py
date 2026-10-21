@@ -13,6 +13,19 @@ MAX_ENV_BYTES = 256 * 1024
 _KEY = re.compile(r'[A-Za-z_][A-Za-z0-9_]*\Z')
 
 
+def _has_closing_quote(text: str, quote: str) -> bool:
+    """Find the end of a quoted dotenv value, respecting escaped quotes."""
+    escaped = False
+    for char in text:
+        if escaped:
+            escaped = False
+        elif char == '\\':
+            escaped = True
+        elif char == quote:
+            return True
+    return False
+
+
 def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     """Read names only from an unchanged, regular file; never follow symlinks.
 
@@ -65,16 +78,26 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     names: set[str] = set()
     # Only CR and LF delimit physical .env lines. Unicode NEL/LS/PS,
     # VT and FF within values must never forge additional declarations.
+    quoted: str | None = None
     for line in re.split(r'\r\n|\r|\n', raw.decode('utf-8-sig', errors='replace')):
+        if quoted is not None:
+            if _has_closing_quote(line, quoted):
+                quoted = None
+            continue
         # Limit syntax whitespace to horizontal ASCII whitespace: str.strip()
         # would otherwise accept Unicode line separators before a fake key.
         line = line.strip(' \t')
         if line.startswith('export') and len(line) > 6 and line[6] in ' \t':
             line = line[6:].lstrip(' \t')
-        key, separator, _ = line.partition('=')
+        key, separator, value = line.partition('=')
         key = key.strip(' \t')
         if separator and _KEY.fullmatch(key):
             names.add(key)
+            # Dotenv supports multi-line quoted values. Lines inside a quoted
+            # value are not declarations, even when they look like KEY=value.
+            value = value.lstrip(' \t')
+            if value.startswith(("'", '"')) and not _has_closing_quote(value[1:], value[0]):
+                quoted = value[0]
     return names, None
 
 
