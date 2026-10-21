@@ -49,6 +49,9 @@ func safeDialError(err error) string {
 	if errors.Is(err, syscall.ECONNABORTED) {
 		return "connection aborted"
 	}
+	if errors.Is(err, syscall.EACCES) || errors.Is(err, syscall.EPERM) {
+		return "connection blocked by local permissions"
+	}
 	if errors.Is(err, syscall.EADDRNOTAVAIL) {
 		return "local address unavailable"
 	}
