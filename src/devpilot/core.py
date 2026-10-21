@@ -251,6 +251,12 @@ def analyze_project(root: Path) -> dict[str, Any]:
 
 
 def test_commands(root: Path) -> list[dict[str, Any]]:
+    # Test runners execute repository-controlled code. Refuse linked roots
+    # before reading manifests or selecting any executable test commands.
+    try:
+        ensure_unlinked_scan_path(root)
+    except (OSError, ValueError):
+        return []
     names = _root_files(root)
     commands: list[dict[str, Any]] = []
     package, _ = _read_package_json(root)
