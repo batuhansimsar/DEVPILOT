@@ -17,14 +17,20 @@ _SEPARATOR = re.compile(r"[-_.]+")
 _PYLOCK_FILE = re.compile(r"pylock(?:\.[A-Za-z0-9][A-Za-z0-9_-]*)?\.toml\Z")
 
 
+# A pylock manifest name is a single filesystem component, bounded by the
+# usual 255-byte filename limit. Its valid characters are ASCII only.
+MAX_PYLOCK_FILENAME_CHARS = 255
+
 # Bound direct calls as well as scans through the size-limited manifest reader.
 MAX_PYLOCK_INPUT_CHARS = 2 * 1024 * 1024
 MAX_PYLOCK_PACKAGES = 100_000
 
 
 def is_pylock_manifest(filename: str) -> bool:
-    """Accept pylock.toml and safe pylock.<name>.toml variants."""
-    return isinstance(filename, str) and _PYLOCK_FILE.fullmatch(filename) is not None
+    """Accept bounded pylock.toml and safe pylock.<name>.toml variants."""
+    return (isinstance(filename, str)
+            and len(filename) <= MAX_PYLOCK_FILENAME_CHARS
+            and _PYLOCK_FILE.fullmatch(filename) is not None)
 
 
 def parse_pylock(content: str) -> list[str]:
