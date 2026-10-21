@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import re
 
+# Manifest names are a single filesystem component. Mainstream filesystems
+# bound each filename to 255 bytes; capping characters before matching also
+# bounds regex work for direct callers supplying arbitrary Python strings.
+MAX_REQUIREMENTS_FILENAME_CHARS = 255
+
 # Require a separator around each non-empty qualifier component. Projects may
 # combine prefix and suffix conventions, e.g. dev-requirements-test.txt, as
 # well as using either convention alone. Arbitrary lookalikes such as
@@ -26,13 +31,13 @@ _DOUBLE_EXTENSION = ('.txt.txt', '.txt.in', '.in.txt', '.in.in')
 
 
 def is_requirements_manifest(name: str) -> bool:
-    """Accept pip and pip-tools filenames without matching unrelated files.
+    """Accept bounded pip filenames without matching unrelated files.
 
     Supports base manifests, prefix/suffix qualifiers (including both together)
     with hyphen, underscore, or period separators regardless of ASCII letter
     case; rejects empty variants, backups, and Unicode lookalikes.
     """
-    if not isinstance(name, str):
+    if not isinstance(name, str) or len(name) > MAX_REQUIREMENTS_FILENAME_CHARS:
         return False
     return (
         not name.lower().endswith(_DOUBLE_EXTENSION)
