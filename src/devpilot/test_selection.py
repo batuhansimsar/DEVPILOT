@@ -14,6 +14,7 @@ ECOSYSTEMS = {
     'rust': 'Rust',
     'dotnet': '.NET',
     'java': 'Java',
+    'scala': 'Scala',
 }
 
 
