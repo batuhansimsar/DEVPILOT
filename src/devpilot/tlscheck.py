@@ -11,6 +11,7 @@ import time
 from typing import Any
 
 from .tls_server_name import tls_server_name
+from .idna_canonical import ensure_unambiguous_idna_hostname
 from .http_url_validation import validate_dns_hostname_labels
 
 # Bound raw input before scanning Unicode or invoking the IDNA codec. DNS
@@ -96,6 +97,9 @@ def _tls_dial_host(host: str) -> str:
             validate_dns_hostname_labels(ascii_host)
         except ValueError:
             raise ValueError('host contains an invalid IDNA hostname') from None
+        # IDNA2003 can silently rewrite printable Unicode to a different DNS
+        # name (for example, faß.de -> fass.de). Do not dial that alias.
+        ensure_unambiguous_idna_hostname(dial_host, ascii_host)
     return dial_host
 
 
