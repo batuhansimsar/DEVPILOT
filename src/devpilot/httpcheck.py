@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .http_url_validation import validate_http_url_length
+from .http_url_validation import validate_dns_hostname_labels, validate_http_url_length
 from .http_host_validation import validate_http_dns_labels
 
 import ipaddress
@@ -99,6 +99,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # A complete name may contain at most 253 text bytes (254 with a final dot).
     if len(idna_hostname) > (254 if idna_hostname.endswith(b'.') else 253):
         raise ValueError('URL host exceeds DNS hostname length limit')
+    # IDNA accepts punctuation and boundary hyphens that are not valid DNS host labels.
+    if ':' not in parts.hostname:  # Bracketed IPv6 literals use ':' and are validated above.
+        validate_dns_hostname_labels(idna_hostname)
     # Python's IDNA codec accepts some invalid ASCII DNS labels (such as
     # underscores). Reject them before making any network request.
     if ':' not in parts.hostname:
