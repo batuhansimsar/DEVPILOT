@@ -17,6 +17,7 @@ def _has_test_file(directory: Path, suffix: str, *, skip_hidden: bool = False) -
     """
     pending = [directory]
     scanned = 0
+    found = False
     while pending:
         current = pending.pop()
         try:
@@ -27,12 +28,12 @@ def _has_test_file(directory: Path, suffix: str, *, skip_hidden: bool = False) -
                 if entry.is_symlink() or (skip_hidden and entry.name.startswith('.')):
                     continue
                 if entry.is_file() and entry.name.endswith(suffix):
-                    return True
+                    found = True
                 if entry.is_dir():
                     pending.append(entry)
         except OSError:
             return False
-    return False
+    return found
 
 
 def _inspect_rspec_tree(directory: Path) -> tuple[bool, bool]:
