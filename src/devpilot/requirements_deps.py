@@ -96,6 +96,13 @@ def parse_requirements_dependencies(content: str) -> list[str]:
     """
     if not isinstance(content, str) or len(content) > MAX_REQUIREMENTS_INPUT_CHARS:
         raise ValueError('requirements input is invalid or exceeds safe size limit')
+    # A short sequence of Unicode characters may be much larger in UTF-8.
+    # Apply the same byte budget to direct callers, without echoing their data.
+    try:
+        if len(content.encode('utf-8')) > MAX_REQUIREMENTS_INPUT_CHARS:
+            raise ValueError('requirements input is invalid or exceeds safe size limit')
+    except UnicodeEncodeError:
+        raise ValueError('requirements input must contain valid Unicode') from None
     names: set[str] = set()
     for line in _logical_lines(content):
         if not line or line.startswith(('#', 'https:', 'http:')):
