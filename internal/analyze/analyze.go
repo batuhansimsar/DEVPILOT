@@ -25,7 +25,9 @@ var ignored = map[string]bool{
 
 var languages = map[string]string{
 	".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
-	".ts": "TypeScript", ".tsx": "TypeScript", ".cs": "C#",
+	".mjs": "JavaScript", ".cjs": "JavaScript",
+	".ts": "TypeScript", ".tsx": "TypeScript",
+	".mts": "TypeScript", ".cts": "TypeScript", ".cs": "C#",
 	".go": "Go", ".rs": "Rust", ".java": "Java", ".kt": "Kotlin",
 	".cpp": "C++", ".cc": "C++", ".c": "C", ".rb": "Ruby",
 	".php": "PHP", ".swift": "Swift", ".dart": "Dart",
