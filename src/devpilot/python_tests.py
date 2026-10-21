@@ -148,7 +148,14 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     directory_name = 'tests'
     if tests.is_symlink():
         return None
-    if not tests.is_dir():
+    if tests.is_dir():
+        # Empty tests/ must not hide root test files or a populated test/ suite.
+        try:
+            if not any(tests.iterdir()):
+                tests = None
+        except OSError:
+            return None
+    if tests is None or not tests.is_dir():
         tests = root / 'test'
         directory_name = 'test'
         if tests.is_symlink():
