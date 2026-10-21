@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .http_url_validation import validate_dns_hostname_labels, validate_http_url_length
+from .http_fragment import reject_http_fragment
 
 import ipaddress
 import re
@@ -38,6 +39,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     if method not in ('HEAD', 'GET', 'OPTIONS'):
         raise ValueError('method must be HEAD, GET or OPTIONS')
     validate_http_url_length(url)
+    # Fragments never reach an HTTP server; reject instead of silently checking
+    # a different endpoint from the one the caller supplied.
+    reject_http_fragment(url)
     # A giant input should not reach URL parsing, escaping, or the network.
     if len(url) > MAX_HTTP_URL_LENGTH:
         raise ValueError('URL exceeds 8192 character limit')
