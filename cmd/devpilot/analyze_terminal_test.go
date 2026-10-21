@@ -49,7 +49,7 @@ func TestAnalyzeCommandQuotesUntrustedPaths(t *testing.T) {
 		t.Fatalf("JSON exit=%d stderr=%q", code, errs.String())
 	}
 	var report struct {
-		Path string `json:"path"`
+		Path string   `json:"path"`
 		CI   []string `json:"ci"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &report); err != nil {
