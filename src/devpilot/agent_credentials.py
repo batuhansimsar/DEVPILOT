@@ -9,6 +9,8 @@ from __future__ import annotations
 _AGENT_CREDENTIAL_LOCATIONS = frozenset({
     ('.claude', '.credentials.json'),  # Claude Code OAuth credentials.
     ('.gemini', 'oauth_creds.json'),  # Gemini CLI OAuth credentials.
+    # Gemini CLI persists per-MCP-server OAuth access and refresh tokens here.
+    ('.gemini', 'mcp-oauth-tokens.json'),
 })
 
 
