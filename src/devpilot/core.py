@@ -21,7 +21,7 @@ from .dotnet_manifests import dotnet_test_target, is_dotnet_manifest
 from .gradle import gradle_test_command
 from .maven import maven_test_command
 from .git_state import is_git_dirty
-from .tlscheck import _tls_dial_host
+from .tlscheck import _tls_dial_host, _validate_host_length
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .julia_manifests import is_julia_manifest
 from .python_tests import python_test_command
@@ -392,6 +392,7 @@ def docker_status(root: Path) -> dict[str, Any]:
 
 def tcp_check(host: str, port: int, timeout: float) -> dict[str, Any]:
     """Probe a TCP endpoint after validating its explicit host and socket limits."""
+    _validate_host_length(host)
     if not isinstance(host, str) or not host or any(
         char.isspace() or ord(char) < 32 or ord(char) == 127 for char in host
     ):
