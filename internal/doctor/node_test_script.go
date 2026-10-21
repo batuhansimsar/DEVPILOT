@@ -75,16 +75,28 @@ func shellOnlyOutput(script string) bool {
 	return (last == "" && sawOutput) || isOutputCommand(last)
 }
 
-// shellOnlyOutputThenExit recognizes a pure diagnostic shell script followed
-// by a successful exit status. It deliberately accepts only one && separator:
-// scripts with additional shell operators stay eligible for test discovery.
+// shellOnlyOutputThenExit recognizes output-only shell scripts followed by a
+// successful literal exit status. Both && and semicolon separators are common
+// in package.json diagnostics. Never execute or expand the script.
 func shellOnlyOutputThenExit(script string) bool {
-	parts := strings.Split(script, "&&")
-	if len(parts) != 2 || !shellOnlyOutput(parts[0]) {
+	script = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(script), ";"))
+	// Split at the final operator so earlier output-only commands are
+	// checked by shellOnlyOutput. Compound real test commands remain runnable.
+	separator := strings.LastIndex(script, "&&")
+	if semicolon := strings.LastIndex(script, ";"); semicolon > separator {
+		separator = semicolon
+	}
+	if separator < 0 {
 		return false
 	}
-	last := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(parts[1]), ";"))
-	fields := strings.Fields(last)
+	after := separator + 1
+	if script[separator] == '&' {
+		after++
+	}
+	if !shellOnlyOutput(script[:separator]) {
+		return false
+	}
+	fields := strings.Fields(strings.TrimSpace(script[after:]))
 	if len(fields) != 2 || fields[0] != "exit" {
 		return false
 	}
