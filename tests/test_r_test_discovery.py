@@ -19,15 +19,17 @@ class RTestDiscoveryTests(unittest.TestCase):
         (root / marker).touch()
         suite = root / 'tests' / 'testthat'
         suite.mkdir(parents=True)
+        (root / 'DESCRIPTION').write_text('Package: example\n', encoding='utf-8')
+        (root / 'tests' / 'testthat.R').touch()
         (suite / 'test-example.R').touch()
         return suite
 
-    def test_rstudio_project_uses_test_dir(self):
+    def test_rstudio_package_uses_test_local(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.make_suite(root, 'analysis.Rproj')
             self.assertEqual(r_test_command(root, {'analysis.Rproj'})['argv'], [
-                'Rscript', '-e', 'testthat::test_dir("tests/testthat")'])
+                'Rscript', '-e', 'testthat::test_local()'])
 
     def test_package_uses_test_local(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -35,7 +37,7 @@ class RTestDiscoveryTests(unittest.TestCase):
             self.make_suite(root)
             (root / 'DESCRIPTION').write_text('Package: example\n', encoding='utf-8')
             self.assertEqual(r_test_command(root, {'renv.lock', 'DESCRIPTION'})['argv'], [
-                'Rscript', '-e', 'testthat::test_local(".")'])
+                'Rscript', '-e', 'testthat::test_local()'])
 
     def test_missing_marker_or_test_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -51,6 +53,7 @@ class RTestDiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
             root = Path(directory)
             (root / 'analysis.Rproj').touch()
+            (root / 'DESCRIPTION').write_text('Package: example\n', encoding='utf-8')
             outside = Path(external)
             (outside / 'test-outside.R').touch()
             try:
@@ -61,6 +64,7 @@ class RTestDiscoveryTests(unittest.TestCase):
             (root / 'tests').unlink()
             suite = root / 'tests' / 'testthat'
             suite.mkdir(parents=True)
+            (root / 'tests' / 'testthat.R').touch()
             (suite / 'test-outside.R').symlink_to(outside / 'test-outside.R')
             self.assertIsNone(r_test_command(root, {'analysis.Rproj'}))
             (root / 'analysis.Rproj').unlink()
@@ -94,7 +98,7 @@ class RTestDiscoveryTests(unittest.TestCase):
             self.assertEqual(code, 0)
             runner.assert_called_once()
             self.assertEqual(runner.call_args.args[0],
-                             ['Rscript', '-e', 'testthat::test_dir("tests/testthat")'])
+                             ['Rscript', '-e', 'testthat::test_local()'])
             self.assertTrue(json.loads(out.getvalue())['executed'])
 
 
