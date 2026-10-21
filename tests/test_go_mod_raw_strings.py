@@ -39,9 +39,7 @@ class GoRawRequirementTests(unittest.TestCase):
                     source = ('require example.org/ok v1.0.0\n' + broken
                               + newline + 'require example.org/forged v2.0.0\n')
                     with self.assertRaisesRegex(
-                            ValueError, '^go.mod contains unterminated string literal
-    unittest.main()
-) as caught:
+                            ValueError, '^go.mod contains unterminated string literal$') as caught:
                         parse_go_requirements(source)
                     self.assertNotIn('forged', str(caught.exception))
 

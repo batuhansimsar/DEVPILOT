@@ -26,12 +26,7 @@ class GoQuotedVersionTests(unittest.TestCase):
             'require example.org/bad v1.0.0"garbage\n'
             'require example.org/good "v2.0.0"\n'
         )
-        with self.assertRaisesRegex(ValueError, '^go.mod contains unterminated string literal
-
-
-if __name__ == '__main__':
-    unittest.main()
-):
+        with self.assertRaisesRegex(ValueError, '^go.mod contains unterminated string literal$'):
             parse_go_requirements(content)
         self.assertEqual(parse_go_requirements(
             'require example.org/good "v2.0.0"\n'
