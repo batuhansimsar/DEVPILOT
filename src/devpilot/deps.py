@@ -144,7 +144,12 @@ def _parse(path: Path) -> tuple[str, dict[str, list[str]]]:
 
 
 def scan(path: str | Path) -> dict:
-    root = Path(path).expanduser().resolve(strict=True)
+    requested_root = Path(path).expanduser()
+    # resolve() follows a symlinked entry point before walk_project can reject it.
+    # Never inspect files outside the directory explicitly selected for scanning.
+    if requested_root.is_symlink():
+        raise ValueError('path is a symbolic link')
+    root = requested_root.resolve(strict=True)
     if not root.is_dir():
         raise ValueError("path is not a directory")
     manifests = []
