@@ -9,7 +9,8 @@ from typing import Any
 # Use a fixed Ruby expression rather than interpolating untrusted filenames.
 # Abort rather than falsely reporting a successful run if no tests are found.
 _MINITEST_LOADER = (
-    'files = Dir.glob("test/**/*_test.rb").sort; '
+    'abort("No Ruby test files found") if File.symlink?("test"); '
+    'files = Dir.glob("test/**/*_test.rb").select { |file| File.file?(file) && !File.symlink?(file) }.sort; '
     'abort("No Ruby test files found") if files.empty?; '
     'files.each { |file| require File.expand_path(file) }'
 )
