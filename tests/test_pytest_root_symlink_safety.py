@@ -22,13 +22,14 @@ class PytestRootLinkTests(unittest.TestCase):
 
     def test_normal_project_remains_supported(self):
         (self.root / 'conftest.py').touch()
-        self.assertEqual(self.select()['argv'][-2:], ['-m', 'pytest'])
+        self.assertEqual(self.select()['argv'][-3:], ['-m', 'pytest', 'tests'])
 
     def test_linked_root_conftest_and_config_files_are_rejected(self):
         with tempfile.TemporaryDirectory() as external:
             target = Path(external) / 'external'
             target.touch()
-            for name in ('conftest.py', 'pytest.ini', 'tox.ini', 'setup.cfg', 'pyproject.toml'):
+            for name in ('conftest.py', 'pytest.ini', 'tox.ini', 'setup.cfg', 'pyproject.toml',
+                         'pytest.toml', '.pytest.toml'):
                 with self.subTest(name=name):
                     link = self.root / name
                     try:
