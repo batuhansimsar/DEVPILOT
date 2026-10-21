@@ -143,6 +143,14 @@ def parse_go_requirements(content: str) -> list[str]:
             if line == ')':
                 in_require_block = False
                 continue
+            # A nested require block is invalid Go syntax. Otherwise its
+            # closing ')' prematurely ends the outer block and silently
+            # produces a misleading, partial dependency inventory.
+            fields = line.split(None, 1)
+            if (line == 'require(' or
+                    (fields[0] == 'require' and len(fields) == 2
+                     and fields[1].lstrip().startswith('('))):
+                raise ValueError('go.mod contains nested require block')
             entry = line
         else:
             # Go's modfile syntax also accepts `require(` without a space.
