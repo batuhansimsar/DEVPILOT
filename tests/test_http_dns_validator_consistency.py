@@ -21,8 +21,8 @@ class DNSValidatorConsistencyTests(unittest.TestCase):
         names = (
             b'', b'.example.org', b'example..org', b'example.org..',
             b'a' * 64 + b'.org', b'-bad.example', b'bad-.example',
-            b'bad_name.example', b'bad!name.example', b'bad\\x00name.example',
-            b'example.org\\nPRIVATE_SECRET', b'x' * 254, b'x' * 255 + b'.',
+            b'bad_name.example', b'bad!name.example', b'bad\x00name.example',
+            b'example.org\nPRIVATE_SECRET', b'x' * 254, b'x' * 255 + b'.',
             'example.org', None,
         )
         for name in names:
