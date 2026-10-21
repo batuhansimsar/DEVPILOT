@@ -5,36 +5,47 @@ import (
 	"strings"
 )
 
-// ambiguousNumericHost identifies non-canonical IPv4-like names that a system
-// resolver could reinterpret as shorthand, octal, hexadecimal, or integer IPs.
-// Canonical IPv4 and its optional terminal DNS root dot remain supported.
+// ambiguousNumericHost identifies non-canonical numeric IPv4 spellings.
+// System resolvers may treat decimal integers, octal numbers, hexadecimal
+// numbers, and abbreviated dotted forms as IP addresses (e.g. 2130706433,
+// 017700000001, or 0x7f000001 all resolve to 127.0.0.1 on some systems).
+// Reject such aliases rather than dialing a different endpoint than the user
+// expects. Canonical IPv4 addresses and their trailing-root-dot forms remain
+// valid; ordinary DNS names with non-numeric labels are unaffected.
 func ambiguousNumericHost(host string) bool {
-	if addr, err := netip.ParseAddr(strings.TrimSuffix(host, ".")); err == nil && addr.Is4() {
+	withoutRootDot := strings.TrimSuffix(host, ".")
+	if addr, err := netip.ParseAddr(withoutRootDot); err == nil && addr.Is4() {
 		return false
 	}
-	// Legacy IPv4 parsers accept one to four components, with each component
-	// expressed in decimal, octal, or hexadecimal. Reject all-numeric forms
-	// before DNS resolution, including those with empty dotted components.
-	for _, label := range strings.Split(strings.TrimSuffix(host, "."), ".") {
-		if label == "" {
-			continue
+	if withoutRootDot == "" {
+		return false
+	}
+	for _, label := range strings.Split(withoutRootDot, ".") {
+		if !numericIPv4Component(label) {
+			return false
 		}
-		base := 10
-		if strings.HasPrefix(label, "0x") || strings.HasPrefix(label, "0X") {
-			base = 16
-			label = label[2:]
-			if label == "" {
+	}
+	return true
+}
+
+// numericIPv4Component accepts the legacy inet_aton component formats that
+// some system resolvers still recognize. This check is deliberately limited
+// to ASCII; Unicode digits do not have those IPv4 parsing semantics.
+func numericIPv4Component(label string) bool {
+	if label == "" {
+		return false
+	}
+	if len(label) > 2 && label[0] == '0' && (label[1] == 'x' || label[1] == 'X') {
+		for i := 2; i < len(label); i++ {
+			c := label[i]
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
 				return false
 			}
 		}
-		for i := 0; i < len(label); i++ {
-			ch := label[i]
-			if ch >= '0' && ch <= '9' {
-				continue
-			}
-			if base == 16 && ((ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F')) {
-				continue
-			}
+		return true
+	}
+	for i := 0; i < len(label); i++ {
+		if label[i] < '0' || label[i] > '9' {
 			return false
 		}
 	}
