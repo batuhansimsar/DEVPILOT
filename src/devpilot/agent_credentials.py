@@ -18,6 +18,9 @@ _AGENT_CREDENTIAL_LOCATIONS = frozenset({
     ('opencode', 'auth.json'),
     ('opencode', 'mcp-auth.json'),
     ('opencode', 'opencode.db'),
+    # SQLite write-ahead/rollback journals can retain credential-bearing pages.
+    ('opencode', 'opencode.db-wal'),
+    ('opencode', 'opencode.db-journal'),
 })
 
 
