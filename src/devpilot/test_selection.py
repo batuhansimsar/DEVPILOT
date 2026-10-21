@@ -34,11 +34,18 @@ ECOSYSTEMS = {
 ECOSYSTEM_ALIASES = {
     'node.js': 'node',
     'nodejs': 'node',
+    'js': 'node',
+    'javascript': 'node',
+    'ts': 'node',
+    'typescript': 'node',
     'py': 'python',
     'golang': 'go',
     '.net': 'dotnet',
     'c#': 'dotnet',
     'csharp': 'dotnet',
+    'c++': 'cpp',
+    'c/c++': 'cpp',
+    'cxx': 'cpp',
 }
 
 
