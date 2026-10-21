@@ -80,6 +80,7 @@ KEY_FILES = frozenset({
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
     'stack.yaml', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
     'pubspec.yaml', 'pubspec.lock',
+    'environment.yml', 'environment.yaml', 'pixi.toml', 'pixi.lock',
     'build.zig', 'build.zig.zon',
 })
 MAX_FILES = 10000
@@ -122,6 +123,9 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Deno')
     if _has_python_manifest(names):
         types.add('Python')
+    # Both classic Conda environments and Pixi lockfile-only roots are workspaces.
+    if names & {'environment.yml', 'environment.yaml', 'pixi.toml', 'pixi.lock'}:
+        types.add('Conda')
     if names & {'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked'} or any(
             name.lower().endswith('.gemspec') for name in names):
         types.add('Ruby')
@@ -324,6 +328,9 @@ def doctor_report(root: Path) -> dict[str, Any]:
         'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
         'R': 'Rscript', 'PHP': 'php',
     }
+    if 'Conda' in found:
+        # Pixi uses its own executable; a plain environment.yml requires conda.
+        tool_map['Conda'] = ('pixi' if _root_files(root) & {'pixi.toml', 'pixi.lock'} else 'conda')
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
     if 'Haskell' in found:

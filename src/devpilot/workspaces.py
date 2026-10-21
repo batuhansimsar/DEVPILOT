@@ -42,6 +42,8 @@ WORKSPACE_FILES = {
     'poetry.lock': 'Python',
     'environment.yml': 'Conda',
     'environment.yaml': 'Conda',
+    'pixi.toml': 'Conda',
+    'pixi.lock': 'Conda',
     'go.mod': 'Go',
     'go.work': 'Go',
     'Cargo.toml': 'Rust',
