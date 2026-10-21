@@ -14,6 +14,7 @@ ECOSYSTEMS = {
     'julia': 'Julia',
     'r': 'R',
     'r': 'R',
+    'php': 'PHP',
     'ruby': 'Ruby',
     'go': 'Go',
     'rust': 'Rust',

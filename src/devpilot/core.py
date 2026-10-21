@@ -25,6 +25,7 @@ from .tlscheck import _tls_dial_host, _validate_host_length
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .julia_manifests import is_julia_manifest
 from .python_tests import python_test_command
+from .php_tests import php_test_command
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
 from .julia_tests import julia_test_command
@@ -123,6 +124,8 @@ def detect_projects(root: Path) -> list[str]:
     if names & {'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked'} or any(
             name.lower().endswith('.gemspec') for name in names):
         types.add('Ruby')
+    if names & {'composer.json', 'composer.lock'}:
+        types.add('PHP')
     if names & {'Cargo.toml'}:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
@@ -255,6 +258,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
                          'reason': 'Deno configuration'})
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
+    php_command = php_test_command(root, names)
+    if php_command is not None:
+        commands.append(php_command)
     dart_command = dart_test_command(root, names)
     if dart_command is not None:
         commands.append(dart_command)
@@ -310,7 +316,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
         'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
-        'R': 'Rscript',
+        'R': 'Rscript', 'PHP': 'php',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
