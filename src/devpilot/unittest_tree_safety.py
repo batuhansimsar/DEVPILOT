@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 MAX_UNITTEST_DISCOVERY_ENTRIES = 4096
 
@@ -13,8 +15,15 @@ def root_unittest_imports_are_safe(root: Path) -> bool:
 
     Unlike discovery scoped to tests/, a root-level unittest run descends into
     every importable package. Check those packages recursively before offering
-    the command, without traversing non-packages or following links.
+    the command, without traversing non-packages or following links. Reject
+    linked roots and ancestors too, including when called independently of the
+    test command selector.
     """
+    try:
+        ensure_unlinked_scan_path(root)
+    except (ValueError, OSError):
+        return False
+
     pending = [root]
     inspected = 0
     try:
