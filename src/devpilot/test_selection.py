@@ -35,5 +35,12 @@ def select_test_commands(commands: list[dict[str, Any]], ecosystem: str | None) 
     """
     if ecosystem is None:
         return deepcopy(commands)
-    label = ECOSYSTEMS[ecosystem.casefold()]
+    # Do not leak unexpected selector values in errors: direct API callers
+    # could inadvertently pass private strings or objects here.
+    if not isinstance(ecosystem, str):
+        raise KeyError('unknown test ecosystem') from None
+    try:
+        label = ECOSYSTEMS[ecosystem.casefold()]
+    except KeyError:
+        raise KeyError('unknown test ecosystem') from None
     return [deepcopy(command) for command in commands if command['ecosystem'] == label]
