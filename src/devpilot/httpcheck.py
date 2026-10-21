@@ -146,7 +146,9 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     start = time.monotonic()
     try:
         with opener.open(request, timeout=timeout) as response:
-            status = response.status
+            # A malformed/custom response may omit status entirely. Treat it
+            # as an invalid response instead of raising AttributeError.
+            status = getattr(response, 'status', None)
     except HTTPError as exc:
         status = exc.code  # 3xx, 4xx and 5xx are valid HTTP responses, not network failures.
         exc.close()
