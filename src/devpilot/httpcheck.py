@@ -147,6 +147,13 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
         return {'url': display, 'method': method, 'reachable': False, 'status': None, 'healthy': False,
                 'latency_ms': round((time.monotonic() - start) * 1000, 1),
                 'error': type(exc).__name__}
+    # Malformed HTTP responses and custom transports can expose a missing or
+    # non-integer status. Reject them before comparisons or JSON serialization.
+    # bool is an int subclass but never a valid HTTP status code.
+    if type(status) is not int or not 100 <= status <= 599:
+        return {'url': display, 'method': method, 'reachable': False, 'status': None, 'healthy': False,
+                'latency_ms': round((time.monotonic() - start) * 1000, 1),
+                'error': 'InvalidHTTPStatus'}
     # A redirect is reachable, but not healthy: following it is deliberately disabled.
     return {'url': display, 'method': method, 'reachable': True, 'status': status, 'healthy': (status in expected_statuses if expected_statuses is not None else 200 <= status < 300),
             'latency_ms': round((time.monotonic() - start) * 1000, 1)}
