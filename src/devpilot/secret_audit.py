@@ -20,6 +20,7 @@ from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
 from .agent_credentials import is_agent_credential_location, is_agent_mcp_config
 from .sentry_credentials import is_sentry_auth_config
+from .cloud_cli_credentials import is_cloud_cli_credential_location
 
 MAX_OUTPUT = 8 * 1024 * 1024
 MAX_PATHS = 100_000
@@ -183,6 +184,8 @@ def classify(path: str) -> str | None:
         return 'potential MCP server configuration with embedded credentials'
     if is_sentry_auth_config(parts):
         return 'potential Sentry authentication configuration'
+    if is_cloud_cli_credential_location(parts):
+        return 'potential cloud CLI credential configuration'
     if name in EXACT_NAMES:
         return 'potential credential file'
     # Named kubeconfig exports often embed cluster certificates and bearer tokens.
