@@ -12,6 +12,7 @@ ECOSYSTEMS = {
     'dart': 'Dart',
     'python': 'Python',
     'julia': 'Julia',
+    'r': 'R',
     'ruby': 'Ruby',
     'go': 'Go',
     'rust': 'Rust',
