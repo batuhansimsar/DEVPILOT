@@ -17,6 +17,11 @@ _SEPARATOR = re.compile(r"[-_.]+")
 _PYLOCK_FILE = re.compile(r"pylock(?:\.[A-Za-z0-9][A-Za-z0-9_-]*)?\.toml\Z")
 
 
+# Bound direct calls as well as scans through the size-limited manifest reader.
+MAX_PYLOCK_INPUT_CHARS = 2 * 1024 * 1024
+MAX_PYLOCK_PACKAGES = 100_000
+
+
 def is_pylock_manifest(filename: str) -> bool:
     """Accept pylock.toml and safe pylock.<name>.toml variants."""
     return isinstance(filename, str) and _PYLOCK_FILE.fullmatch(filename) is not None
@@ -24,6 +29,8 @@ def is_pylock_manifest(filename: str) -> bool:
 
 def parse_pylock(content: str) -> list[str]:
     """Read valid locked package names, rejecting malformed files privately."""
+    if not isinstance(content, str) or len(content) > MAX_PYLOCK_INPUT_CHARS:
+        raise ValueError('pylock.toml input exceeds safe size limit or is invalid')
     try:
         data = tomllib.loads(content.removeprefix('\ufeff'))
     except (tomllib.TOMLDecodeError, RecursionError, ValueError, OverflowError):
@@ -33,8 +40,8 @@ def parse_pylock(content: str) -> list[str]:
     if not isinstance(data.get('created-by'), str) or not data['created-by'].strip():
         raise ValueError('pylock.toml missing created-by')
     packages = data.get('packages')
-    if not isinstance(packages, list):
-        raise ValueError('pylock.toml packages must be an array')
+    if not isinstance(packages, list) or len(packages) > MAX_PYLOCK_PACKAGES:
+        raise ValueError('pylock.toml packages must be a bounded array')
     names: set[str] = set()
     for package in packages:
         if not isinstance(package, dict):
