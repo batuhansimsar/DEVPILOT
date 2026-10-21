@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .safe_file_read import read_bounded_regular_file
+
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
 _MAX_TEST_ENTRIES = 10000
@@ -110,12 +112,8 @@ def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
             or tests.is_symlink() or not tests.is_dir()
             or not _safe_test_tree(tests)):
         return None
-    try:
-        with manifest.open('rb') as stream:
-            data = stream.read(_MAX_PUBSPEC_BYTES + 1)
-    except OSError:
-        return None
-    if len(data) > _MAX_PUBSPEC_BYTES:
+    data = read_bounded_regular_file(manifest, _MAX_PUBSPEC_BYTES)
+    if data is None:
         return None
     flutter = _has_flutter_sdk_dependency(data)
     return {
