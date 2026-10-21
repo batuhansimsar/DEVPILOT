@@ -35,6 +35,35 @@ def _has_test_file(directory: Path, suffix: str, *, skip_hidden: bool = False) -
     return False
 
 
+def _inspect_rspec_tree(directory: Path) -> tuple[bool, bool]:
+    """Inspect the full RSpec suite, rejecting linked or unreadable descendants.
+
+    An RSpec helper/config marker can select the runner without any spec files,
+    so a regular marker must not bypass traversal of the rest of the suite.
+    Scan to completion rather than stopping at the first matching spec file.
+    """
+    pending = [directory]
+    scanned = 0
+    found = False
+    while pending:
+        current = pending.pop()
+        try:
+            for entry in current.iterdir():
+                scanned += 1
+                if scanned > _MAX_DISCOVERY_ENTRIES or entry.is_symlink():
+                    return False, False
+                # RSpec's default recursive glob ignores hidden components.
+                if entry.name.startswith('.'):
+                    continue
+                if entry.is_file() and entry.name.endswith('_spec.rb'):
+                    found = True
+                elif entry.is_dir():
+                    pending.append(entry)
+        except OSError:
+            return False, False
+    return True, found
+
+
 # Use a fixed Ruby expression rather than interpolating untrusted filenames.
 # Abort rather than falsely reporting a successful run if no tests are found.
 _MINITEST_LOADER = (
@@ -70,9 +99,10 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         # A safe helper must not mask a linked config or another linked helper.
         if any(marker.is_symlink() for marker in markers):
             return None
-        found_rspec = any(marker.is_file() for marker in markers)
-        if not found_rspec:
-            found_rspec = _has_test_file(specs, '_spec.rb', skip_hidden=True)
+        safe, found_spec = _inspect_rspec_tree(specs)
+        if not safe:
+            return None
+        found_rspec = any(marker.is_file() for marker in markers) or found_spec
         if found_rspec:
             return {
                 'ecosystem': 'Ruby',
