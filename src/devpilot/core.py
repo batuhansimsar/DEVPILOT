@@ -275,6 +275,17 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     if 'mix.exs' in names:
         commands.append({'ecosystem': 'Elixir', 'argv': ['mix', 'test'], 'reason': 'mix.exs'})
+
+    # Only discover Julia package tests when a conventional entrypoint exists.
+    # Refuse linked test paths; explicit --yes remains required for execution.
+    if names & {'Project.toml', 'JuliaProject.toml'}:
+        test_dir = root / 'test'
+        test_entry = test_dir / 'runtests.jl'
+        if (test_dir.is_dir() and not test_dir.is_symlink()
+                and test_entry.is_file() and not test_entry.is_symlink()):
+            commands.append({'ecosystem': 'Julia',
+                             'argv': ['julia', '--project=.', '-e', 'using Pkg; Pkg.test()'],
+                             'reason': 'Julia project with test/runtests.jl'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
     dotnet_target = dotnet_test_target(names)

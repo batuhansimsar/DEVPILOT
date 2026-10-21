@@ -1,61 +1,66 @@
-"""Julia test discovery must be opt-in to execution and avoid linked test files."""
+"""Regression tests for safe Julia test discovery and CLI selection."""
 
+import contextlib
+import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from devpilot.julia_tests import julia_test_command
+from devpilot.core import test_commands
+from devpilot.test_selection import select_test_commands
 
 
 class JuliaTestDiscoveryTests(unittest.TestCase):
-    def test_project_with_standard_tests_produces_pkg_test_command(self):
-        for manifest in ('Project.toml', 'JuliaProject.toml'):
-            with self.subTest(manifest=manifest), tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                (root / manifest).touch()
-                (root / 'test').mkdir()
-                (root / 'test' / 'runtests.jl').write_text('using Test\n', encoding='utf-8')
-                self.assertEqual(julia_test_command(root, {manifest}), {
-                    'ecosystem': 'Julia',
-                    'argv': ['julia', '--project=.', '-e', 'using Pkg; Pkg.test()'],
-                    'reason': 'Julia project with test/runtests.jl',
-                })
-
-    def test_lockfiles_or_missing_test_entry_are_not_runnable_projects(self):
+    def test_requires_project_and_test_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'test').mkdir()
             (root / 'test' / 'runtests.jl').touch()
-            for names in (set(), {'Manifest.toml'}, {'JuliaManifest.toml'},
-                          {'Manifest-v1.11.toml'}):
-                with self.subTest(names=names):
-                    self.assertIsNone(julia_test_command(root, names))
+            self.assertEqual(select_test_commands(test_commands(root), 'julia'), [])
+            (root / 'JuliaProject.toml').touch()
+            selected = select_test_commands(test_commands(root), 'julia')
+            self.assertEqual([c['argv'] for c in selected],
+                             [['julia', '--project=.', '-e', 'using Pkg; Pkg.test()']])
             (root / 'test' / 'runtests.jl').unlink()
-            self.assertIsNone(julia_test_command(root, {'Project.toml'}))
+            self.assertEqual(select_test_commands(test_commands(root), 'julia'), [])
 
-    def test_symlinked_test_directory_is_not_followed(self):
-        with tempfile.TemporaryDirectory() as directory:
+    def test_rejects_symlinked_test_dir(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
             root = Path(directory)
-            external = root / 'external'
-            external.mkdir()
-            (external / 'runtests.jl').touch()
+            (root / 'Project.toml').touch()
             try:
                 (root / 'test').symlink_to(external, target_is_directory=True)
             except (OSError, NotImplementedError):
-                self.skipTest('symlinks not available')
-            self.assertIsNone(julia_test_command(root, {'Project.toml'}))
+                self.skipTest('symlinks unavailable')
+            (Path(external) / 'runtests.jl').touch()
+            self.assertEqual(select_test_commands(test_commands(root), 'julia'), [])
 
-    def test_symlinked_test_entry_is_not_followed(self):
+    def test_cli_julia_only_dry_run_and_opt_in(self):
+        from devpilot.cli import main, build_parser
+
+        self.assertEqual(build_parser().parse_args(['test', '--ecosystem', 'julia']).ecosystem, 'julia')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / 'Project.toml').touch()
             (root / 'test').mkdir()
-            target = root / 'outside.jl'
-            target.touch()
-            try:
-                (root / 'test' / 'runtests.jl').symlink_to(target)
-            except (OSError, NotImplementedError):
-                self.skipTest('symlinks not available')
-            self.assertIsNone(julia_test_command(root, {'JuliaProject.toml'}))
+            (root / 'test' / 'runtests.jl').touch()
+            (root / 'go.mod').touch()
+            stdout = io.StringIO()
+            with patch('devpilot.cli.command_result') as runner, contextlib.redirect_stdout(stdout):
+                status = main(['test', '--path', directory, '--ecosystem', 'julia', '--json'])
+            self.assertEqual(status, 0)
+            self.assertEqual([c['ecosystem'] for c in json.loads(stdout.getvalue())['commands']], ['Julia'])
+            runner.assert_not_called()
+            stdout = io.StringIO()
+            with patch('devpilot.cli.command_result', return_value={'exit_code': 0}) as runner, \
+                    contextlib.redirect_stdout(stdout):
+                status = main(['test', '--path', directory, '--ecosystem', 'julia', '--yes', '--json'])
+            self.assertEqual(status, 0)
+            self.assertTrue(json.loads(stdout.getvalue())['executed'])
+            runner.assert_called_once()
+            self.assertEqual(runner.call_args.args[0], ['julia', '--project=.', '-e', 'using Pkg; Pkg.test()'])
 
 
 if __name__ == '__main__':
