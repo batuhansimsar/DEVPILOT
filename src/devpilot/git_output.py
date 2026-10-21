@@ -16,8 +16,9 @@ def format_git_status(report: dict[str, Any]) -> str:
     JSON reports retain their original data unchanged.
     """
     stdout = report.get('stdout')
-    rendered = ('\n'.join(escape_terminal(line) for line in str(stdout).split('\n'))
-                if stdout else '')
+    invalid_stdout = stdout is not None and not isinstance(stdout, str)
+    rendered = ('\n'.join(escape_terminal(line) for line in stdout.split('\n'))
+                if isinstance(stdout, str) and stdout else '')
     # A command can produce both a capture/spawn error and Git's stderr.
     # Keep distinct diagnostics, safely escaped, instead of silently dropping
     # stderr when the error field is nonempty.
@@ -27,6 +28,8 @@ def format_git_status(report: dict[str, Any]) -> str:
     ))
     warnings: list[str] = []
 
+    if invalid_stdout:
+        warnings.append('Git status unavailable (invalid porcelain output)')
     if report.get('stdout_truncated'):
         warnings.append('Warning: Git status output truncated; results may be incomplete')
     if report.get('stderr_truncated'):
