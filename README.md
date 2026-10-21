@@ -55,7 +55,7 @@ devpilot doctor --path /path/to/project --json
 | `docker` | Executes read-only `docker ps`; reports running containers. |
 | `check` | Attempts a TCP connection to a supplied hostname and port. |
 | `http` | Sends a bounded HTTP HEAD request without following redirects or reading the response body. Only HTTP 2xx is considered healthy; 3xx is reachable but unhealthy. Query strings are omitted from the displayed URL. |
-| `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|deno|python|ruby|go|rust|dotnet|java|scala|clojure|haskell|swift|elixir|zig` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. Ecosystem filter values are case-insensitive. Deno uses `deno test` when a root `deno.json` or `deno.jsonc` exists. |
+| `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|deno|python|ruby|go|rust|dotnet|java|scala|clojure|haskell|swift|elixir|zig` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. Ecosystem filter values are case-insensitive; familiar aliases `node.js`, `nodejs`, `py`, `golang`, `.net`, `c#`, and `csharp` are also supported. Deno uses `deno test` when a root `deno.json` or `deno.jsonc` exists. |
 
 CTest configured builds are discovered when a root `CMakeLists.txt` and a regular `build/CTestTestfile.cmake` are present. Use `devpilot test --ecosystem cpp` to preview `ctest --test-dir build --output-on-failure --no-tests=error`; use `--yes` only after trusting the repository. Discovery never configures or builds project code.
 
