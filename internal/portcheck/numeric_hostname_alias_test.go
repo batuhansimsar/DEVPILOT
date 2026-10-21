@@ -4,13 +4,13 @@ import "testing"
 
 func TestAmbiguousNumericHostRejectsLegacyIPv4Aliases(t *testing.T) {
 	for _, host := range []string{
-		"2130706433",       // one-component decimal
-		"017700000001",     // one-component octal
-		"0x7f000001",       // one-component hexadecimal
-		"0X7F000001",       // uppercase hexadecimal
-		"127.1",            // short dotted decimal
-		"127.000.000.001",  // octal-looking dotted decimal
-		"127.0x0.0.1",      // mixed hexadecimal and decimal
+		"2130706433",      // one-component decimal
+		"017700000001",    // one-component octal
+		"0x7f000001",      // one-component hexadecimal
+		"0X7F000001",      // uppercase hexadecimal
+		"127.1",           // short dotted decimal
+		"127.000.000.001", // octal-looking dotted decimal
+		"127.0x0.0.1",     // mixed hexadecimal and decimal
 		"0x7f.0.0x0.0x1",  // all-hex dotted notation
 		"999.999.999.999", // invalid dotted numeric address
 	} {
