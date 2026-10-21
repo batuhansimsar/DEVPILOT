@@ -17,6 +17,8 @@ class OpenCodeCredentialAuditTests(unittest.TestCase):
             '.local/share/opencode/mcp-auth.json',
             '.local/share/opencode/opencode.db',
             'data/opencode/opencode.db.bak',
+            'data/opencode/opencode.db-wal',
+            'data/opencode/opencode.db-journal',
             r'HOME\.LOCAL\SHARE\OPENCODE\MCP-AUTH.JSON',
         ):
             with self.subTest(path=path):
@@ -43,6 +45,7 @@ class OpenCodeCredentialAuditTests(unittest.TestCase):
             tracked = (
                 '.local/share/opencode/mcp-auth.json',
                 '.local/share/opencode/opencode.db',
+                '.local/share/opencode/opencode.db-wal',
                 '.local/share/opencode/opencode.db.example',
             )
             for path in (*tracked, 'untracked/opencode/mcp-auth.json'):
@@ -53,8 +56,8 @@ class OpenCodeCredentialAuditTests(unittest.TestCase):
             first = audit_tracked_files(root)
             second = audit(root, redact_paths=True)
         self.assertEqual(first['tracked_files'], len(tracked))
-        self.assertEqual(first['candidates'], list(tracked[:2]))
-        self.assertEqual(len(second['findings']), 2)
+        self.assertEqual(first['candidates'], list(tracked[:3]))
+        self.assertEqual(len(second['findings']), 3)
         self.assertTrue(all('path' not in finding for finding in second['findings']))
         self.assertNotIn('NEVER_ECHO_SECRET_VALUE', repr(first) + repr(second))
 
