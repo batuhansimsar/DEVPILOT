@@ -27,7 +27,7 @@ func analyzeCommand(args []string, stdout, stderr io.Writer) int {
 	}
 	report, err := analyze.Inspect(path)
 	if err != nil {
-		fmt.Fprintln(stderr, "analyze:", err)
+		fmt.Fprintln(stderr, "analyze:", quoteTerminalPath(err.Error()))
 		return 2
 	}
 	if *jsonOut {
@@ -38,7 +38,7 @@ func analyzeCommand(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	} else {
-		fmt.Fprintf(stdout, "DevPilot analyze: %s\nFiles: %d", report.Path, report.FileCount)
+		fmt.Fprintf(stdout, "DevPilot analyze: %s\nFiles: %d", quoteTerminalPath(report.Path), report.FileCount)
 		if report.Truncated {
 			fmt.Fprint(stdout, " (scan limit reached)")
 		}
@@ -47,13 +47,13 @@ func analyzeCommand(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stdout, "  %s: %d files\n", lang.Name, lang.Files)
 		}
 		for _, marker := range report.Manifests {
-			fmt.Fprintln(stdout, "  Manifest:", marker)
+			fmt.Fprintln(stdout, "  Manifest:", quoteTerminalPath(marker))
 		}
 		for _, ci := range report.CI {
-			fmt.Fprintln(stdout, "  CI:", ci)
+			fmt.Fprintln(stdout, "  CI:", quoteTerminalPath(ci))
 		}
 		for _, config := range report.Containers {
-			fmt.Fprintln(stdout, "  Container:", config)
+			fmt.Fprintln(stdout, "  Container:", quoteTerminalPath(config))
 		}
 		for _, warning := range report.Warnings {
 			fmt.Fprintln(stderr, "Warning:", warning)
