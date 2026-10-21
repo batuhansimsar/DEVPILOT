@@ -113,7 +113,12 @@ func Inspect(path string) (Report, error) {
 			return err
 		}
 		relative = filepath.ToSlash(relative)
-		if lang, ok := languages[strings.ToLower(filepath.Ext(entry.Name()))]; ok {
+		extension := strings.ToLower(filepath.Ext(entry.Name()))
+		lang, ok := languages[extension]
+		if !ok {
+			lang, ok = extendedLanguage(extension)
+		}
+		if ok {
 			counts[lang]++
 		} else if lang, ok := supplementalSourceLanguage(entry.Name()); ok {
 			counts[lang]++
