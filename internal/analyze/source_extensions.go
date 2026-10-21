@@ -14,6 +14,10 @@ func extendedLanguage(extension string) (string, bool) {
 		return "C#", true
 	case ".mm":
 		return "Objective-C++", true
+	case ".pyi", ".pyw":
+		return "Python", true
+	case ".pyx", ".pxd", ".pxi":
+		return "Cython", true
 	default:
 		return "", false
 	}

@@ -11,7 +11,9 @@ func TestInspectRecognizesExtendedSourceExtensions(t *testing.T) {
 	files := []string{
 		"include/a.hh", "include/b.HPP", "include/c.hxx",
 		"src/main.cxx", "src/helper.c++", "src/module.ixx", "src/module.cppm",
-		"build.gradle.kts", "tools/script.csx", "ios/View.mm", "notes.json",
+		"build.gradle.kts", "tools/script.csx", "ios/View.mm",
+		"typing/models.pyi", "bin/tool.PYW", "native/core.pyx",
+		"native/header.pxd", "native/inline.pxi", "notes.json",
 	}
 	for _, name := range files {
 		path := filepath.Join(root, name)
@@ -33,7 +35,7 @@ func TestInspectRecognizesExtendedSourceExtensions(t *testing.T) {
 	for _, language := range report.Languages {
 		got[language.Name] = language.Files
 	}
-	want := map[string]int{"C++": 7, "Kotlin": 1, "C#": 1, "Objective-C++": 1}
+	want := map[string]int{"C++": 7, "Kotlin": 1, "C#": 1, "Objective-C++": 1, "Python": 2, "Cython": 3}
 	if len(got) != len(want) {
 		t.Fatalf("languages = %#v, want %#v", got, want)
 	}

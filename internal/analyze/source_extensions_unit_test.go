@@ -11,6 +11,8 @@ func TestExtendedLanguage(t *testing.T) {
 		{".cxx", "C++"}, {".c++", "C++"}, {".ixx", "C++"},
 		{".cppm", "C++"}, {".kts", "Kotlin"}, {".csx", "C#"},
 		{".mm", "Objective-C++"},
+		{".pyi", "Python"}, {".pyw", "Python"},
+		{".pyx", "Cython"}, {".pxd", "Cython"}, {".pxi", "Cython"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.extension, func(t *testing.T) {
@@ -19,7 +21,7 @@ func TestExtendedLanguage(t *testing.T) {
 			}
 		})
 	}
-	for _, extension := range []string{".h", ".m", ".txt", ".hpp.bak", "", ".HPP"} {
+	for _, extension := range []string{".h", ".m", ".txt", ".hpp.bak", ".pyi.bak", "", ".HPP"} {
 		if got, ok := extendedLanguage(extension); ok || got != "" {
 			t.Errorf("extendedLanguage(%q) = (%q, %v), want no match", extension, got, ok)
 		}
