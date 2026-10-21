@@ -115,6 +115,8 @@ func Inspect(path string) (Report, error) {
 		relative = filepath.ToSlash(relative)
 		if lang, ok := languages[strings.ToLower(filepath.Ext(entry.Name()))]; ok {
 			counts[lang]++
+		} else if lang, ok := supplementalSourceLanguage(entry.Name()); ok {
+			counts[lang]++
 		}
 		if eco, ok := markers[entry.Name()]; ok {
 			r.Manifests = append(r.Manifests, relative+" ("+eco+")")
