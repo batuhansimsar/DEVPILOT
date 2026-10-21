@@ -18,7 +18,7 @@ from .tlscheck import tls_check
 from .deps import scan as dependency_scan
 from .core import analyze_project, command_result, doctor_report, docker_status, git_status, tcp_check, test_commands
 from .workspaces import discover_workspaces
-from .test_selection import ECOSYSTEMS, select_test_commands
+from .test_selection import ECOSYSTEMS, ECOSYSTEM_ALIASES, select_test_commands
 from .test_execution import execute_test_commands
 
 
@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument('--fail-on-dirty', action='store_true',
                              help='Return exit code 1 when the working tree has changes')
         if name == 'test':
-            cmd.add_argument('--ecosystem', type=str.casefold, choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
+            cmd.add_argument('--ecosystem', type=str.casefold, choices=(*ECOSYSTEMS, *ECOSYSTEM_ALIASES), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
             cmd.add_argument('--fail-fast', action='store_true', help='Stop executing after the first failed test command')
             cmd.add_argument('--timeout', type=int, default=120, help='Per-command timeout in seconds (1-3600)')
