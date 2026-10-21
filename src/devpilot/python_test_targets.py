@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 def root_pytest_targets(root: Path, max_entries: int) -> list[str] | None:
     """Return explicit root pytest paths, or None for an unsafe/incomplete scan.
@@ -15,6 +17,8 @@ def root_pytest_targets(root: Path, max_entries: int) -> list[str] | None:
     """
     targets: list[str] = []
     try:
+        # Validate again at the discovery boundary, even when called directly.
+        ensure_unlinked_scan_path(root)
         for count, entry in enumerate(root.iterdir(), 1):
             if count > max_entries or entry.is_symlink():
                 return None
@@ -22,6 +26,6 @@ def root_pytest_targets(root: Path, max_entries: int) -> list[str] | None:
             if (entry.is_file() and name.endswith('.py')
                     and (name.startswith('test_') or name.endswith('_test.py'))):
                 targets.append('./' + name)
-    except OSError:
+    except (OSError, RuntimeError, ValueError):
         return None
     return sorted(targets)
