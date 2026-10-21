@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime
 import errno
 import ipaddress
+
+_DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
 import socket
 import ssl
 import time
@@ -79,7 +81,9 @@ def _tls_dial_host(host: str) -> str:
         # Check the encoded wire name so internationalized labels are bounded.
         labels = ascii_host[:-1].split(b'.') if ascii_host.endswith(b'.') else ascii_host.split(b'.')
         if (len(ascii_host.rstrip(b'.')) > 253
-                or any(not label or label.startswith(b'-') or label.endswith(b'-')
+                or any(not label or len(label) > 63
+                       or label.startswith(b'-') or label.endswith(b'-')
+                       or any(byte not in _DNS_LABEL_ALLOWED for byte in label)
                        for label in labels)):
             raise ValueError('host contains an invalid IDNA hostname')
     return dial_host
