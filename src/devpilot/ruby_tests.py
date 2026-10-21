@@ -55,10 +55,14 @@ def _inspect_rspec_tree(directory: Path) -> tuple[bool, bool]:
                 # RSpec's default recursive glob ignores hidden components.
                 if entry.name.startswith('.'):
                     continue
-                if entry.is_file() and entry.name.endswith('_spec.rb'):
-                    found = True
-                elif entry.is_dir():
+                if entry.is_dir():
                     pending.append(entry)
+                elif entry.is_file():
+                    if entry.name.endswith('_spec.rb'):
+                        found = True
+                else:
+                    # A FIFO, socket or device is not a safe RSpec suite entry.
+                    return False, False
         except OSError:
             return False, False
     return True, found
