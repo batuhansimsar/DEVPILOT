@@ -12,5 +12,9 @@ def scan_succeeded(report: Mapping[str, Any]) -> bool:
     Require an explicit boolean ``truncated=False`` and a real, empty list of
     problems. Missing, null, or non-list diagnostics must never imply success.
     """
+    # Public callers may pass a missing or malformed scan report. Do not
+    # mistake such a result for success or raise while interpreting it.
+    if not isinstance(report, Mapping):
+        return False
     problems = report.get('problems')
     return report.get('truncated') is False and type(problems) is list and not problems
