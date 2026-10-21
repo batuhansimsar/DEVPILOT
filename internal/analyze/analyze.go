@@ -34,6 +34,12 @@ var languages = map[string]string{
 	".sh": "Shell", ".sql": "SQL", ".vue": "Vue",
 	".svelte": "Svelte", ".html": "HTML", ".css": "CSS",
 	".tf": "Terraform",
+	".zig": "Zig", ".ex": "Elixir", ".exs": "Elixir",
+	".jl": "Julia", ".scala": "Scala", ".sc": "Scala",
+	".hs": "Haskell", ".lhs": "Haskell",
+	".clj": "Clojure", ".cljs": "ClojureScript", ".cljc": "Clojure",
+	".r": "R", ".rmd": "R", ".purs": "PureScript",
+	".elm": "Elm", ".lua": "Lua", ".groovy": "Groovy",
 }
 
 var markers = map[string]string{
