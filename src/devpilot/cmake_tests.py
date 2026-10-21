@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 # CMake's conventional build directory comes first, followed by common CLion
 # build configurations and Visual Studio / CMakePresets output directories.
@@ -50,6 +52,12 @@ def cmake_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     target to known local build directories and ignore symlinked ancestors
     and markers. CTest may run arbitrary binaries and requires --yes.
     """
+    # A linked project root (or an ancestor) may redirect CTest discovery
+    # outside the selected workspace, even with unlinked build subdirectories.
+    try:
+        ensure_unlinked_scan_path(root)
+    except (OSError, ValueError):
+        return None
     if 'CMakeLists.txt' not in names:
         return None
     manifest = root / 'CMakeLists.txt'
