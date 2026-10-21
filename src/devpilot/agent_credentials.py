@@ -15,6 +15,14 @@ _AGENT_CREDENTIAL_LOCATIONS = frozenset({
 })
 
 
+# Claude Code project-local settings can contain environment variables with
+# embedded credentials; unlike generic settings.json, the local-only filename
+# is a useful signal of potentially sensitive tracked configuration.
+_AGENT_LOCAL_SETTINGS = frozenset({
+    ('.claude', 'settings.local.json'),
+})
+
+
 # MCP server definitions may include API keys in environment variables and
 # HTTP headers. Scope ambiguous names to known editor directories; the portable
 # .mcp.json convention has its own distinctive basename.
@@ -37,6 +45,11 @@ _MCP_CONFIG_NAMES = frozenset({
 def is_agent_credential_location(parts: tuple[str, ...]) -> bool:
     """Match conventional private token stores, not arbitrary JSON files."""
     return len(parts) >= 2 and parts[-2:] in _AGENT_CREDENTIAL_LOCATIONS
+
+
+def is_agent_local_settings(parts: tuple[str, ...]) -> bool:
+    """Identify local assistant settings that may contain plaintext secrets."""
+    return len(parts) >= 2 and parts[-2:] in _AGENT_LOCAL_SETTINGS
 
 
 def is_agent_mcp_config(parts: tuple[str, ...]) -> bool:
