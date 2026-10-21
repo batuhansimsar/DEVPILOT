@@ -39,6 +39,7 @@ LANGUAGES = {
     '.ts': 'TypeScript', '.tsx': 'TypeScript',
     '.mts': 'TypeScript', '.cts': 'TypeScript', '.cs': 'C#',
     '.go': 'Go', '.rs': 'Rust', '.java': 'Java', '.kt': 'Kotlin',
+    '.scala': 'Scala', '.sc': 'Scala', '.sbt': 'Scala',
     '.swift': 'Swift', '.rb': 'Ruby', '.php': 'PHP', '.cpp': 'C++',
     '.cc': 'C++', '.cxx': 'C++', '.hpp': 'C++', '.hh': 'C++',
     '.hxx': 'C++', '.ixx': 'C++', '.cppm': 'C++', '.ipp': 'C++',
@@ -48,7 +49,7 @@ LANGUAGES = {
 }
 KEY_FILES = frozenset({
     'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
-    'go.mod', 'Cargo.toml', 'pom.xml', 'build.gradle', 'build.gradle.kts',
+    'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'compose.yml', 'compose.yaml', '.gitignore', 'Makefile',
@@ -103,6 +104,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
         types.add('Go')
+    if 'build.sbt' in names:
+        types.add('Scala')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
@@ -203,6 +206,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     if 'go.mod' in names:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
+    if 'build.sbt' in names:
+        commands.append({'ecosystem': 'Scala', 'argv': ['sbt', 'test'], 'reason': 'build.sbt'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
     solutions = sorted(name for name in names if Path(name).suffix.lower() in {'.sln', '.slnx'})
@@ -232,7 +237,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     found = detect_projects(root)
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
-        'Go': 'go', 'Java': 'java', '.NET': 'dotnet', 'Docker': 'docker',
+        'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
         'Ruby': 'ruby',
     }
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
