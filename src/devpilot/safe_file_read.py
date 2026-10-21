@@ -7,6 +7,8 @@ import stat
 import sys
 from pathlib import Path
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 def _identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
     """Properties that change on replacement or ordinary in-place writes."""
@@ -17,8 +19,8 @@ def _identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
 def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
     """Read a stable regular file with a size cap, or fail closed.
 
-    Refuse symlinks, FIFOs, device files, and mutations between inspection and
-    read. O_NONBLOCK prevents a substituted FIFO from stalling the process;
+    Refuse linked ancestors, symlinks, FIFOs, device files, and mutations
+    between inspection and read. O_NONBLOCK prevents a substituted FIFO from
     descriptor checks protect platforms without O_NOFOLLOW.
     """
     # Reject malformed arguments before touching the filesystem. Fractional
@@ -26,6 +28,10 @@ def read_bounded_regular_file(path: Path, max_bytes: int) -> bytes | None:
     if not isinstance(path, Path) or type(max_bytes) is not int or max_bytes < 0 or max_bytes >= sys.maxsize:
         return None
     try:
+        # A regular manifest under a symlinked directory may point outside the
+        # selected tree even though lstat() on the final component is regular.
+        # Apply the same ancestor policy as the project scanner before opening.
+        ensure_unlinked_scan_path(path)
         initial = path.lstat()
         if not stat.S_ISREG(initial.st_mode) or initial.st_size > max_bytes:
             return None
