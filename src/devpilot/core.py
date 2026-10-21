@@ -53,7 +53,7 @@ LANGUAGES = {
     '.ex': 'Elixir', '.exs': 'Elixir', '.zig': 'Zig',
 }
 KEY_FILES = frozenset({
-    'package.json', 'deno.json', 'deno.jsonc', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
+    'package.json', 'deno.json', 'deno.jsonc', 'deno.lock', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
@@ -99,7 +99,8 @@ def detect_projects(root: Path) -> list[str]:
     types: set[str] = set()
     if 'package.json' in names:
         types.add('Node.js')
-    if names & {'deno.json', 'deno.jsonc'}:
+    # A lockfile-only Deno workspace should agree with discover_workspaces().
+    if names & {'deno.json', 'deno.jsonc', 'deno.lock'}:
         types.add('Deno')
     if _has_python_manifest(names):
         types.add('Python')
