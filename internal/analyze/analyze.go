@@ -76,8 +76,7 @@ func Inspect(path string) (Report, error) {
 	err = filepath.WalkDir(root, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			// Permission errors are reported, not silently mistaken for a complete scan.
-			relative, _ := filepath.Rel(root, current)
-			r.Warnings = append(r.Warnings, "Cannot inspect "+filepath.ToSlash(relative)+": "+walkErr.Error())
+			r.Warnings = append(r.Warnings, walkWarning(root, current, walkErr))
 			return nil
 		}
 		if current == root {
