@@ -31,13 +31,13 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[int] | None = None, method: str = 'HEAD') -> dict:
-    """Probe an explicitly supplied URL using HEAD, without reading response bodies.
+    """Probe an explicit URL with HEAD, GET, or OPTIONS, without reading response bodies.
 
     When supplied, expected_statuses replaces the default healthy 2xx range,
     allowing expected 401/403 responses from protected endpoints.
     """
-    if method not in ('HEAD', 'GET'):
-        raise ValueError('method must be HEAD or GET')
+    if method not in ('HEAD', 'GET', 'OPTIONS'):
+        raise ValueError('method must be HEAD, GET or OPTIONS')
     validate_http_url_length(url)
     # A giant input should not reach URL parsing, escaping, or the network.
     if len(url) > MAX_HTTP_URL_LENGTH:

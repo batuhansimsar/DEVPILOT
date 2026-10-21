@@ -64,7 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
     web_health = sub.add_parser('http', help='Probe an HTTP endpoint without following redirects')
     web_health.add_argument('url', help='Absolute http(s) endpoint URL')
     web_health.add_argument('--timeout', type=float, default=3, help='Request timeout in seconds (0.1-30)')
-    web_health.add_argument('--method', choices=('HEAD', 'GET'), default='HEAD', help='HTTP method (default: HEAD; GET is opt-in)')
+    web_health.add_argument('--method', choices=('HEAD', 'GET', 'OPTIONS'), default='HEAD', help='HTTP method (default: HEAD; GET and OPTIONS are opt-in)')
     web_health.add_argument('--expect-status', action='append', type=int, metavar='CODE',
                             help='Treat only this HTTP status as healthy; repeat for more codes (100-599)')
     web_health.add_argument('--json', action='store_true', help='Print machine-readable JSON')
