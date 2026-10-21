@@ -8,11 +8,26 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from .secret_audit import MAX_OUTPUT, MAX_PATHS, _tracked_paths
+from .secret_audit import MAX_OUTPUT, MAX_PATHS, BACKUP_SUFFIXES, _tracked_paths
+from .editor_backups import strip_editor_backups
 from .walk import _printable
 
 SAFE_ENV_NAMES = frozenset({'.env.example', '.env.sample', '.env.template', '.env.dist', '.env.defaults'})
 SAFE_ENV_TEMPLATE_SUFFIXES = ('.example', '.sample', '.template', '.dist', '.defaults')
+
+
+def _is_sensitive_env_filename(filename: str) -> bool:
+    """Match live dotenv filenames after removing known editor backup wrappers."""
+    name, vim_swap = strip_editor_backups(filename.lower(), BACKUP_SUFFIXES)
+    # Vim prepends a dot when swapping a dotfile (..env.swp -> .env).
+    if vim_swap and name.startswith('.'):
+        name = name[1:]
+    return (
+        (name == '.env' or name.startswith('.env.')
+         or name.endswith('.env') or '.env.' in name)
+        and name not in SAFE_ENV_NAMES
+        and not name.endswith(SAFE_ENV_TEMPLATE_SUFFIXES)
+    )
 
 
 def tracked_environment_files(root: Path) -> list[str]:
@@ -37,9 +52,5 @@ def tracked_environment_files(root: Path) -> list[str]:
     paths = raw.decode('utf-8', errors='surrogateescape').split('\0')
     return sorted({
         _printable(path) for path in paths if path and
-        (name := Path(path).name.lower()) and
-        (name == '.env' or name.startswith('.env.') or name.endswith('.env') or '.env.' in name) and not (
-            name in SAFE_ENV_NAMES or
-            name.endswith(SAFE_ENV_TEMPLATE_SUFFIXES)
-        )
+        _is_sensitive_env_filename(Path(path).name)
     })
