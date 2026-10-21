@@ -46,6 +46,8 @@ WORKSPACE_FILES = {
     'build.zig.zon': 'Zig',
     'pom.xml': 'Java',
     'build.sbt': 'Scala',
+    'deps.edn': 'Clojure',
+    'project.clj': 'Clojure',
     'build.gradle': 'Java',
     'build.gradle.kts': 'Java',
     'settings.gradle': 'Java',
