@@ -10,8 +10,9 @@ from .scan_root import ensure_unlinked_scan_path
 
 
 def _printable(text: str) -> str:
-    """Escape all nonprinting characters in untrusted scan errors."""
+    """Escape invisible characters and literal backslashes unambiguously."""
     return ''.join(
+        '\\\\' if char == '\\' else
         (f'\\u{ord(char):04x}' if ord(char) <= 0xffff else f'\\U{ord(char):08x}')
         if not char.isprintable() else char
         for char in text
