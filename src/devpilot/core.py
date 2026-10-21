@@ -62,6 +62,8 @@ LANGUAGES = {
     '.sh': 'Shell', '.ps1': 'PowerShell',
     '.tf': 'Terraform', '.tfvars': 'Terraform',
     '.proto': 'Protocol Buffers', '.graphql': 'GraphQL', '.gql': 'GraphQL',
+    '.wat': 'WebAssembly Text', '.wast': 'WebAssembly Text',
+    '.wit': 'WebAssembly Interface Types',
     '.prisma': 'Prisma', '.nix': 'Nix', '.cue': 'CUE',
     '.vhd': 'VHDL', '.vhdl': 'VHDL',
     '.sv': 'SystemVerilog', '.svh': 'SystemVerilog',

@@ -42,6 +42,11 @@ var supplementalSourceLanguages = map[string]string{
 	".bicep":      "Bicep",
 	".bicepparam": "Bicep",
 	".cue":        "CUE",
+
+	// WebAssembly text modules, test scripts, and component interface types.
+	".wat":  "WebAssembly Text",
+	".wast": "WebAssembly Text",
+	".wit":  "WebAssembly Interface Types",
 }
 
 func supplementalSourceLanguage(name string) (string, bool) {
