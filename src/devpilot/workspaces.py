@@ -13,6 +13,7 @@ from .core import SKIP_DIRS
 from .walk import walk_project
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
+from .haskell_manifests import is_haskell_manifest
 
 WORKSPACE_FILES = {
     'package.json': 'Node.js',
@@ -146,6 +147,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 ecosystem = 'Ruby'
             if not ecosystem and path.suffix.lower() in DOTNET_SUFFIXES:
                 ecosystem = '.NET'
+            if not ecosystem and is_haskell_manifest(filename):
+                ecosystem = 'Haskell'
             if ecosystem:
                 manifests.append({'file': filename, 'ecosystem': ecosystem})
         if manifests:
