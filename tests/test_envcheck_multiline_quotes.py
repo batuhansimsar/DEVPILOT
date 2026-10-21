@@ -38,11 +38,33 @@ class EnvMultilineQuoteTests(unittest.TestCase):
 
     def test_unclosed_quote_does_not_accept_following_pseudo_keys(self):
         self.write('.env', 'MESSAGE="never finished\nFALSE_KEY=inside value\n')
-        self.assertEqual(_keys(self.root / '.env'), ({'MESSAGE'}, None))
+        self.assertEqual(_keys(self.root / '.env'), (None, 'unterminated quoted value'))
 
     def test_single_line_quote_allows_following_declarations(self):
         self.write('.env', 'ONE="finished"\nTWO=real\n')
         self.assertEqual(_keys(self.root / '.env'), ({'ONE', 'TWO'}, None))
+
+
+    def test_unterminated_template_is_not_reported_as_matched(self):
+        self.write('.env.example', 'TOKEN="sensitive value\nFAKE=not-a-key\n')
+        self.write('.env', 'TOKEN=present\n')
+        report = inspect_env(self.root)
+        self.assertEqual(report['status'], 'unreadable_template')
+        self.assertEqual(report['detail'], 'unterminated quoted value')
+        self.assertNotIn('sensitive value', repr(report))
+
+    def test_unterminated_local_is_not_reported_as_matched(self):
+        self.write('.env.example', 'TOKEN=required\n')
+        self.write('.env', 'TOKEN="sensitive value\nFAKE=not-a-key\n')
+        report = inspect_env(self.root)
+        self.assertEqual(report['status'], 'unreadable_local')
+        self.assertEqual(report['detail'], 'unterminated quoted value')
+        self.assertEqual(report['expected_count'], 1)
+        self.assertNotIn('sensitive value', repr(report))
+
+    def test_escaped_final_quote_is_not_a_closing_quote(self):
+        self.write('.env', 'TOKEN="value\\"\n')
+        self.assertEqual(_keys(self.root / '.env'), (None, 'unterminated quoted value'))
 
 
 if __name__ == '__main__':

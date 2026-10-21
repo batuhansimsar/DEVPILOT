@@ -112,6 +112,10 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
                 closed, quote_escaped = _closing_quote_state(value[1:], value[0])
                 if not closed:
                     quoted = value[0]
+    if quoted is not None:
+        # A missing closing quote may swallow later declarations. Treat the
+        # inventory as incomplete, rather than silently claiming a match.
+        return None, 'unterminated quoted value'
     return names, None
 
 
