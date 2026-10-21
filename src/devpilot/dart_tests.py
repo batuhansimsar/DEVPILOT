@@ -8,12 +8,39 @@ from typing import Any
 
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
-# YAML allows quoted scalar values and CRLF line endings in pubspec.yaml.
-# Keep the value anchored so flutterish (or a trailing YAML token) cannot
-# accidentally select Flutter's runner for an ordinary Dart package.
-_FLUTTER_SDK = re.compile(
-    rb'''(?m)^[ \t]*sdk:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*(?:#[^\r\n]*)?\r?$'''
-)
+# YAML permits both single- and double-quoted scalars for SDK declarations.
+# A quoted `flutter` is still a Flutter dependency, not a Dart-only project.
+_FLUTTER_SDK = re.compile(rb'''(?m)^[ \t]*sdk:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*(?:#.*)?
+
+
+def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
+    """Return an opt-in test command only for an unlinked Dart project.
+
+    Use Flutter's runner if pubspec.yaml declares sdk: flutter. Do not
+    execute project code, follow linked markers, or read unbounded manifests.
+    """
+    if 'pubspec.yaml' not in names:
+        return None
+    manifest = root / 'pubspec.yaml'
+    tests = root / 'test'
+    if (manifest.is_symlink() or not manifest.is_file()
+            or tests.is_symlink() or not tests.is_dir()):
+        return None
+    try:
+        with manifest.open('rb') as stream:
+            data = stream.read(_MAX_PUBSPEC_BYTES + 1)
+    except OSError:
+        return None
+    if len(data) > _MAX_PUBSPEC_BYTES:
+        return None
+    flutter = bool(_FLUTTER_SDK.search(data))
+    return {
+        'ecosystem': 'Dart',
+        'argv': ['flutter', 'test'] if flutter else ['dart', 'test'],
+        'reason': 'Flutter SDK dependency and test directory' if flutter
+                  else 'pubspec.yaml with test directory',
+    }
+'')
 
 
 def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
