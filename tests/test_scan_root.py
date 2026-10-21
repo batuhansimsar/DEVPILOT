@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from devpilot.scan_root import ensure_unlinked_scan_path
 
@@ -51,6 +52,29 @@ class ScanRootTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'symbolic link'):
                 ensure_unlinked_scan_path(alias / 'nested')
 
+
+    def test_root_level_non_system_symlink_is_rejected(self):
+        # Use a synthetic root link without writing into the filesystem anchor.
+        anchor = Path(Path.cwd().anchor)
+        alias = anchor / 'devpilot-synthetic-link'
+        with patch.object(Path, 'is_symlink', lambda path: path == alias):
+            with self.assertRaisesRegex(ValueError, 'symbolic link'):
+                ensure_unlinked_scan_path(alias / 'repo')
+
+    def test_only_standard_macos_alias_target_is_accepted(self):
+        alias = Path('/var')
+        with patch('devpilot.scan_root.sys.platform', 'darwin'), \
+             patch.object(Path, 'is_symlink', lambda path: path == alias), \
+             patch.object(Path, 'resolve', lambda path, strict=False: Path('/private/var')):
+            ensure_unlinked_scan_path(alias / 'repo')
+
+    def test_macos_alias_to_unexpected_target_is_rejected(self):
+        alias = Path('/var')
+        with patch('devpilot.scan_root.sys.platform', 'darwin'), \
+             patch.object(Path, 'is_symlink', lambda path: path == alias), \
+             patch.object(Path, 'resolve', lambda path, strict=False: Path('/other')):
+            with self.assertRaisesRegex(ValueError, 'symbolic link'):
+                ensure_unlinked_scan_path(alias / 'repo')
 
 if __name__ == '__main__':
     unittest.main()
