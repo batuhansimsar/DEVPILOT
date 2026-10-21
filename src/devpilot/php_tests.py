@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .scan_root import ensure_unlinked_scan_path
+
 
 _PHPUNIT_CONFIGS = ('phpunit.xml', 'phpunit.xml.dist')
 _MAX_TEST_ENTRIES = 4096
@@ -48,6 +50,12 @@ def php_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     suite paths or Pest markers. Traversal is bounded and runs no project code.
     Test execution requires explicit CLI --yes consent.
     """
+    # Do not discover an executable test suite through a linked workspace or
+    # one of its ancestors; the selected project must remain within its root.
+    try:
+        ensure_unlinked_scan_path(root)
+    except (OSError, ValueError):
+        return None
     manifest = root / 'composer.json'
     if 'composer.json' not in names or manifest.is_symlink() or not manifest.is_file():
         return None
