@@ -23,6 +23,8 @@ def format_git_status(report: dict[str, Any]) -> str:
 
     if report.get('stdout_truncated'):
         warnings.append('Warning: Git status output truncated; results may be incomplete')
+    if report.get('stderr_truncated'):
+        warnings.append('Warning: Git diagnostic output truncated; details may be incomplete')
 
     if 'exit_code' in report and report['exit_code'] != 0:
         code = report['exit_code']
