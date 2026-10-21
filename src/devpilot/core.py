@@ -57,6 +57,7 @@ KEY_FILES = frozenset({
     'uv.lock', 'poetry.lock', 'go.work',
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
+    'Package.swift', 'Package.resolved',
 })
 MAX_FILES = 10000
 MAX_DEPTH = 12
@@ -106,6 +107,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Go')
     if 'build.sbt' in names:
         types.add('Scala')
+    if 'Package.swift' in names:
+        types.add('Swift')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
@@ -208,6 +211,8 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Go', 'argv': ['go', 'test', './...'], 'reason': 'go.mod'})
     if 'build.sbt' in names:
         commands.append({'ecosystem': 'Scala', 'argv': ['sbt', 'test'], 'reason': 'build.sbt'})
+    if 'Package.swift' in names:
+        commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
     solutions = sorted(name for name in names if Path(name).suffix.lower() in {'.sln', '.slnx'})
@@ -238,7 +243,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby',
+        'Ruby': 'ruby', 'Swift': 'swift',
     }
     tools = [{'name': name, 'available': bool(shutil.which(name)), 'required_by': sorted(k for k, v in tool_map.items() if v == name and k in found)}
              for name in sorted(set(tool_map.values()) | {'git'})]
