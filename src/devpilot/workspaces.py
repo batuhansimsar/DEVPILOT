@@ -34,6 +34,8 @@ WORKSPACE_FILES = {
     'requirements.txt': 'Python',
     'setup.py': 'Python',
     'setup.cfg': 'Python',
+    'pytest.ini': 'Python',
+    'tox.ini': 'Python',
     'Pipfile': 'Python',
     'Pipfile.lock': 'Python',
     'uv.lock': 'Python',

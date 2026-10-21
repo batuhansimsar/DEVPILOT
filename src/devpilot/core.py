@@ -58,7 +58,7 @@ LANGUAGES = {
     '.ex': 'Elixir', '.exs': 'Elixir', '.zig': 'Zig',
 }
 KEY_FILES = frozenset({
-    'package.json', 'deno.json', 'deno.jsonc', 'deno.lock', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg',
+    'package.json', 'deno.json', 'deno.jsonc', 'deno.lock', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg', 'pytest.ini', 'tox.ini',
     'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'deps.edn', 'project.clj', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
@@ -95,8 +95,8 @@ def _node_test_argv(root: Path, package: dict[str, Any]) -> list[str]:
 
 
 def _has_python_manifest(names: set[str]) -> bool:
-    """Match the Python dependency manifests supported by dependency scanning."""
-    return bool(names & {'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
+    """Match Python project, dependency, and test-runner configuration markers."""
+    return bool(names & {'pyproject.toml', 'setup.py', 'setup.cfg', 'pytest.ini', 'tox.ini', 'Pipfile', 'Pipfile.lock', 'uv.lock', 'poetry.lock'}) or any(
         is_requirements_manifest(name) or is_pylock_manifest(name)
         for name in names
     )
