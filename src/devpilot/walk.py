@@ -39,8 +39,12 @@ def walk_project(root: Path, problems: list[str]) -> Iterator[tuple[str, list[st
 
     # A non-symlink root can still be reached through a symlinked ancestor,
     # such as project-link/src. Reject that path before os.walk follows it.
-    # Avoid resolve(), which follows links and erases evidence of the alias.
-    if any(parent.is_symlink() for parent in root.absolute().parents):
+    # Ignore OS-managed aliases immediately below the filesystem root (e.g.
+    # macOS /var -> /private/var), which commonly back temporary directories.
+    # Avoid resolve(), which erases evidence of project-local aliases.
+    absolute = root.absolute()
+    anchor = Path(absolute.anchor)
+    if any(parent.is_symlink() for parent in absolute.parents if parent.parent != anchor):
         problems.append('Cannot inspect .: project path contains a symbolic link')
         return
 
