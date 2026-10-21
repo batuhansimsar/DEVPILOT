@@ -27,6 +27,7 @@ var languages = map[string]string{
 	".mjs": "JavaScript", ".cjs": "JavaScript",
 	".ts": "TypeScript", ".tsx": "TypeScript",
 	".mts": "TypeScript", ".cts": "TypeScript", ".cs": "C#",
+	".fs": "F#", ".fsi": "F#", ".fsx": "F#", ".vb": "Visual Basic",
 	".go": "Go", ".rs": "Rust", ".java": "Java", ".kt": "Kotlin",
 	".cpp": "C++", ".cc": "C++", ".c": "C", ".rb": "Ruby",
 	".php": "PHP", ".swift": "Swift", ".dart": "Dart",
