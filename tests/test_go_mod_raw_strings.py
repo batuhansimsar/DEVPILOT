@@ -26,12 +26,24 @@ class GoRawRequirementTests(unittest.TestCase):
             'require `example.org/ok` `v1.2.3`\n'
             'require `example.org/ok` v1.2.4\n'
             'require `example.org/bad space` v1.0.0\n'
-            'require `example.org/unclosed v1.0.0\n'
-            'require example.org/version `v1.0.0\n'
             'require example.org/stray `v1.0.0` suffix\n'
             'replace `example.org/replaced` v1.0.0 => example.net/x v2.0.0\n'
         )
         self.assertEqual(parse_go_requirements(content), ['example.org/ok'])
+
+    def test_unterminated_raw_module_or_version_fails_closed(self):
+        for broken in ('require `example.org/unclosed v1.0.0',
+                       'require example.org/version `v1.0.0'):
+            for newline in ('\n', '\r\n', '\r'):
+                with self.subTest(broken=broken, newline=repr(newline)):
+                    source = ('require example.org/ok v1.0.0\n' + broken
+                              + newline + 'require example.org/forged v2.0.0\n')
+                    with self.assertRaisesRegex(
+                            ValueError, '^go.mod contains unterminated string literal
+    unittest.main()
+) as caught:
+                        parse_go_requirements(source)
+                    self.assertNotIn('forged', str(caught.exception))
 
 
 if __name__ == '__main__':

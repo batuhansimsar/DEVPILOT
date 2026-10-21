@@ -45,15 +45,13 @@ def _without_go_comments(content: str) -> str:
     while index < len(content):
         character = content[index]
         if quote:
-            if quote == '"' and character in '\r\n':
+            # Go's go.mod quoted and raw string tokens cannot span lines.
+            # Failing closed prevents later require lines in an invalid file
+            # from appearing as a trustworthy dependency inventory.
+            if character in '\r\n':
                 raise ValueError('go.mod contains unterminated string literal')
             output.append(character)
-            if character in '\r\n':
-                # go.mod requirements are line-oriented. An unterminated
-                # quote must not hide comments on subsequent lines.
-                quote = ''
-                escaped = False
-            elif quote == '"' and escaped:
+            if quote == '"' and escaped:
                 escaped = False
             elif quote == '"' and character == '\\':
                 escaped = True
