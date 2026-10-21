@@ -32,7 +32,7 @@ def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
     Unknown or torn output is never proof of a clean tree. Real changes can
     still be identified from a tail missing its branch header.
     """
-    if exit_code != 0 or not stdout.strip():
+    if type(exit_code) is not int or exit_code != 0 or not isinstance(stdout, str) or not stdout.strip():
         return None
 
     # Porcelain v1 separates records with LF only. str.splitlines() also treats
