@@ -122,7 +122,7 @@ def parse_go_requirements(content: str) -> list[str]:
     names: set[str] = set()
     in_require_block = False
     # Reject truncated comments instead of silently reporting an empty inventory.
-    for raw in _without_go_comments(content).splitlines():
+    for raw in _without_go_comments(content.removeprefix('\ufeff')).splitlines():
         line = raw.strip()
         if not line:
             continue
