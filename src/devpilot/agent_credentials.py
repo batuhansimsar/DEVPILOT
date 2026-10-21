@@ -12,6 +12,12 @@ _AGENT_CREDENTIAL_LOCATIONS = frozenset({
     # Gemini CLI persists per-MCP-server OAuth access and refresh tokens here.
     ('.gemini', 'mcp-oauth-tokens.json'),
     ('.codex', 'auth.json'),  # Codex CLI login tokens and authentication state.
+    # OpenCode stores provider credentials and MCP OAuth tokens in its data dir.
+    # Version 2 also persists provider credentials in its SQLite database.
+    # Match the owning directory so unrelated auth.json or .db files stay out.
+    ('opencode', 'auth.json'),
+    ('opencode', 'mcp-auth.json'),
+    ('opencode', 'opencode.db'),
 })
 
 
