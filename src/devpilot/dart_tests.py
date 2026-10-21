@@ -8,11 +8,15 @@ from typing import Any
 
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
-_DEPENDENCY_SECTION = re.compile(rb'(?:dependencies|dev_dependencies|dependency_overrides):[ \t]*(?:#.*)?\Z')
-_DEPENDENCY_ENTRY = re.compile(
-    rb'''(?:[A-Za-z][A-Za-z0-9_]*|'[A-Za-z][A-Za-z0-9_]*'|"[A-Za-z][A-Za-z0-9_]*"):[ \t]*(?:#.*)?\Z'''
+# YAML mapping keys may be plain or quoted. Limit detection to conventional
+# pubspec dependency sections and package identifiers, not arbitrary YAML keys.
+_DEPENDENCY_SECTION = re.compile(
+    rb'''(?:dependencies|dev_dependencies|dependency_overrides|"(?:dependencies|dev_dependencies|dependency_overrides)"|'(?:dependencies|dev_dependencies|dependency_overrides)')[ \t]*:[ \t]*(?:#.*)?\Z'''
 )
-_FLUTTER_SDK = re.compile(rb'''sdk:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
+_DEPENDENCY_ENTRY = re.compile(
+    rb'''(?:[A-Za-z][A-Za-z0-9_]*|'[A-Za-z][A-Za-z0-9_]*'|"[A-Za-z][A-Za-z0-9_]*")[ \t]*:[ \t]*(?:#.*)?\Z'''
+)
+_FLUTTER_SDK = re.compile(rb'''(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
 
 
 def _has_flutter_sdk_dependency(data: bytes) -> bool:
