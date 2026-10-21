@@ -73,6 +73,7 @@ KEY_FILES = frozenset({
     'README.md', 'LICENSE', 'LICENSE.md', '.env.example', 'Pipfile', 'Pipfile.lock',
     'uv.lock', 'poetry.lock', 'go.work',
     'global.json', 'Directory.Packages.props',
+    'Directory.Build.props', 'Directory.Build.targets',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
     'stack.yaml', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
