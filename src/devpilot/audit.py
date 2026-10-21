@@ -56,6 +56,8 @@ _SENSITIVE_LOCATIONS = frozenset({
     # GitLab CLI config may hold plaintext tokens without an OS keyring.
     ('glab-cli', 'config.yml'), ('glab-cli', 'config.yaml'),
     # Python package manager authentication files are not ordinary manifests.
+    # Legacy pip user configuration may contain private package-index credentials.
+    ('.pip', 'pip.conf'),
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
     # Build-tool settings can contain plaintext package registry credentials.
     ('.m2', 'settings.xml'), ('.gradle', 'gradle.properties'),
