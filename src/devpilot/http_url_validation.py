@@ -30,6 +30,12 @@ def validate_dns_hostname_labels(hostname: bytes) -> None:
     an IDNA-encoded DNS hostname, not an IP literal. An optional trailing dot
     is allowed; errors never echo untrusted hostnames.
     """
+    if not isinstance(hostname, bytes):
+        raise ValueError('URL host contains an invalid DNS label')
+    # Enforce the complete wire-form DNS hostname limit, not just per-label size.
+    # A trailing root dot occupies one additional byte in textual form.
+    if len(hostname) > (254 if hostname.endswith(b'.') else 253):
+        raise ValueError('URL host exceeds DNS hostname length limit')
     labels = hostname[:-1].split(b'.') if hostname.endswith(b'.') else hostname.split(b'.')
     if any(len(label) > 63 or _DNS_LABEL.fullmatch(label) is None for label in labels):
         raise ValueError('URL host contains an invalid DNS label')
