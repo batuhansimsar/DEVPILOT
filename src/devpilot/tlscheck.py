@@ -5,12 +5,13 @@ from __future__ import annotations
 import datetime
 import errno
 import ipaddress
-
-_DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
 import socket
 import ssl
 import time
 from typing import Any
+
+# Hostnames (rather than DNS record owner names) use ASCII LDH labels.
+_DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
 
 
 class _TLSBudgetExhausted(TimeoutError):
