@@ -16,5 +16,11 @@ def scan_succeeded(report: Mapping[str, Any]) -> bool:
     # mistake such a result for success or raise while interpreting it.
     if not isinstance(report, Mapping):
         return False
-    problems = report.get('problems')
-    return report.get('truncated') is False and type(problems) is list and not problems
+    try:
+        problems = report.get('problems')
+        truncated = report.get('truncated')
+    except Exception:
+        # Custom mappings can raise while reading untrusted diagnostic keys.
+        # If their contents cannot be inspected, the scan is not successful.
+        return False
+    return truncated is False and type(problems) is list and not problems
