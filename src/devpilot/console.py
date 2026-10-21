@@ -12,7 +12,9 @@ def escape_terminal(value: str) -> str:
     """
     parts: list[str] = []
     for char in value:
-        if char.isprintable():
+        if char == '\\':
+            parts.append('\\\\')
+        elif char.isprintable():
             parts.append(char)
         else:
             codepoint = ord(char)
