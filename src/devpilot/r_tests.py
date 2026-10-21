@@ -35,8 +35,12 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         return None
 
     try:
-        if not any(test.is_file() and not test.is_symlink()
-                   for test in suite.glob('test-*.R')):
+        # testthat can execute every matching test file, not just the first
+        # regular one. Reject a suite containing any linked test entry point.
+        candidates = list(suite.glob('test-*.R'))
+        if any(test.is_symlink() for test in candidates):
+            return None
+        if not any(test.is_file() for test in candidates):
             return None
     except OSError:
         return None
