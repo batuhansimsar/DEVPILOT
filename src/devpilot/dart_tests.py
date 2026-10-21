@@ -20,9 +20,12 @@ _DEPENDENCY_ENTRY = re.compile(
 )
 _FLUTTER_SDK = re.compile(rb'''(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
 
+_INLINE_FLUTTER_SDK = re.compile(
+    rb'''(?:flutter|"flutter"|'flutter')[ \t]*:[ \t]*\{[ \t]*(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*\}[ \t]*(?:#.*)?\Z'''
+)
 
 def _has_flutter_sdk_dependency(data: bytes) -> bool:
-    """Recognize a Flutter SDK dependency, not unrelated YAML text.
+    """Recognize Flutter SDK dependencies in block or simple inline YAML mappings.
 
     Examine only top-level dependency mappings and each package's direct
     sdk: flutter field. This deliberately avoids executing YAML tags or requiring
@@ -46,6 +49,8 @@ def _has_flutter_sdk_dependency(data: bytes) -> bool:
         if dependency_indent is None:
             dependency_indent = indent
         if indent == dependency_indent:
+            if _INLINE_FLUTTER_SDK.fullmatch(text):
+                return True
             package_indent = indent if _DEPENDENCY_ENTRY.fullmatch(text) else None
             sdk_indent = None
         elif package_indent is not None and indent > package_indent:
