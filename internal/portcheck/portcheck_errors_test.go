@@ -60,3 +60,12 @@ func TestCheckRefusedConnectionDoesNotExposeRawDialError(t *testing.T) {
 		t.Fatalf("result=%+v err=%v", got, err)
 	}
 }
+
+func TestSafeDialErrorClassifiesOperatingSystemTimeout(t *testing.T) {
+	const sensitive = "private.internal.example:8443"
+	err := fmt.Errorf("%s: %w", sensitive, syscall.ETIMEDOUT)
+	got := safeDialError(err)
+	if got != "connection timed out" || strings.Contains(got, sensitive) {
+		t.Fatalf("safeDialError() = %q, want sanitized timeout", got)
+	}
+}
