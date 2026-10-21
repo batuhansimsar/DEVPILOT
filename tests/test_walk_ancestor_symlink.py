@@ -29,6 +29,22 @@ class WalkAncestorSymlinkTests(unittest.TestCase):
             self.assertNotIn('private.txt', str(problems))
             self.assertNotIn(str(outside), str(problems))
 
+    def test_filesystem_root_alias_does_not_block_scanning(self):
+        # Some operating systems mount temporary directories below /var or
+        # /tmp, which can itself be a symbolic link at the filesystem root.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / 'source'
+            root.mkdir()
+            (root / 'visible.txt').touch()
+            anchor = Path(root.anchor)
+            system_alias = next(p for p in root.absolute().parents if p.parent == anchor)
+            with patch.object(Path, 'is_symlink', autospec=True,
+                              side_effect=lambda path: path == system_alias):
+                problems = []
+                entries = list(walk_project(root, problems))
+            self.assertEqual(entries[0][2], ['visible.txt'])
+            self.assertEqual(problems, [])
+
     def test_normal_nested_root_is_scanned(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / 'project' / 'source'
