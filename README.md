@@ -61,7 +61,7 @@ Elixir Mix projects are recognized from a root `mix.exs`: `analyze` counts `.ex`
 
 Julia discovery recognizes `Project.toml`, `JuliaProject.toml`, `Manifest.toml`, `JuliaManifest.toml`, and versioned lockfiles such as `Manifest-v1.11.toml`. It inspects only filenames and does not execute or parse Julia project code.
 
-R and RStudio discovery recognizes `renv.lock` and named `*.Rproj` project files at repository roots or within monorepos. `analyze` counts `.R`, `.Rmd`, and `.Rnw` source files, while `doctor` checks for `Rscript` on `PATH`. Discovery reads filenames only and does not run R code. A generic `DESCRIPTION` file alone is not treated as an R project, and `devpilot test` does not guess a test command from these markers.
+R and RStudio discovery recognizes `renv.lock` and named `*.Rproj` project files at repository roots or within monorepos. `analyze` counts `.R`, `.Rmd`, and `.Rnw` source files, while `doctor` checks for `Rscript` on `PATH`. Discovery reads filenames only and does not run R code. A generic `DESCRIPTION` file alone is not treated as an R project. For a recognized R project with a regular `DESCRIPTION`, `tests/testthat.R`, `tests/testthat/` directory and at least one `test-*.R` file, `devpilot test --ecosystem r` previews `Rscript -e 'testthat::test_local()'`. Execution still requires `--yes` and the project-installed `testthat` package; a bare RStudio or renv marker never triggers test execution.
 
 ## Security and limits
 

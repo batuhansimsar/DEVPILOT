@@ -13,6 +13,7 @@ ECOSYSTEMS = {
     'python': 'Python',
     'julia': 'Julia',
     'r': 'R',
+    'r': 'R',
     'ruby': 'Ruby',
     'go': 'Go',
     'rust': 'Rust',
