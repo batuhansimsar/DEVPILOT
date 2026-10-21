@@ -26,7 +26,9 @@ func isCIConfig(path string) bool {
 		"cloudbuild.yaml", "cloudbuild.json", // Google Cloud Build configs.
 		"buildspec.yml", "buildspec.yaml", // AWS CodeBuild
 		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
-		".semaphore/semaphore.yaml":
+		".semaphore/semaphore.yaml",
+		".teamcity/settings.kts", // TeamCity Kotlin DSL versioned settings.
+		"wercker.yml": // Wercker's default pipeline definition.
 		return true
 	case ".cirrus.yml":
 		return true
