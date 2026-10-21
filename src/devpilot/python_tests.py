@@ -56,9 +56,9 @@ def _pytest_suites_are_safe(root: Path) -> bool:
     both may be passed as explicit collection targets. A bounded scan avoids
     unlimited work on untrusted project trees.
     """
-    # Bare pytest also imports root-level conftest.py/configuration and
-    # collects root test modules. A linked entry point could execute code
-    # outside the selected project even when tests/ itself is safe.
+    # A single bounded root scan covers pytest configuration, conftest.py
+    # and all root-level test module patterns. Inspecting the same directory
+    # twice adds filesystem work and leaves an unnecessary race window.
     try:
         for count, entry in enumerate(root.iterdir(), 1):
             if count > _MAX_TEST_DISCOVERY_ENTRIES:
@@ -67,23 +67,7 @@ def _pytest_suites_are_safe(root: Path) -> bool:
             if entry.is_symlink() and (
                 name in ('conftest.py', 'pytest.ini', 'tox.ini', 'setup.cfg', 'pyproject.toml')
                 or (name.endswith('.py') and
-                    (name.startswith('test_') or name.endswith('_test.py')))
-            ):
-                return False
-    except OSError:
-        return False
-
-    # Pytest also imports root-level conftest.py and discovers root-level test
-    # modules even when a tests/ directory is present. Those links must be
-    # rejected before offering an unqualified `python -m pytest` command.
-    try:
-        for count, entry in enumerate(root.iterdir(), 1):
-            if count > _MAX_TEST_DISCOVERY_ENTRIES:
-                return False
-            name = entry.name
-            if entry.is_symlink() and (
-                name == 'conftest.py'
-                or (name.endswith('.py') and (name.startswith('test') or name.endswith('_test.py')))
+                    (name.startswith('test') or name.endswith('_test.py')))
                 or name.startswith('test_')
             ):
                 return False
