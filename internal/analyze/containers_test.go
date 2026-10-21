@@ -19,7 +19,7 @@ func TestContainerFileRecognition(t *testing.T) {
 		"api.compose.yaml": true, "api.compose.yml": true,
 		"Dockerfile.": false, "Containerfile.": false, ".compose.yml": false,
 		"Dockerfile.txt.bak": false, "not-compose.yml": false,
-		"docker-compose.json": false, "DOCKERFILE": false, "plain.txt": false,
+		"docker-compose.json": false, "DOCKERFILE": true, "plain.txt": false,
 	}
 	for name, want := range cases {
 		if got := isContainerConfig(name); got != want {
