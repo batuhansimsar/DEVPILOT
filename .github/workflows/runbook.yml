@@ -1,0 +1,33 @@
+name: Runbook discovery tests
+
+on:
+  push:
+    paths:
+      - 'tools/runbook/**'
+      - '.github/workflows/runbook.yml'
+  pull_request:
+    paths:
+      - 'tools/runbook/**'
+      - '.github/workflows/runbook.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: tools/runbook
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/runbook/go.mod
+          cache-dependency-path: tools/runbook/go.mod
+      - run: go test ./...
+      - run: go vet ./...
