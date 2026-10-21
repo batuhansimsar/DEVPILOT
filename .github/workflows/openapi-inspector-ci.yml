@@ -1,0 +1,27 @@
+name: OpenAPI Inspector CI
+on:
+  push:
+    paths:
+      - 'tools/openapi-inspect/**'
+      - '.github/workflows/openapi-inspector-ci.yml'
+  pull_request:
+    paths:
+      - 'tools/openapi-inspect/**'
+      - '.github/workflows/openapi-inspector-ci.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/openapi-inspect
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/openapi-inspect/go.mod
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build -o devpilot-openapi .
