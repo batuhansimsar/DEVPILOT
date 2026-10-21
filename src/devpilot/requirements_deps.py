@@ -11,6 +11,9 @@ from urllib.parse import parse_qsl
 
 from .pyproject_deps import _EXTRAS, _NAME, _REQUIREMENT, _canonical, _valid_requirement_suffix
 
+# Scanner paths are limited to 512 KB; also bound direct API calls.
+MAX_REQUIREMENTS_INPUT_CHARS = 1_000_000
+
 # pip accepts both --hash=algorithm:digest and --hash algorithm:digest.
 # Strip one or more options before validating the PEP 508 declaration, while
 # keeping all hash material out of the dependency inventory.
@@ -91,6 +94,8 @@ def parse_requirements_dependencies(content: str) -> list[str]:
     Join pip-style continuations before parsing declarations; incomplete
     trailing entries are ignored.
     """
+    if not isinstance(content, str) or len(content) > MAX_REQUIREMENTS_INPUT_CHARS:
+        raise ValueError('requirements input is invalid or exceeds safe size limit')
     names: set[str] = set()
     for line in _logical_lines(content):
         if not line or line.startswith(('#', 'https:', 'http:')):
