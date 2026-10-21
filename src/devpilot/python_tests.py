@@ -7,6 +7,8 @@ from importlib.machinery import PathFinder
 from pathlib import Path
 from typing import Any
 
+from .python_test_targets import root_pytest_targets
+
 _MAX_TEST_DISCOVERY_ENTRIES = 4096
 
 
@@ -175,7 +177,12 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     if has_pytest and PathFinder.find_spec('pytest') is not None:
         if not _pytest_suites_are_safe(root):
             return None
-        return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+        # Only collect root test files that were inspected. Bare pytest may
+        # also recurse into unrelated directories containing linked test files.
+        targets = root_pytest_targets(root, _MAX_TEST_DISCOVERY_ENTRIES)
+        if not targets:
+            return None
+        return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', *targets],
                 'reason': 'root-level pytest test files'}
     if has_unittest:
         return {'ecosystem': 'Python',

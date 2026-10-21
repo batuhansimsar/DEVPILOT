@@ -24,7 +24,7 @@ class RootPythonTestDiscoveryTests(unittest.TestCase):
     def test_root_pytest_module(self):
         (self.root / 'test_feature.py').write_text('def test_works(): pass\n')
         self.assertEqual(self.discover(True), {
-            'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+            'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', './test_feature.py'],
             'reason': 'root-level pytest test files',
         })
 
@@ -38,7 +38,7 @@ class RootPythonTestDiscoveryTests(unittest.TestCase):
 
     def test_suffix_pytest_file_requires_pytest(self):
         (self.root / 'feature_test.py').touch()
-        self.assertEqual(self.discover(True)['argv'], [sys.executable, '-m', 'pytest'])
+        self.assertEqual(self.discover(True)['argv'], [sys.executable, '-m', 'pytest', './feature_test.py'])
         self.assertIsNone(self.discover(False))
 
     def test_root_nontest_module_does_not_trigger(self):
