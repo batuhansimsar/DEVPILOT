@@ -29,6 +29,19 @@ ECOSYSTEMS = {
 }
 
 
+# Common display names and synonyms map to canonical keys, so CLI and
+# programmatic selection share the same ecosystem policy.
+ECOSYSTEM_ALIASES = {
+    'node.js': 'node',
+    'nodejs': 'node',
+    'py': 'python',
+    'golang': 'go',
+    '.net': 'dotnet',
+    'c#': 'dotnet',
+    'csharp': 'dotnet',
+}
+
+
 def select_test_commands(commands: list[dict[str, Any]], ecosystem: str | None) -> list[dict[str, Any]]:
     """Select commands without sharing mutable state with discovery results.
 
@@ -43,7 +56,8 @@ def select_test_commands(commands: list[dict[str, Any]], ecosystem: str | None) 
     if not isinstance(ecosystem, str):
         raise KeyError('unknown test ecosystem') from None
     try:
-        label = ECOSYSTEMS[ecosystem.casefold()]
+        key = ecosystem.casefold()
+        label = ECOSYSTEMS[ECOSYSTEM_ALIASES.get(key, key)]
     except KeyError:
         raise KeyError('unknown test ecosystem') from None
     return [deepcopy(command) for command in commands if command['ecosystem'] == label]
