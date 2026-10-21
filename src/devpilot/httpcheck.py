@@ -91,9 +91,13 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # Reject malformed/overlong DNS labels before urllib starts a request.
     # Otherwise socket IDNA encoding can raise an uncaught UnicodeError.
     try:
-        parts.hostname.encode('idna')
+        idna_hostname = parts.hostname.encode('idna')
     except UnicodeError:
         raise ValueError('URL host contains an invalid IDNA hostname') from None
+    # The IDNA codec checks each label but not the full DNS hostname size.
+    # A complete name may contain at most 253 text bytes (254 with a final dot).
+    if len(idna_hostname) > (254 if idna_hostname.endswith(b'.') else 253):
+        raise ValueError('URL host exceeds DNS hostname length limit')
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
