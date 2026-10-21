@@ -25,6 +25,7 @@ from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
 from .node import LOCKFILES, package_manager
 from .walk import walk_project
+from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 
@@ -125,6 +126,16 @@ def detect_projects(root: Path) -> list[str]:
 
 
 def analyze_project(root: Path) -> dict[str, Any]:
+    # Walking a linked root is forbidden; do not inspect project manifests or
+    # package metadata after the walker rejects that path.
+    try:
+        ensure_unlinked_scan_path(root)
+    except ValueError:
+        return {
+            'path': str(root), 'project_types': [], 'file_count': 0,
+            'truncated': True, 'languages': {}, 'key_files': [],
+            'npm_scripts': [], 'problems': ['Cannot inspect .: project path contains a symbolic link'],
+        }
     languages: Counter[str] = Counter()
     count = 0
     truncated = False
