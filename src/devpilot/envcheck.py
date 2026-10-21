@@ -63,16 +63,18 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
     if len(raw) > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
     names: set[str] = set()
-    # splitlines() treats Unicode NEL/LS/PS and VT/FF as line endings.
-    # Those are not .env separators and could forge additional key names.
-    # Only split on LF; strip() below continues to support CRLF files.
-    for line in raw.decode('utf-8-sig', errors='replace').split('\n'):
-        line = line.strip()
-        if line.startswith('export') and len(line) > 6 and line[6].isspace():
-            line = line[6:].lstrip()
+    # Only CR and LF delimit physical .env lines. Unicode NEL/LS/PS,
+    # VT and FF within values must never forge additional declarations.
+    for line in re.split(r'\r\n|\r|\n', raw.decode('utf-8-sig', errors='replace')):
+        # Limit syntax whitespace to horizontal ASCII whitespace: str.strip()
+        # would otherwise accept Unicode line separators before a fake key.
+        line = line.strip(' \t')
+        if line.startswith('export') and len(line) > 6 and line[6] in ' \t':
+            line = line[6:].lstrip(' \t')
         key, separator, _ = line.partition('=')
-        if separator and _KEY.fullmatch(key.strip()):
-            names.add(key.strip())
+        key = key.strip(' \t')
+        if separator and _KEY.fullmatch(key):
+            names.add(key)
     return names, None
 
 
