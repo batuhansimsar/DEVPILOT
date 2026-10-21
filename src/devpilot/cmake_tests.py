@@ -20,8 +20,12 @@ _CTEST_BUILD_DIRS = (
     'out/build/default',
     'out/build/debug',
     'out/build/release',
+    'out/build/relwithdebinfo',
+    'out/build/minsizerel',
     'out/build/x64-Debug',
     'out/build/x64-Release',
+    'out/build/x64-RelWithDebInfo',
+    'out/build/x64-MinSizeRel',
 )
 
 
