@@ -28,7 +28,7 @@ def strip_editor_backups(name: str, suffixes: tuple[str, ...]) -> tuple[str, boo
             name = name[:numbered.start()]
             continue
         suffix = next((suffix for suffix in (*suffixes, *_JETBRAINS_SAFE_WRITE_SUFFIXES)
-                       if name.endswith(suffix) and len(name) > len(suffix)), None)
+                       if suffix and name.endswith(suffix) and len(name) > len(suffix)), None)
         if suffix is None and len(name) > 4 and _VIM_SWAP_SUFFIX.search(name):
             suffix = name[-4:]
         if suffix is not None:
