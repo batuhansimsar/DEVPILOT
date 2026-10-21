@@ -51,11 +51,13 @@ class RTestCommandTests(unittest.TestCase):
                 path.unlink()
                 self.assertIsNone(self.discover())
                 path.touch()
+                if path.name == 'DESCRIPTION':
+                    path.write_text('Package: example\n', encoding='utf-8')
 
     def test_no_matching_test_files(self):
         (self.suite / 'test-basic.R').unlink()
         (self.suite / 'helper.R').touch()
-        (self.suite / 'test-data.r').touch()
+        (self.suite / 'test-data.r.bak').touch()
         (self.suite / 'test-ignored.R.bak').touch()
         self.assertIsNone(self.discover())
 
@@ -74,6 +76,8 @@ class RTestCommandTests(unittest.TestCase):
                     self.assertIsNone(self.discover())
                     path.unlink()
                     path.touch()
+                if path.name == 'DESCRIPTION':
+                    path.write_text('Package: example\n', encoding='utf-8')
 
     def test_symlinked_suite_and_tests_directory_rejected(self):
         import shutil
@@ -98,7 +102,7 @@ class RTestCLIIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'project.Rproj').touch()
-            (root / 'DESCRIPTION').touch()
+            (root / 'DESCRIPTION').write_text('Package: example\n', encoding='utf-8')
             (root / 'tests' / 'testthat').mkdir(parents=True)
             (root / 'tests' / 'testthat.R').touch()
             (root / 'tests' / 'testthat' / 'test-example.R').touch()
@@ -117,7 +121,7 @@ class RTestCLIIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'renv.lock').touch()
-            (root / 'DESCRIPTION').touch()
+            (root / 'DESCRIPTION').write_text('Package: example\n', encoding='utf-8')
             (root / 'tests' / 'testthat').mkdir(parents=True)
             (root / 'tests' / 'testthat.R').touch()
             (root / 'tests' / 'testthat' / 'test-feature.R').touch()
