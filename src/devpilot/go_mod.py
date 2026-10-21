@@ -26,7 +26,7 @@ _GO_QUOTED_CONTENT = re.compile(
 _REQUIREMENT = re.compile(
     r'(?:(?P<plain>[A-Za-z0-9_.+~-]+(?:/[A-Za-z0-9_.+~-]+)*)|'
     r'"(?P<quoted>(?:[^"\\]|\\.)*)"|'
-    r'`(?P<raw>[^`\r\n]*)`)\s+'
+    r'`(?P<raw>[^`\r\n]*)`)[ \t]+'
     r'(?:(?P<version_plain>v[^\s"`]+)|'
     r'"(?P<version_quoted>v[^\s"`]+)"|'
     r'`(?P<version_raw>v[^\s"`]+)`)\Z'
@@ -134,7 +134,9 @@ def parse_go_requirements(content: str) -> list[str]:
     # Only CR and LF delimit physical lines.
     physical_lines = _without_go_comments(content.removeprefix('\ufeff'))
     for raw in physical_lines.replace('\r\n', '\n').replace('\r', '\n').split('\n'):
-        line = raw.strip()
+        # Go directives tokenize only ASCII spaces/tabs; Python's generic
+        # strip/split accept Unicode separators Go rejects.
+        line = raw.strip(' \t')
         if not line:
             continue
         if in_require_block:
@@ -148,10 +150,10 @@ def parse_go_requirements(content: str) -> list[str]:
             if line == 'require(':
                 in_require_block = True
                 continue
-            fields = line.split(None, 1)
+            fields = re.split(r'[ \t]+', line, maxsplit=1)
             if len(fields) != 2 or fields[0] != 'require':
                 continue
-            entry = fields[1].strip()
+            entry = fields[1].strip(' \t')
             if entry == '(':
                 in_require_block = True
                 continue
