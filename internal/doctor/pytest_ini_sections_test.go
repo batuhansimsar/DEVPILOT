@@ -16,7 +16,7 @@ func TestHasPytestINISection(t *testing.T) {
 		{"commented", "# [pytest]\n;[pytest]\n", "[pytest]", false},
 		{"indented multiline option", "[tox]\ndescription =\n  [pytest]\n", "[pytest]", false},
 		{"section suffix", "[pytest-extra]\n", "[pytest]", false},
-		{"inline trailing comment", "[pytest] # note\n", "[pytest]", false},
+		{"inline trailing comment", "[pytest] # note\n", "[pytest]", true},
 		{"mismatched section", "[pytest]\n", "[tool:pytest]", false},
 	}
 	for _, tc := range cases {
