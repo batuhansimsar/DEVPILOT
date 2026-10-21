@@ -138,7 +138,7 @@ def _human(command: str, output: dict[str, Any]) -> str:
         return '\n'.join(lines)
     if command == 'audit':
         if output.get('error'):
-            return 'Audit unavailable: ' + output['error']
+            return 'Audit unavailable: ' + escape_terminal(output['error'])
         lines = [f"Git files checked: {output['tracked_files']}"]
         lines += [f"  REVIEW tracked sensitive filename: {escape_terminal(name)}" for name in output['candidates']]
         if output['truncated']:
