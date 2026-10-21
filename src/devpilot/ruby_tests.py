@@ -22,7 +22,10 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     Never execute project code during discovery or follow linked test markers.
     The CLI requires explicit --yes consent before executing any command.
     """
-    if not names.intersection({'Gemfile', 'gems.rb'}):
+    manifests = names.intersection({'Gemfile', 'gems.rb'})
+    # Bundler can load arbitrary content via a linked Gemfile/gems.rb. Do not
+    # recommend executing project tests when all advertised manifests are links.
+    if not manifests or all((root / name).is_symlink() for name in manifests):
         return None
     specs = root / 'spec'
     if not specs.is_symlink() and specs.is_dir():
