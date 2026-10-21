@@ -107,7 +107,11 @@ func Inspect(ctx context.Context, run DockerCLI) Daemon {
 	if err != nil {
 		return Daemon{Installed: true, Detail: err.Error()}
 	}
-	return Daemon{Installed: true, Reachable: true, Version: strings.TrimSpace(string(out))}
+	version := strings.TrimSpace(string(out))
+	if !validDockerServerVersion(version) {
+		return Daemon{Installed: true, Detail: "Docker returned invalid server version"}
+	}
+	return Daemon{Installed: true, Reachable: true, Version: version}
 }
 
 // List returns metadata for running containers without inspecting secrets.
