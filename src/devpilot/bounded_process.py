@@ -32,8 +32,12 @@ def _capture_tail(stream: BinaryIO, tail: bytearray, totals: list[int], read_fai
         read_failed[0] = True
     finally:
         # Close in the reader thread to avoid blocking on a read lock
-        # held by a pipe with an inherited writer.
-        stream.close()
+        # held by a pipe with an inherited writer. A failed close must not
+        # silently look like successfully captured output.
+        try:
+            stream.close()
+        except (OSError, ValueError):
+            read_failed[0] = True
 
 
 def _decode_bounded(tail: bytearray) -> tuple[str, bool]:
