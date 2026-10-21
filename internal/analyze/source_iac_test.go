@@ -19,7 +19,7 @@ func TestSupplementalInfrastructureSourceLanguages(t *testing.T) {
 		{"schema.tf.json.bak", "", false},
 		{"main.tofu.json.bak", "", false},
 		{"arbitrary.json", "", false},
-		{"main.tfvars.json", "", false},
+		{"main.tfvars.json", "Terraform", true},
 		{"README.md", "", false},
 	}
 	for _, tc := range cases {

@@ -38,6 +38,7 @@ var supplementalSourceLanguages = map[string]string{
 	".mdx":    "MDX",
 	// Infrastructure-as-code and declarative configuration sources.
 	".tofu":       "OpenTofu",
+	".tfvars":     "Terraform",
 	".bicep":      "Bicep",
 	".bicepparam": "Bicep",
 	".cue":        "CUE",
@@ -48,7 +49,7 @@ func supplementalSourceLanguage(name string) (string, bool) {
 	// Terraform and OpenTofu also support JSON configuration syntax. Using
 	// filepath.Ext alone would classify both as generic .json files.
 	switch {
-	case strings.HasSuffix(lower, ".tf.json"):
+	case strings.HasSuffix(lower, ".tf.json"), strings.HasSuffix(lower, ".tfvars.json"):
 		return "Terraform", true
 	case strings.HasSuffix(lower, ".tofu.json"):
 		return "OpenTofu", true
