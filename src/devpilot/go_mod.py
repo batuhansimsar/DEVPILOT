@@ -7,7 +7,10 @@ import re
 
 # Bound direct API calls before allocating a second copy of untrusted input.
 # Repository scanners have their own (smaller) manifest read limits.
+# Preserve the original character cap and enforce the same budget on UTF-8
+# bytes: direct callers may pass multi-byte characters or lone surrogates.
 MAX_GO_MOD_INPUT_CHARS = 1_000_000
+MAX_GO_MOD_INPUT_BYTES = MAX_GO_MOD_INPUT_CHARS
 
 # Go module path elements accept '+' and '~' in addition to letters, digits,
 # dots, underscores and hyphens. Go's modfile syntax is broader than package
@@ -126,6 +129,11 @@ def parse_go_requirements(content: str) -> list[str]:
     """
     if not isinstance(content, str) or len(content) > MAX_GO_MOD_INPUT_CHARS:
         raise ValueError('go.mod input is invalid or exceeds safe size limit')
+    try:
+        if len(content.encode('utf-8')) > MAX_GO_MOD_INPUT_BYTES:
+            raise ValueError('go.mod input is invalid or exceeds safe size limit')
+    except UnicodeEncodeError:
+        raise ValueError('go.mod input is invalid or exceeds safe size limit') from None
     names: set[str] = set()
     in_require_block = False
     # Reject truncated comments instead of silently reporting an empty inventory.
