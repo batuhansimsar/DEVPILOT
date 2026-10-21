@@ -13,6 +13,9 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10
     import tomli as tomllib
 
+# Match other direct manifest parsers: avoid unbounded TOML parsing for API callers.
+MAX_PYPROJECT_INPUT_CHARS = 1_000_000
+
 _NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _REQUIREMENT = re.compile(
     r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)(?=\s|\[|\(|[<>=!~;@]|$)"
@@ -114,6 +117,8 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     Groups are kept separate for actionable reports. Poetry's python key
     is a runtime constraint, not a package. All result values are names only.
     """
+    if not isinstance(content, str) or len(content) > MAX_PYPROJECT_INPUT_CHARS:
+        raise ValueError('pyproject.toml input is invalid or exceeds safe size limit')
     try:
         # The scanner decodes UTF-8-SIG; direct callers may supply text with
         # one leading BOM. Do not strip embedded or repeated BOMs.
