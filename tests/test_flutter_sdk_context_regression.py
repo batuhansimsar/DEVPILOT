@@ -34,6 +34,13 @@ class FlutterSDKContextTests(unittest.TestCase):
                     f'dependencies: # packages\n  flutter: # sdk package\n    sdk: {value} # comment\n'
                 ), ['flutter', 'test'])
 
+    def test_quoted_package_names_select_flutter(self):
+        for package in ("'flutter_test'", '"flutter_localizations"'):
+            with self.subTest(package=package):
+                self.assertEqual(self.plan(
+                    f'dev_dependencies:\n  {package}:\n    sdk: flutter\n'
+                ), ['flutter', 'test'])
+
     def test_unrelated_sdk_values_do_not_trigger_flutter(self):
         for manifest in (
             'sdk: flutter\n',
