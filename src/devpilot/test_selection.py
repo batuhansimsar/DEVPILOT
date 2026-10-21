@@ -10,6 +10,7 @@ ECOSYSTEMS = {
     'node': 'Node.js',
     'deno': 'Deno',
     'python': 'Python',
+    'julia': 'Julia',
     'ruby': 'Ruby',
     'go': 'Go',
     'rust': 'Rust',
