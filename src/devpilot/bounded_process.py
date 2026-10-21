@@ -158,4 +158,9 @@ def run_bounded(argv: list[str], root: Path, timeout: float = 15) -> dict:
         # Exit code zero alone is not proof that diagnostics were captured.
         # Never include the underlying OSError, which could contain a path.
         result.setdefault('error', 'Cannot capture command output')
+    elif any(incomplete_streams):
+        # Descendants may keep inherited pipe handles open after the direct
+        # child succeeds. Report incomplete capture as an error rather than
+        # incorrectly presenting a successful, fully observed test run.
+        result.setdefault('error', 'Cannot capture complete command output')
     return result
