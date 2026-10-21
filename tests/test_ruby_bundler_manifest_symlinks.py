@@ -35,7 +35,7 @@ class RubyBundlerManifestSymlinkTests(unittest.TestCase):
                 self.skipTest('File symlinks unavailable')
             self.assertIsNone(ruby_test_command(root, {'gems.rb'}))
 
-    def test_regular_alternative_manifest_is_still_accepted(self):
+    def test_linked_default_manifest_blocks_regular_alternative(self):
         with tempfile.TemporaryDirectory() as project, tempfile.TemporaryDirectory() as external:
             root = Path(project)
             (root / 'spec').mkdir()
@@ -47,10 +47,7 @@ class RubyBundlerManifestSymlinkTests(unittest.TestCase):
                 (root / 'Gemfile').symlink_to(target)
             except (OSError, NotImplementedError):
                 self.skipTest('File symlinks unavailable')
-            self.assertEqual(
-                ruby_test_command(root, {'Gemfile', 'gems.rb'})['argv'],
-                ['bundle', 'exec', 'rspec'],
-            )
+            self.assertIsNone(ruby_test_command(root, {'Gemfile', 'gems.rb'}))
 
 
 if __name__ == '__main__':

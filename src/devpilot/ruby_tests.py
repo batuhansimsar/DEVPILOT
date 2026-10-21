@@ -52,9 +52,13 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     The CLI requires explicit --yes consent before executing any command.
     """
     manifests = names.intersection({'Gemfile', 'gems.rb'})
-    # Bundler can load arbitrary content via a linked Gemfile/gems.rb. Do not
-    # recommend executing project tests when all advertised manifests are links.
-    if not manifests or all((root / name).is_symlink() for name in manifests):
+    # Bundler may select either manifest and prefers Gemfile when both exist.
+    # A safe-looking alternative must not hide a linked or non-file manifest.
+    if not manifests or any(
+        (root / name).is_symlink()
+        or ((root / name).exists() and not (root / name).is_file())
+        for name in manifests
+    ):
         return None
     specs = root / 'spec'
     if not specs.is_symlink() and specs.is_dir():
