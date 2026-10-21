@@ -244,9 +244,13 @@ func Inspect(root string) (Report, error) {
 				if len(lockfiles) > 1 {
 					add("warning", "js-lockfiles-conflict", "Multiple JavaScript lockfiles detected: "+strings.Join(lockfiles, ", "), "Keep only the lockfile for the selected package manager after confirming which one is authoritative.")
 				}
-				if _, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
-					// Package scripts can execute arbitrary code. Execution requires explicit --trust.
-					r.Tests = &TestCommand{Executable: executable, Arguments: nodeTestArgs(executable)}
+				if script, exists := pkg.Scripts["test"]; exists && r.Tests == nil {
+					if hasRunnableNodeTestScript(script) {
+						// Package scripts can execute arbitrary code. Execution requires explicit --trust.
+						r.Tests = &TestCommand{Executable: executable, Arguments: nodeTestArgs(executable)}
+					} else {
+						add("info", "js-test-script-placeholder", "package.json has an empty or default placeholder test script", "Configure a real test script before running devpilot test.")
+					}
 				}
 				tool(executable, manager+" package manager")
 			}
