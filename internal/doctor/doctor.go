@@ -157,9 +157,16 @@ func Inspect(root string) (Report, error) {
 		}
 	}
 
-	if hasMarker(abs, "go.mod") {
+	hasGoModule, hasGoWorkspace := goProjectMarkers(abs)
+	if hasGoModule || hasGoWorkspace {
 		language("Go")
-		r.Tests = &TestCommand{Executable: "go", Arguments: []string{"test", "./..."}}
+		if hasGoModule {
+			r.Tests = &TestCommand{Executable: "go", Arguments: []string{"test", "./..."}}
+		} else {
+			// A workspace root without go.mod is not itself a Go module.
+			// The root-level "go test ./..." pattern fails for such workspaces.
+			add("info", "go-workspace-no-root-module", "Go workspace found without a root go.mod", "Run go test ./... inside each module listed in go.work.")
+		}
 		tool("go", "Go toolchain")
 	}
 	if hasMarker(abs, "Cargo.toml") {
