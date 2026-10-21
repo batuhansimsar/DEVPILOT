@@ -15,6 +15,9 @@ except ModuleNotFoundError:  # Python 3.10
 
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _SEPARATOR = re.compile(r"[-_.]+")
+# Enforce the dependency scanner's 512 KB budget for direct parser calls too.
+# Check encoded bytes: a short Unicode string can exceed the file-size limit.
+MAX_POETRY_LOCK_INPUT_BYTES = 512_000
 
 
 def parse_poetry_lock(content: str) -> list[str]:
@@ -23,6 +26,14 @@ def parse_poetry_lock(content: str) -> list[str]:
     Invalid or ambiguous records fail closed rather than yielding a misleading
     partial inventory. Errors must not echo raw TOML or untrusted package names.
     """
+    if not isinstance(content, str) or len(content) > MAX_POETRY_LOCK_INPUT_BYTES:
+        raise ValueError("poetry.lock input exceeds safe size limit or is invalid")
+    try:
+        encoded_length = len(content.encode('utf-8'))
+    except UnicodeError:
+        raise ValueError("poetry.lock input must contain valid Unicode") from None
+    if encoded_length > MAX_POETRY_LOCK_INPUT_BYTES:
+        raise ValueError("poetry.lock input exceeds safe size limit or is invalid")
     try:
         # Direct callers may supply text decoded with UTF-8 rather than
         # UTF-8-SIG. Match the scanner and the uv.lock parser by ignoring
