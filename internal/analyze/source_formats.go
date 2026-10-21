@@ -27,6 +27,9 @@ var supplementalSourceLanguages = map[string]string{
 	".fsh":     "GLSL",
 	".hlsl":    "HLSL",
 	".metal":   "Metal Shading Language",
+	".astro":   "Astro",
+	".prisma":  "Prisma Schema",
+	".mdx":     "MDX",
 }
 
 func supplementalSourceLanguage(name string) (string, bool) {
