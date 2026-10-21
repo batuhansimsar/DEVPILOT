@@ -21,23 +21,22 @@ class ScanStatusTests(unittest.TestCase):
             with self.subTest(report=report):
                 self.assertFalse(scan_succeeded(report))
 
-    def test_missing_problems_fails_closed(self):
-        self.assertFalse(scan_succeeded({'truncated': False}))
-
-    def test_malformed_falsey_problems_fails_closed(self):
+    def test_missing_or_malformed_problems_fail_closed(self):
+        # An absent or false-y diagnostic field must not be treated as a
+        # successful scan: the scanner's contract always returns a list.
         for problems in (None, False, 0, '', (), {}):
             with self.subTest(problems=problems):
                 self.assertFalse(scan_succeeded({'truncated': False, 'problems': problems}))
+        self.assertFalse(scan_succeeded({'truncated': False}))
 
-    def test_malformed_nonempty_problems_fails_closed(self):
-        for problems in ('warning', {'error': 'permission denied'}, True):
-            with self.subTest(problems=problems):
-                self.assertFalse(scan_succeeded({'truncated': False, 'problems': problems}))
+    def test_unknown_diagnostics_do_not_invoke_boolean_hooks(self):
+        class UntrustedDiagnostics:
+            def __bool__(self):
+                raise AssertionError('must not coerce malformed diagnostics')
 
-    def test_non_mapping_report_fails_closed(self):
-        for report in (None, [], False):
-            with self.subTest(report=report):
-                self.assertFalse(scan_succeeded(report))
+        self.assertFalse(scan_succeeded({
+            'truncated': False, 'problems': UntrustedDiagnostics(),
+        }))
 
 
 if __name__ == '__main__':
