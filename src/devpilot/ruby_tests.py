@@ -19,7 +19,8 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     specs = root / 'spec'
     if specs.is_symlink() or not specs.is_dir():
         return None
-    markers = (root / '.rspec', specs / 'spec_helper.rb')
+    # Rails projects can use rails_helper.rb without spec_helper.rb.
+    markers = (root / '.rspec', specs / 'spec_helper.rb', specs / 'rails_helper.rb')
     if not any(marker.is_file() and not marker.is_symlink() for marker in markers):
         return None
     return {
