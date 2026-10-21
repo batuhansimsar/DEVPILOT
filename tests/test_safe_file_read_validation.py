@@ -17,7 +17,7 @@ class BoundedReadArgumentTests(unittest.TestCase):
                     self.assertIsNone(read_bounded_regular_file(path, budget))
 
     def test_embedded_nul_path_fails_closed(self):
-        self.assertIsNone(read_bounded_regular_file(Path('secret\\x00manifest.toml'), 32))
+        self.assertIsNone(read_bounded_regular_file(Path('secret\x00manifest.toml'), 32))
 
     def test_invalid_path_type_fails_closed(self):
         self.assertIsNone(read_bounded_regular_file(None, 32))
