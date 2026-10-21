@@ -48,7 +48,11 @@ class GitOutputTests(unittest.TestCase):
         self.assertEqual(format_git_status({'exit_code': 0, 'dirty': None, 'stdout': ''}),
                          'Git status unavailable (worktree state inconclusive)')
         self.assertEqual(format_git_status({'exit_code': 0, 'dirty': False, 'stdout': ''}),
-                         'No changes')
+                         'Git status unavailable (empty porcelain output)')
+        self.assertEqual(format_git_status({'exit_code': 0, 'dirty': False, 'stdout': None}),
+                         'Git status unavailable (empty porcelain output)')
+        self.assertEqual(format_git_status({'exit_code': 0, 'dirty': False, 'stdout': '## main\n'}),
+                         '## main\n')
 
     def test_missing_stdout_must_not_hide_known_dirty_state(self):
         self.assertEqual(format_git_status({'exit_code': 0, 'dirty': True, 'stdout': ''}),
