@@ -203,7 +203,9 @@ def main(argv: list[str] | None = None) -> int:
         # symlink and bypass the inventory scanner's linked-root protection.
         if args.command == 'deps' and selected_root.is_symlink():
             parser.error('Dependency scan path must not be a symbolic link')
-        root = selected_root.resolve()
+        # Preserve aliases for read-only scans; resolve() hides linked roots.
+        root = (selected_root.absolute() if args.command in ('analyze', 'workspaces')
+                else selected_root.resolve())
         if not root.is_dir():
             parser.error(f'Not a directory: {root}')
         if args.command == 'env':
