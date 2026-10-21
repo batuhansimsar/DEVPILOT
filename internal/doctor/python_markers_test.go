@@ -17,6 +17,12 @@ func TestHasPythonProjectMarker(t *testing.T) {
 		{"pytest", "pytest.ini", true},
 		{"pipfile", "Pipfile", true},
 		{"pipenv lock", "Pipfile.lock", true},
+		{"uv lock", "uv.lock", true},
+		{"poetry lock", "poetry.lock", true},
+		{"pdm lock", "pdm.lock", true},
+		{"conda yaml", "environment.yml", true},
+		{"conda long yaml", "environment.yaml", true},
+		{"similarly named lockfile", "uv.lock.backup", false},
 		{"unrelated file", "package.json", false},
 	}
 	for _, tc := range cases {
