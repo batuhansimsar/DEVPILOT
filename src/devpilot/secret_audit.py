@@ -18,6 +18,7 @@ from .firebase_credentials import is_firebase_service_account_key
 from .azure_functions_settings import is_azure_functions_local_settings
 from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .editor_backups import strip_editor_backups
+from .envrc import is_sensitive_direnv_file
 from .cargo_credentials import is_cargo_credential_location
 from .bundler_credentials import is_bundler_credential_location
 from .agent_credentials import is_agent_credential_location, is_agent_mcp_config, is_agent_local_settings
@@ -156,6 +157,8 @@ def classify(path: str) -> str | None:
         return None
     if name.endswith(tuple(suffix + example for suffix in VARIABLE_SUFFIXES for example in TEMPLATE_SUFFIXES)):
         return None
+    if is_sensitive_direnv_file(name):
+        return 'potential direnv environment file'
     # Cloudflare Workers loads sensitive local bindings from .dev.vars files.
     # The earlier template check excludes examples, including backed-up copies.
     if name == '.dev.vars' or name.startswith('.dev.vars.'):
