@@ -99,18 +99,22 @@ def _human(command: str, output: dict[str, Any]) -> str:
         lines += [f"  Warning: {escape_terminal(problem)}" for problem in output.get('problems', [])]
         return '\n'.join(lines)
     if command == 'doctor':
-        lines = [f"Project: {escape_terminal(output['path'])}", f"Detected: {', '.join(output['project_types']) or 'unknown'}"]
-        lines += [f"  {'OK' if t['available'] else 'MISSING'} {t['name']}" + (f" (for {', '.join(t['required_by'])})" if t['required_by'] else ' (optional)') for t in output['tools']]
+        lines = [f"Project: {escape_terminal(output['path'])}",
+                 f"Detected: {', '.join(escape_terminal(name) for name in output['project_types']) or 'unknown'}"]
+        lines += [f"  {'OK' if t['available'] else 'MISSING'} {escape_terminal(t['name'])}" + (
+            f" (for {', '.join(escape_terminal(name) for name in t['required_by'])})"
+            if t['required_by'] else ' (optional)') for t in output['tools']]
         env = output.get('environment', {})
         status = env.get('status')
         if status == 'missing_keys':
-            lines.append(f"  Environment: {env['template']} keys absent in .env: {', '.join(env['missing_keys'])} (may be supplied externally)")
+            lines.append(f"  Environment: {escape_terminal(env['template'])} keys absent in .env: "
+                         f"{', '.join(escape_terminal(key) for key in env['missing_keys'])} (may be supplied externally)")
         elif status == 'local_absent':
-            lines.append(f"  Environment: {env['template']} lists {env['expected_count']} keys; no local .env found")
+            lines.append(f"  Environment: {escape_terminal(env['template'])} lists {env['expected_count']} keys; no local .env found")
         elif status in ('unreadable_template', 'unreadable_local'):
-            lines.append(f"  Environment: cannot inspect {env['template']} or local .env ({env['detail']})")
+            lines.append(f"  Environment: cannot inspect {escape_terminal(env['template'])} or local .env ({escape_terminal(env['detail'])})")
         elif status == 'matched':
-            lines.append(f"  Environment: names from {env['template']} are declared in .env (values not checked)")
+            lines.append(f"  Environment: names from {escape_terminal(env['template'])} are declared in .env (values not checked)")
         lines += [f'  Warning: {escape_terminal(warning)}' for warning in output['warnings']]
         return '\n'.join(lines) + ('\nDoctor: healthy' if output['ok'] else '\nDoctor: needs attention')
     if command == 'test':
