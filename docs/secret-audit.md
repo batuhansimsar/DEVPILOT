@@ -23,3 +23,5 @@ Exit status: 0 means no suspicious tracked filenames, 1 means potential risks fo
 If a sensitive file was committed, removing it from the current version is not enough: assess exposure, revoke/rotate credentials and, if appropriate, coordinate history cleanup with repository maintainers.
 
 Exported Azure `*.PublishSettings` files may contain reusable deployment passwords. Both filename auditors flag these exports (including recognized editor backup copies), but not files with final example/template suffixes. The audit remains filename-only; it does not open or validate credentials.
+
+MCP integration files can embed API keys or HTTP authorization headers. The auditors therefore flag tracked `.cursor/mcp.json`, `.vscode/mcp.json`, `.copilot/mcp-config.json`, and portable `.mcp.json` files (including recognized editor backups) for review. This is a filename-based warning, not a claim that every MCP configuration contains a secret; sample/template files remain excluded.

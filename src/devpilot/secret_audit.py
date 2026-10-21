@@ -18,7 +18,7 @@ from .firebase_credentials import is_firebase_service_account_key
 from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
-from .agent_credentials import is_agent_credential_location
+from .agent_credentials import is_agent_credential_location, is_agent_mcp_config
 from .sentry_credentials import is_sentry_auth_config
 
 MAX_OUTPUT = 8 * 1024 * 1024
@@ -177,6 +177,8 @@ def classify(path: str) -> str | None:
         return 'potential Cargo registry credentials'
     if is_agent_credential_location(parts):
         return 'potential AI assistant OAuth credentials'
+    if is_agent_mcp_config(parts):
+        return 'potential MCP server configuration with embedded credentials'
     if is_sentry_auth_config(parts):
         return 'potential Sentry authentication configuration'
     if name in EXACT_NAMES:
