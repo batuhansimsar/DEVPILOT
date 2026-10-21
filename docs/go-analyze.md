@@ -37,3 +37,16 @@ trees are excluded from this list.
 ## Bitrise and AppVeyor CI
 
 Bitrise and AppVeyor CI are detected by their default root-level files (`bitrise.yml`, `appveyor.yml`, and `.appveyor.yml`). Custom CI paths configured in the providers' web interfaces cannot be inferred from a read-only filename scan.
+
+## Cloud CI entrypoint discovery
+
+The analyzer recognizes the root-level AWS CodeBuild `buildspec.yml` and
+`buildspec.yaml` files, Google Cloud Build `cloudbuild.yml`,
+`cloudbuild.yaml`, and `cloudbuild.json`, plus AppVeyor `appveyor.yml`,
+`.appveyor.yml`, `appveyor.yaml`, and `.appveyor.yaml`.
+Semaphore CI's default `.semaphore/semaphore.yml` and
+`.semaphore/semaphore.yaml` pipeline files are also recognized.
+
+Only these conventional paths are matched. Nested copies, backup files and
+disabled configurations are not counted as CI entrypoints; custom provider
+settings cannot be inferred from filenames alone.
