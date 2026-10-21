@@ -241,6 +241,18 @@ func Inspect(root string) (Report, error) {
 			}
 		}
 	}
+	// Deno uses deno.json or deno.jsonc as its project manifest. Prefer an
+	// existing test runner in mixed-language workspaces; otherwise suggest
+	// Deno's built-in test runner without executing project code.
+	if hasMarker(abs, "deno.json") || hasMarker(abs, "deno.jsonc") {
+		language("JavaScript/TypeScript")
+		framework("Deno")
+		if r.Tests == nil {
+			r.Tests = &TestCommand{Executable: "deno", Arguments: []string{"test"}}
+		}
+		tool("deno", "Deno runtime")
+	}
+
 	dotnet, err := discoverDotnet(abs)
 	if err != nil {
 		add("warning", "dotnet-discovery-failed", "Cannot inspect .NET project entries: "+err.Error(), "Check directory access.")
