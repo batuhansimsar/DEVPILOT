@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .console import escape_terminal
 from .envcheck import TEMPLATES, inspect_env
 
 
@@ -15,14 +16,22 @@ def environment_status(root: Path) -> tuple[dict[str, Any], bool]:
 
 
 def format_environment(result: dict[str, Any]) -> str:
-    """Render variable names and counts, never environment variable values."""
+    """Render variable names and counts safely, never environment values.
+
+    This is also a public formatting boundary: escape untrusted metadata even
+    when the report was produced by another caller rather than inspect_env().
+    """
     status = result['status']
     if status == 'matched':
-        return f"Environment: all {result['expected_count']} names in {result['template']} declared in .env (values not checked)"
+        return (f"Environment: all {result['expected_count']} names in "
+                f"{escape_terminal(result['template'])} declared in .env (values not checked)")
     if status == 'missing_keys':
-        return f"Environment: names missing from .env: {', '.join(result['missing_keys'])} (may be supplied externally)"
+        missing = ', '.join(escape_terminal(key) for key in result['missing_keys'])
+        return f"Environment: names missing from .env: {missing} (may be supplied externally)"
     if status == 'local_absent':
-        return f"Environment: {result['template']} declares {result['expected_count']} names; local .env is absent"
+        return (f"Environment: {escape_terminal(result['template'])} declares "
+                f"{result['expected_count']} names; local .env is absent")
     if status == 'no_template':
         return 'Environment: no ' + ', '.join(TEMPLATES) + ' found'
-    return f"Environment: unable to inspect {result['template']} or .env ({result['detail']})"
+    return (f"Environment: unable to inspect {escape_terminal(result['template'])} "
+            f"or .env ({escape_terminal(result['detail'])})")
