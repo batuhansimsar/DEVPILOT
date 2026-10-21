@@ -9,7 +9,7 @@ import (
 // npmInitPlaceholder matches the generated failing `npm init` test script,
 // not arbitrary scripts which happen to contain the same message. Anchoring
 // prevents discarding real tests chained after the default message.
-var npmInitPlaceholder = regexp.MustCompile(`(?i)^echo[ \t]+(?:"(?:error:[ \t]*)?no test specified"|'(?:error:[ \t]*)?no test specified'|(?:error:[ \t]*)?no test specified)[ \t]*&&[ \t]*exit[ \t]+1[ \t]*;?$`)
+var npmInitPlaceholder = regexp.MustCompile(`(?i)^echo[ \t]+(?:"(?:error:[ \t]*)?no test specified"|'(?:error:[ \t]*)?no test specified'|(?:error:[ \t]*)?no test specified)[ \t]*(?:&&|;)[ \t]*exit[ \t]+1[ \t]*;?$`)
 
 // shellOnlyOutput reports scripts that only print text, including sequences of
 // output-only commands separated by semicolons. Shell operators inside quoted
