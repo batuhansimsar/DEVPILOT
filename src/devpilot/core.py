@@ -35,7 +35,6 @@ from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
 from .r_manifests import is_r_manifest
-from .julia_tests import julia_test_command
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -281,16 +280,6 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if 'mix.exs' in names:
         commands.append({'ecosystem': 'Elixir', 'argv': ['mix', 'test'], 'reason': 'mix.exs'})
 
-    # Only discover Julia package tests when a conventional entrypoint exists.
-    # Refuse linked test paths; explicit --yes remains required for execution.
-    if names & {'Project.toml', 'JuliaProject.toml'}:
-        test_dir = root / 'test'
-        test_entry = test_dir / 'runtests.jl'
-        if (test_dir.is_dir() and not test_dir.is_symlink()
-                and test_entry.is_file() and not test_entry.is_symlink()):
-            commands.append({'ecosystem': 'Julia',
-                             'argv': ['julia', '--project=.', '-e', 'using Pkg; Pkg.test()'],
-                             'reason': 'Julia project with test/runtests.jl'})
     # Prefer a unique solution, otherwise a unique project. Do not guess in
     # directories with multiple candidate build targets.
     dotnet_target = dotnet_test_target(names)
