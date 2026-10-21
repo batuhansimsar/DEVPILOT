@@ -27,6 +27,13 @@ _MCP_CONFIG_LOCATIONS = frozenset({
 })
 
 
+# Claude Code user-local and Claude Desktop MCP settings can contain
+# API keys in env variables or HTTP authorization headers. Exact names keep
+# unrelated JSON documents and sample templates out of manual audit reports.
+_MCP_CONFIG_NAMES = frozenset({
+    '.mcp.json', '.claude.json', 'claude_desktop_config.json',
+})
+
 def is_agent_credential_location(parts: tuple[str, ...]) -> bool:
     """Match conventional private token stores, not arbitrary JSON files."""
     return len(parts) >= 2 and parts[-2:] in _AGENT_CREDENTIAL_LOCATIONS
@@ -34,6 +41,6 @@ def is_agent_credential_location(parts: tuple[str, ...]) -> bool:
 
 def is_agent_mcp_config(parts: tuple[str, ...]) -> bool:
     """Flag MCP configurations for manual secret review without opening them."""
-    return bool(parts) and (parts[-1] == '.mcp.json' or (
+    return bool(parts) and (parts[-1] in _MCP_CONFIG_NAMES or (
         len(parts) >= 2 and parts[-2:] in _MCP_CONFIG_LOCATIONS
     ))
