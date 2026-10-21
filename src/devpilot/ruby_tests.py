@@ -26,8 +26,17 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     specs = root / 'spec'
     if not specs.is_symlink() and specs.is_dir():
         # Rails projects can use rails_helper.rb without spec_helper.rb.
-        markers = (root / '.rspec', specs / 'spec_helper.rb', specs / 'rails_helper.rb')
-        if any(marker.is_file() and not marker.is_symlink() for marker in markers):
+        # Standalone RSpec suites can omit the usual helper file.
+        markers = (root / '.rspec', root / '.rspec-local',
+                   specs / 'spec_helper.rb', specs / 'rails_helper.rb')
+        found_rspec = any(marker.is_file() and not marker.is_symlink() for marker in markers)
+        if not found_rspec:
+            # Do not recurse into linked directories or trust linked spec files.
+            found_rspec = any(
+                candidate.is_file() and not candidate.is_symlink()
+                for candidate in specs.glob('*_spec.rb')
+            )
+        if found_rspec:
             return {
                 'ecosystem': 'Ruby',
                 'argv': ['bundle', 'exec', 'rspec'],
