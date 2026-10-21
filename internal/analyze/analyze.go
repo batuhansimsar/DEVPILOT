@@ -82,6 +82,7 @@ func Inspect(path string) (Report, error) {
 
 	r := Report{Path: root, Languages: []LanguageCount{}, Manifests: []string{}, CI: []string{}, Containers: []string{}, Warnings: []string{}}
 	counts := map[string]int{}
+	budget := directoryBudget{}
 	err = filepath.WalkDir(root, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			// Permission errors are reported, not silently mistaken for a complete scan.
@@ -97,6 +98,10 @@ func Inspect(path string) (Report, error) {
 		if entry.IsDir() {
 			if ignored[strings.ToLower(entry.Name())] {
 				return filepath.SkipDir
+			}
+			if !budget.allow() {
+				r.Truncated = true
+				return filepath.SkipAll
 			}
 			return nil
 		}
