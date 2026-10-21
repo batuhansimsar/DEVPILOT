@@ -89,12 +89,15 @@ def _root_test_modules(root: Path) -> tuple[bool, bool]:
     has_pytest = False
     try:
         for count, entry in enumerate(root.iterdir(), 1):
-            if count > 4096:
+            if count > _MAX_TEST_DISCOVERY_ENTRIES:
                 return False, False
-            if entry.is_symlink() or not entry.is_file():
-                continue
             name = entry.name
-            if name.startswith('test') and name.endswith('.py'):
+            if entry.is_symlink():
+                # Never offer a runner that could import a linked root module.
+                return False, False
+            if not entry.is_file():
+                continue
+            if name.startswith('test') and name.endswith('.py') and entry.stem.isidentifier():
                 has_unittest = True
             if (name.startswith('test_') or name.endswith('_test.py')) and name.endswith('.py'):
                 has_pytest = True

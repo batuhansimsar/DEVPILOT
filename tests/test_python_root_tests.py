@@ -93,6 +93,35 @@ class RootPythonTestDiscoveryTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn('Ran 1 test', completed.stderr)
 
+    def test_root_symlink_blocks_otherwise_valid_module(self):
+        (self.root / 'test_valid.py').touch()
+        with tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / 'test_external.py'
+            target.touch()
+            try:
+                (self.root / 'test_external.py').symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unavailable')
+            self.assertIsNone(self.discover(True))
+            self.assertIsNone(self.discover(False))
+
+    def test_nested_symlink_in_conventional_suite_blocks_pytest(self):
+        suite = self.root / 'tests'
+        suite.mkdir()
+        (suite / 'test_valid.py').touch()
+        with tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / 'test_external.py'
+            target.touch()
+            try:
+                (suite / 'test_external.py').symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest('symlinks unavailable')
+            self.assertIsNone(self.discover(True))
+
+    def test_root_invalid_unittest_name_not_discovered(self):
+        (self.root / 'test-invalid.py').touch()
+        self.assertIsNone(self.discover(False))
+
     def test_root_listing_limit_fails_closed(self):
         for index in range(4096):
             (self.root / f'f{index:04d}').touch()
