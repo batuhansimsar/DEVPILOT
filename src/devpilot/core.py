@@ -36,7 +36,6 @@ from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
 from .r_manifests import is_r_manifest
 from .r_tests import r_test_command
-from .r_tests import r_test_command
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -280,9 +279,6 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
-    r_command = r_test_command(root, names)
-    if r_command is not None:
-        commands.append(r_command)
     if 'Package.swift' in names:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     if 'mix.exs' in names:
