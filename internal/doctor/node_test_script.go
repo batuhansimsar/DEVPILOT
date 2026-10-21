@@ -12,9 +12,9 @@ import (
 var npmInitPlaceholder = regexp.MustCompile(`(?i)^echo[ \t]+(?:"(?:error:[ \t]*)?no test specified"|'(?:error:[ \t]*)?no test specified'|(?:error:[ \t]*)?no test specified)[ \t]*(?:&&|;)[ \t]*exit[ \t]+1[ \t]*;?$`)
 
 // shellOnlyOutput reports scripts that only print text, including sequences of
-// output-only commands separated by semicolons. Shell operators inside quoted
-// literal output are harmless; operators outside quotes and expansion within
-// double quotes could execute tests and must remain classified as runnable.
+// output-only commands separated by semicolons or logical AND/OR.
+// Quoted operators are literal output; pipelines, background jobs, and
+// expansions may execute tests and must remain classified as runnable.
 func shellOnlyOutput(script string) bool {
 	script = strings.TrimSpace(script)
 	isOutputCommand := func(command string) bool {
@@ -52,7 +52,16 @@ func shellOnlyOutput(script string) bool {
 				}
 				sawOutput = true
 				start = i + 1
-			case '&', '|', '$', '<', '>', '\\':
+			case '&', '|':
+				// Only logical AND/OR join output-only commands; single
+				// operators may invoke pipelines or background jobs.
+				if i+1 >= len(script) || script[i+1] != ch || !isOutputCommand(script[start:i]) {
+					return false
+				}
+				sawOutput = true
+				i++
+				start = i + 1
+			case '$', '<', '>', '\\':
 				return false
 			case 96:
 				return false
