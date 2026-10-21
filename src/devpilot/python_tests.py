@@ -33,7 +33,12 @@ def _has_unittest_tests(tests: Path) -> bool:
                             or (entry.is_dir() and (entry / '__init__.py').is_file())):
                         return False
                     continue
-                if entry.is_file() and entry.name.startswith('test') and entry.name.endswith('.py'):
+                if (
+                    entry.is_file()
+                    and entry.name.startswith('test')
+                    and entry.name.endswith('.py')
+                    and entry.stem.isidentifier()
+                ):
                     found = True
                 if entry.is_dir():
                     marker = entry / '__init__.py'
