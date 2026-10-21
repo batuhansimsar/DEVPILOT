@@ -78,12 +78,18 @@ def _keys(path: Path) -> tuple[set[str] | None, str | None]:
         return None, 'not readable'
     if len(raw) > MAX_ENV_BYTES:
         return None, 'exceeds 256 KiB limit'
+    # Never report success for a corrupted dotenv file: a lossy decode can
+    # invent an apparently valid key inventory from invalid UTF-8 bytes.
+    try:
+        content = raw.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return None, 'invalid UTF-8'
     names: set[str] = set()
     # Only CR and LF delimit physical .env lines. Unicode NEL/LS/PS,
     # VT and FF within values must never forge additional declarations.
     quoted: str | None = None
     quote_escaped = False
-    for line in re.split(r'\r\n|\r|\n', raw.decode('utf-8-sig', errors='replace')):
+    for line in re.split(r'\r\n|\r|\n', content):
         if quoted is not None:
             closed, quote_escaped = _closing_quote_state(line, quoted, quote_escaped)
             if closed:
