@@ -11,9 +11,8 @@ import time
 from typing import Any
 
 from .tls_server_name import tls_server_name
+from .http_url_validation import validate_dns_hostname_labels
 
-# Hostnames (rather than DNS record owner names) use ASCII LDH labels.
-_DNS_LABEL_ALLOWED = frozenset(b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-')
 # Bound raw input before scanning Unicode or invoking the IDNA codec. DNS
 # names have much smaller wire limits, but IDNA can expand Unicode characters.
 MAX_TLS_HOST_LENGTH = 1024
@@ -90,16 +89,13 @@ def _tls_dial_host(host: str) -> str:
             ascii_host = dial_host.encode('idna')
         except UnicodeError:
             raise ValueError('host contains an invalid IDNA hostname') from None
-        # DNS labels cannot be empty or begin/end with a hyphen. A single
-        # trailing root dot is valid; it is excluded from the 253-byte limit.
-        # Check the encoded wire name so internationalized labels are bounded.
-        labels = ascii_host[:-1].split(b'.') if ascii_host.endswith(b'.') else ascii_host.split(b'.')
-        if (len(ascii_host.rstrip(b'.')) > 253
-                or any(not label or len(label) > 63
-                       or label.startswith(b'-') or label.endswith(b'-')
-                       or any(byte not in _DNS_LABEL_ALLOWED for byte in label)
-                       for label in labels)):
-            raise ValueError('host contains an invalid IDNA hostname')
+        # Share the HTTP hostname policy: DNS syntax alone is insufficient
+        # because resolvers can reinterpret legacy IPv4 names (e.g. 127.1).
+        # Keep the TLS-specific error privacy contract for CLI callers.
+        try:
+            validate_dns_hostname_labels(ascii_host)
+        except ValueError:
+            raise ValueError('host contains an invalid IDNA hostname') from None
     return dial_host
 
 
