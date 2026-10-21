@@ -189,7 +189,7 @@ func Inspect(root string) (Report, error) {
 	}
 	if hasPythonProjectMarker(abs) {
 		language("Python")
-		if hasMarker(abs, "pytest.ini") || hasMarker(abs, "pyproject.toml") {
+		if hasPytestConfig(abs) {
 			if r.Tests == nil {
 				r.Tests = &TestCommand{Executable: "python", Arguments: []string{"-m", "pytest"}}
 			}
