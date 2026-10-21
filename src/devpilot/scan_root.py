@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+# Only conventional macOS root aliases may be skipped when checking ancestors.
+_MACOS_SYSTEM_ALIASES = frozenset({'etc', 'tmp', 'var'})
 
 
 def ensure_unlinked_scan_path(path: Path) -> None:
-    """Reject explicitly selected symlinks, including in nested parent paths.
+    """Reject selected roots and linked ancestors before canonicalization.
 
-    Check before resolve(): canonicalizing first erases a caller-supplied
-    symlink alias. A direct child of the filesystem anchor is excluded from
-    the ancestor check because some systems provide standard aliases such as
-    /var -> /private/var; the selected root itself is always checked.
+    The conventional macOS /etc, /tmp and /var aliases may be traversed,
+    but no symlink is allowed as the selected root itself.
     """
     if path.is_symlink():
         raise ValueError('path is a symbolic link')
     absolute = path.absolute()
     filesystem_root = Path(absolute.anchor)
     for parent in absolute.parents:
-        if parent.parent == filesystem_root:
+        if (sys.platform == 'darwin' and parent.parent == filesystem_root
+                and parent.name in _MACOS_SYSTEM_ALIASES):
             continue
         if parent.is_symlink():
             raise ValueError('path contains a symbolic link')
