@@ -16,7 +16,13 @@ def julia_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     Require a project manifest and a regular test/runtests.jl, and never follow
     a symlinked test directory or entry point during discovery.
     """
-    if not names.intersection(_JULIA_PROJECT_FILES):
+    project_files = names.intersection(_JULIA_PROJECT_FILES)
+    # Only regular, local project manifests can authorize test discovery.
+    # Callers may pass untrusted filename sets without having scanned the root.
+    if not project_files or not any(
+        (root / name).is_file() and not (root / name).is_symlink()
+        for name in project_files
+    ):
         return None
     test_dir = root / 'test'
     test_entry = test_dir / 'runtests.jl'

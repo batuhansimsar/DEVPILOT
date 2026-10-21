@@ -17,6 +17,8 @@ class JuliaCLIIntegrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'Project.toml').write_text('name = "Example"\n', encoding='utf-8')
+            (root / 'test').mkdir()
+            (root / 'test' / 'runtests.jl').touch()
             with patch('devpilot.core.command_result') as run:
                 commands = test_commands(root)
                 run.assert_not_called()
@@ -26,7 +28,10 @@ class JuliaCLIIntegrationTests(unittest.TestCase):
 
     def test_cli_dry_run_filters_julia_without_execution(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / 'JuliaProject.toml').touch()
+            root = Path(directory)
+            (root / 'JuliaProject.toml').touch()
+            (root / 'test').mkdir()
+            (root / 'test' / 'runtests.jl').touch()
             output = io.StringIO()
             with patch('devpilot.cli.command_result') as run, contextlib.redirect_stdout(output):
                 code = main(['test', '--path', directory, '--ecosystem', 'julia', '--json'])
@@ -38,8 +43,11 @@ class JuliaCLIIntegrationTests(unittest.TestCase):
 
     def test_cli_yes_executes_only_selected_julia_command(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / 'Project.toml').touch()
-            (Path(directory) / 'go.mod').touch()
+            root = Path(directory)
+            (root / 'Project.toml').touch()
+            (root / 'go.mod').touch()
+            (root / 'test').mkdir()
+            (root / 'test' / 'runtests.jl').touch()
             output = io.StringIO()
             with patch('devpilot.cli.command_result', return_value={'exit_code': 0}) as run, contextlib.redirect_stdout(output):
                 code = main(['test', '--path', directory, '--ecosystem', 'julia', '--yes', '--json'])
