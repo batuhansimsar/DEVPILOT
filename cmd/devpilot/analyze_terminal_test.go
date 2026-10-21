@@ -60,7 +60,7 @@ func TestAnalyzeCommandQuotesUntrustedPaths(t *testing.T) {
 	}
 }
 
-func TestAnalyzeCommandQuotesPathErrors(t *testing.T) {
+func TestAnalyzeCommandRedactsPathErrors(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows does not allow escape characters in file names")
 	}
@@ -69,7 +69,16 @@ func TestAnalyzeCommandQuotesPathErrors(t *testing.T) {
 	if code := analyzeCommand([]string{path}, &out, &errs); code != 2 {
 		t.Fatalf("exit=%d stderr=%q", code, errs.String())
 	}
-	if strings.ContainsRune(errs.String(), '\x1b') || !strings.Contains(errs.String(), `\x1b`) || !strings.Contains(errs.String(), `\n`) {
-		t.Fatalf("unescaped filesystem error: %q", errs.String())
+	diagnostic := errs.String()
+	if !strings.Contains(diagnostic, "file does not exist") {
+		t.Fatalf("expected actionable error class, got %q", diagnostic)
+	}
+	for _, untrusted := range []string{path, "nonexistent", "\\x1b", "\x1b", "\\n"} {
+		if strings.Contains(diagnostic, untrusted) {
+			t.Fatalf("path details or terminal escapes leaked in diagnostic: %q", diagnostic)
+		}
+	}
+	if strings.Count(diagnostic, "\n") != 1 {
+		t.Fatalf("unexpected terminal line injection: %q", diagnostic)
 	}
 }
