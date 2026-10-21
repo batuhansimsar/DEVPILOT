@@ -32,11 +32,16 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
                    specs / 'spec_helper.rb', specs / 'rails_helper.rb')
         found_rspec = any(marker.is_file() and not marker.is_symlink() for marker in markers)
         if not found_rspec:
-            # Do not recurse into linked directories or trust linked spec files.
-            found_rspec = any(
-                candidate.is_file() and not candidate.is_symlink()
-                for candidate in specs.glob('*_spec.rb')
-            )
+            # Find real spec files nested under spec/, not only at its root.
+            # pathlib.rglob does not recurse into symlinked directories by
+            # default, and symlinked spec files never count as evidence.
+            try:
+                found_rspec = any(
+                    candidate.is_file() and not candidate.is_symlink()
+                    for candidate in specs.rglob('*_spec.rb')
+                )
+            except OSError:
+                found_rspec = False
         if found_rspec:
             return {
                 'ecosystem': 'Ruby',
