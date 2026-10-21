@@ -26,6 +26,7 @@ from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_jso
 from .julia_manifests import is_julia_manifest
 from .python_tests import python_test_command
 from .php_tests import php_test_command
+from .cmake_tests import cmake_test_command
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
 from .julia_tests import julia_test_command
@@ -66,7 +67,7 @@ LANGUAGES = {
 }
 KEY_FILES = frozenset({
     'package.json', 'deno.json', 'deno.jsonc', 'deno.lock', 'pyproject.toml', 'requirements.txt', 'setup.py', 'setup.cfg', 'pytest.ini', 'tox.ini',
-    'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'deps.edn', 'project.clj', 'build.gradle', 'build.gradle.kts',
+    'CMakeLists.txt', 'go.mod', 'Cargo.toml', 'pom.xml', 'build.sbt', 'deps.edn', 'project.clj', 'build.gradle', 'build.gradle.kts',
     'settings.gradle', 'settings.gradle.kts',
     'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
     'codefresh.yml',  # Codefresh's documented default root CI entrypoint.
@@ -130,6 +131,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
         types.add('Go')
+    if 'CMakeLists.txt' in names:
+        types.add('C/C++')
     if 'build.sbt' in names:
         types.add('Scala')
     if names & {'build.zig', 'build.zig.zon'}:
@@ -256,6 +259,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     if names & {'deno.json', 'deno.jsonc'}:
         commands.append({'ecosystem': 'Deno', 'argv': ['deno', 'test'],
                          'reason': 'Deno configuration'})
+    cmake_command = cmake_test_command(root, names)
+    if cmake_command is not None:
+        commands.append(cmake_command)
     if 'Cargo.toml' in names:
         commands.append({'ecosystem': 'Rust', 'argv': ['cargo', 'test'], 'reason': 'Cargo.toml'})
     php_command = php_test_command(root, names)
@@ -314,7 +320,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     found = detect_projects(root)
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
-        'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
+        'Go': 'go', 'C/C++': 'ctest', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
         'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
         'R': 'Rscript', 'PHP': 'php',
     }
