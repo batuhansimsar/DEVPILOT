@@ -88,6 +88,9 @@ def _safe_test_tree(tests: Path) -> bool:
                         return False
                     if entry.is_dir(follow_symlinks=False):
                         pending.append(Path(entry.path))
+                    elif not entry.is_file(follow_symlinks=False):
+                        # FIFOs, devices and sockets are not safe test assets.
+                        return False
         except OSError:
             return False
     return True
