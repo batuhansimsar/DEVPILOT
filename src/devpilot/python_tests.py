@@ -7,6 +7,8 @@ from importlib.machinery import PathFinder
 from pathlib import Path
 from typing import Any
 
+from .unittest_tree_safety import root_unittest_imports_are_safe
+
 from .python_test_targets import root_pytest_targets
 
 _MAX_TEST_DISCOVERY_ENTRIES = 4096
@@ -184,6 +186,11 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
             return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest', *targets],
                 'reason': 'root-level pytest test files'}
+    # Root-level unittest discovery visits every importable package, not only
+    # the root test modules inspected above. Refuse nested links or unreadable
+    # packages rather than recommending execution outside the chosen tree.
+    if has_unittest and not root_unittest_imports_are_safe(root):
+        return None
     if has_unittest:
         return {'ecosystem': 'Python',
                 'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', '.'],
