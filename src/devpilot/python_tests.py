@@ -81,19 +81,38 @@ def _pytest_suites_are_safe(root: Path) -> bool:
     return True
 
 
+
+def _root_test_modules(root: Path) -> tuple[bool, bool]:
+    """Find root-level unittest/pytest files without following links.
+
+    Reject inconclusive, unreadable, or exceptionally large root listings.
+    Pytest also recognizes *_test.py, but unittest's default glob does not.
+    """
+    has_unittest = False
+    has_pytest = False
+    try:
+        for count, entry in enumerate(root.iterdir(), 1):
+            if count > 4096:
+                return False, False
+            if entry.is_symlink() or not entry.is_file():
+                continue
+            name = entry.name
+            if name.startswith('test') and name.endswith('.py'):
+                has_unittest = True
+            if (name.startswith('test_') or name.endswith('_test.py')) and name.endswith('.py'):
+                has_pytest = True
+    except OSError:
+        return False, False
+    return has_unittest, has_pytest
+
+
 def python_test_command(root: Path) -> dict[str, Any] | None:
     """Discover a useful test command without executing project code.
 
-    Prefer the conventional ``tests/`` folder, but recognize singular ``test/``
-    folders with a discoverable Python test module too. If ``tests/`` contains
-    no discoverable unittest tests, use ``test/`` as a fallback when pytest is
-    unavailable. Avoid linked suite entries when selecting pytest, which may
-    collect them even when they are not conventional unittest modules.
-
-    A pytest launcher on PATH may belong to a different virtual environment.
-    Since DevPilot invokes sys.executable -m pytest, inspect that interpreter's
-    import path instead of guessing from the external executable name.
-    Without pytest, avoid reporting a successful zero-test unittest run.
+    Prefer conventional tests/ or test/ folders. When neither supplies
+    discoverable unittest modules, recognize root-level Python test files.
+    Never follow linked markers; only offer commands runnable by the chosen
+    interpreter. Without pytest, use unittest's own test*.py discovery glob.
     """
     tests = root / 'tests'
     directory_name = 'tests'
@@ -102,20 +121,35 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     if not tests.is_dir():
         tests = root / 'test'
         directory_name = 'test'
-        if tests.is_symlink() or not tests.is_dir() or not _has_unittest_tests(tests):
+        if tests.is_symlink():
             return None
-    if PathFinder.find_spec('pytest') is not None:
-        if not _pytest_suites_are_safe(root):
-            return None
+        if not tests.is_dir() or not _has_unittest_tests(tests):
+            tests = None
+    if tests is not None and PathFinder.find_spec('pytest') is not None:
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
                 'reason': f'{directory_name} directory (pytest importable)'}
-    if not _has_unittest_tests(tests):
-        if directory_name != 'tests':
-            return None
+    if tests is not None and not _has_unittest_tests(tests):
         fallback = root / 'test'
-        if fallback.is_symlink() or not fallback.is_dir() or not _has_unittest_tests(fallback):
-            return None
-        directory_name = 'test'
-    return {'ecosystem': 'Python',
-            'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', directory_name],
-            'reason': f'{directory_name} directory'}
+        if directory_name != 'tests' or fallback.is_symlink():
+            tests = None
+        elif fallback.is_dir() and _has_unittest_tests(fallback):
+            tests, directory_name = fallback, 'test'
+        else:
+            tests = None
+    if tests is not None:
+        return {'ecosystem': 'Python',
+                'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', directory_name],
+                'reason': f'{directory_name} directory'}
+
+    # A linked test directory would be traversed by pytest at execution time.
+    if (root / 'test').is_symlink():
+        return None
+    has_unittest, has_pytest = _root_test_modules(root)
+    if has_pytest and PathFinder.find_spec('pytest') is not None:
+        return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
+                'reason': 'root-level pytest test files'}
+    if has_unittest:
+        return {'ecosystem': 'Python',
+                'argv': [sys.executable, '-m', 'unittest', 'discover', '-s', '.'],
+                'reason': 'root-level unittest test files'}
+    return None
