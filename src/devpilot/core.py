@@ -32,6 +32,7 @@ from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
 from .pylock import is_pylock_manifest
 from .haskell_manifests import is_haskell_manifest
+from .julia_tests import julia_test_command
 
 SKIP_DIRS = frozenset({
     '.git', '.hg', '.svn', '.venv', 'venv', 'env', '__pycache__',
@@ -260,6 +261,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
         commands.append({'ecosystem': 'Haskell', 'argv': ['stack', 'test'], 'reason': 'stack.yaml'})
     elif 'cabal.project' in names or any(name.endswith('.cabal') and is_haskell_manifest(name) for name in names):
         commands.append({'ecosystem': 'Haskell', 'argv': ['cabal', 'test'], 'reason': 'Cabal project'})
+    julia_command = julia_test_command(root, names)
+    if julia_command is not None:
+        commands.append(julia_command)
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
