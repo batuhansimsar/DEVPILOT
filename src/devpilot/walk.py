@@ -37,6 +37,13 @@ def walk_project(root: Path, problems: list[str]) -> Iterator[tuple[str, list[st
         problems.append('Cannot inspect .: project root is a symbolic link')
         return
 
+    # A non-symlink root can still be reached through a symlinked ancestor,
+    # such as project-link/src. Reject that path before os.walk follows it.
+    # Avoid resolve(), which follows links and erases evidence of the alias.
+    if any(parent.is_symlink() for parent in root.absolute().parents):
+        problems.append('Cannot inspect .: project path contains a symbolic link')
+        return
+
     def onerror(error: OSError) -> None:
         location = '.'
         if error.filename:
