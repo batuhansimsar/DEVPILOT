@@ -12,11 +12,13 @@ def _has_unittest_tests(tests: Path) -> bool:
     """Find a conventional unittest module without importing project code.
 
     ``unittest discover -s tests`` only descends into importable packages.
-    Bound directory traversal and ignore symlinks to avoid trusting arbitrary
-    linked paths during discovery. Unreadable or huge trees are inconclusive.
+    Bound directory traversal and reject symlinked modules or importable
+    packages that unittest would otherwise execute outside the chosen tree.
+    Unreadable or huge trees are inconclusive.
     """
     pending = [tests]
     entries_seen = 0
+    found = False
     while pending:
         directory = pending.pop()
         try:
@@ -25,16 +27,21 @@ def _has_unittest_tests(tests: Path) -> bool:
                 if entries_seen > 4096:
                     return False
                 if entry.is_symlink():
+                    if ((entry.is_file() and entry.name.startswith('test') and entry.name.endswith('.py'))
+                            or (entry.is_dir() and (entry / '__init__.py').is_file())):
+                        return False
                     continue
                 if entry.is_file() and entry.name.startswith('test') and entry.name.endswith('.py'):
-                    return True
+                    found = True
                 if entry.is_dir():
                     marker = entry / '__init__.py'
-                    if not marker.is_symlink() and marker.is_file():
+                    if marker.is_symlink():
+                        return False
+                    if marker.is_file():
                         pending.append(entry)
         except OSError:
             return False
-    return False
+    return found
 
 
 def python_test_command(root: Path) -> dict[str, Any] | None:
