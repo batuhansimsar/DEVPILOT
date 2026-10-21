@@ -28,6 +28,8 @@ func isCIConfig(path string) bool {
 		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
 		".semaphore/semaphore.yaml":
 		return true
+	case ".cirrus.yml":
+		return true
 	default:
 		return false
 	}
