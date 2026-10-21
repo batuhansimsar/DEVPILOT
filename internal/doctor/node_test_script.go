@@ -66,11 +66,28 @@ func shellOnlyOutput(script string) bool {
 	return (last == "" && sawOutput) || isOutputCommand(last)
 }
 
+// shellOnlyOutputThenExit recognizes a pure diagnostic shell script followed
+// by a successful exit status. It deliberately accepts only one && separator:
+// scripts with additional shell operators stay eligible for test discovery.
+func shellOnlyOutputThenExit(script string) bool {
+	parts := strings.Split(script, "&&")
+	if len(parts) != 2 || !shellOnlyOutput(parts[0]) {
+		return false
+	}
+	last := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(parts[1]), ";"))
+	fields := strings.Fields(last)
+	if len(fields) != 2 || fields[0] != "exit" {
+		return false
+	}
+	code, err := strconv.Atoi(fields[1])
+	return err == nil && code == 0
+}
+
 // hasRunnableNodeTestScript avoids recommending empty, no-op, or npm-init
 // placeholder scripts as real test suites. It never evaluates or executes them.
 func hasRunnableNodeTestScript(script string) bool {
 	trimmed := strings.TrimSpace(script)
-	if trimmed == "" || npmInitPlaceholder.MatchString(trimmed) || shellOnlyOutput(trimmed) {
+	if trimmed == "" || npmInitPlaceholder.MatchString(trimmed) || shellOnlyOutput(trimmed) || shellOnlyOutputThenExit(trimmed) {
 		return false
 	}
 	// Standalone shell built-ins and exits do not run tests. Require a full
