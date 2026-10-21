@@ -51,6 +51,8 @@ EXACT_NAMES = frozenset({
     '.s3cfg', '.boto', 'rclone.conf',
     # Legacy Docker registry config stores reusable registry authentication.
     '.dockercfg',
+    # Aider YAML configs can embed LLM API credentials.
+    '.aider.conf.yml', '.aider.conf.yaml',
 })
 # Include Apple App Store Connect and PuTTY private-key formats.
 PRIVATE_SUFFIXES = ('.pem', '.p12', '.pfx', '.key', '.kdbx', '.jks', '.keystore', '.p8', '.ppk', '.jceks', '.bks')
