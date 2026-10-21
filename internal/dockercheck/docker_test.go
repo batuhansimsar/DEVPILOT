@@ -26,7 +26,7 @@ func TestOfflineDaemon(t *testing.T) {
 	got := Inspect(context.Background(), func(_ context.Context, _ ...string) ([]byte, error) {
 		return nil, errors.New("daemon is stopped")
 	})
-	if got.Reachable || !got.Installed || !strings.Contains(got.Detail, "stopped") {
+	if got.Reachable || !got.Installed || got.Detail != "Docker command failed; check Docker CLI and daemon access" {
 		t.Fatalf("expected offline status: %+v", got)
 	}
 }

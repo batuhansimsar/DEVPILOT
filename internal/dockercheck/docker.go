@@ -34,10 +34,25 @@ type Containers struct {
 // DockerCLI executes a fixed Docker command without a shell or project hooks.
 type DockerCLI func(context.Context, ...string) ([]byte, error)
 
+// trustedDockerError marks diagnostics constructed by SystemCLI from safe,
+// bounded values. Third-party DockerCLI errors may contain private output.
+type trustedDockerError string
+
+func (e trustedDockerError) Error() string { return string(e) }
+
+func safeDockerDetail(err error) string {
+	if trusted, ok := err.(trustedDockerError); ok {
+		return string(trusted)
+	}
+	// Never invoke Error() on an alternate runner's error: it may leak
+	// credentials, include control sequences, or have side effects.
+	return "Docker command failed; check Docker CLI and daemon access"
+}
+
 // SystemCLI invokes docker with a short timeout and limits retained output.
 func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 	if ctx == nil {
-		return nil, errors.New("context must not be nil")
+		return nil, trustedDockerError("context must not be nil")
 	}
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
@@ -51,16 +66,16 @@ func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 	cmd.Stderr = limited
 	err := cmd.Run()
 	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return nil, errors.New("Docker command timed out after 5 seconds")
+		return nil, trustedDockerError("Docker command timed out after 5 seconds")
 	}
 	if errors.Is(err, exec.ErrWaitDelay) {
-		return nil, errors.New("Docker output pipe stayed open after command exit")
+		return nil, trustedDockerError("Docker output pipe stayed open after command exit")
 	}
 	if errors.Is(err, errLimit) {
-		return nil, fmt.Errorf("Docker output exceeded %d bytes", maxOutput)
+		return nil, trustedDockerError(fmt.Sprintf("Docker output exceeded %d bytes", maxOutput))
 	}
 	if errors.Is(err, exec.ErrNotFound) {
-		return nil, errors.New("Docker CLI not found on PATH")
+		return nil, trustedDockerError("Docker CLI not found on PATH")
 	}
 	if err != nil {
 		// Docker stderr may include daemon URLs, private registry names,
@@ -68,9 +83,9 @@ func SystemCLI(ctx context.Context, args ...string) ([]byte, error) {
 		// CLI diagnostics or JSON reports, even for a nonzero exit status.
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return nil, fmt.Errorf("Docker command failed (exit code %d); check daemon access and permissions", exitErr.ExitCode())
+			return nil, trustedDockerError(fmt.Sprintf("Docker command failed (exit code %d); check daemon access and permissions", exitErr.ExitCode()))
 		}
-		return nil, errors.New("Docker command failed; check Docker CLI and daemon access")
+		return nil, trustedDockerError("Docker command failed; check Docker CLI and daemon access")
 	}
 	return out.Bytes(), nil
 }
@@ -105,7 +120,7 @@ func Inspect(ctx context.Context, run DockerCLI) Daemon {
 	}
 	out, err := run(ctx, "info", "--format", "{{.ServerVersion}}")
 	if err != nil {
-		return Daemon{Installed: true, Detail: err.Error()}
+		return Daemon{Installed: true, Detail: safeDockerDetail(err)}
 	}
 	// Alternate DockerCLI implementations must obey the same output budget
 	// as SystemCLI before we allocate another copy while parsing it.
@@ -129,7 +144,7 @@ func List(ctx context.Context, run DockerCLI) Containers {
 	}
 	out, err := run(ctx, "ps", "--format", "{{json .}}")
 	if err != nil {
-		return Containers{Items: []json.RawMessage{}, Detail: err.Error()}
+		return Containers{Items: []json.RawMessage{}, Detail: safeDockerDetail(err)}
 	}
 	// Callers may provide an alternate CLI that does not apply SystemCLI's
 	// streaming size limit. Reject oversized JSONL before splitting it.
