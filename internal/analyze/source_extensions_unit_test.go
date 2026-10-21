@@ -11,6 +11,9 @@ func TestExtendedLanguage(t *testing.T) {
 		{".cxx", "C++"}, {".c++", "C++"}, {".ixx", "C++"},
 		{".cppm", "C++"}, {".kts", "Kotlin"}, {".csx", "C#"},
 		{".mm", "Objective-C++"},
+		{".tfvars", "Terraform"}, {".proto", "Protocol Buffers"},
+		{".graphql", "GraphQL"}, {".gql", "GraphQL"},
+		{".prisma", "Prisma"}, {".nix", "Nix"}, {".cue", "CUE"},
 		{".pyi", "Python"}, {".pyw", "Python"},
 		{".pyx", "Cython"}, {".pxd", "Cython"}, {".pxi", "Cython"},
 	}

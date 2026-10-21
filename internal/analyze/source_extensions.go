@@ -12,6 +12,18 @@ func extendedLanguage(extension string) (string, bool) {
 		return "Kotlin", true
 	case ".csx":
 		return "C#", true
+	case ".tfvars":
+		return "Terraform", true
+	case ".proto":
+		return "Protocol Buffers", true
+	case ".graphql", ".gql":
+		return "GraphQL", true
+	case ".prisma":
+		return "Prisma", true
+	case ".nix":
+		return "Nix", true
+	case ".cue":
+		return "CUE", true
 	case ".mm":
 		return "Objective-C++", true
 	case ".pyi", ".pyw":
