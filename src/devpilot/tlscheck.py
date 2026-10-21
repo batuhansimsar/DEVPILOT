@@ -158,10 +158,18 @@ def tls_check(host: str, port: int, timeout: float) -> dict[str, Any]:
                 # Report verified negotiation details without exposing certificate data.
                 # Ignore absent or malformed socket metadata rather than adding
                 # non-serializable objects to the CLI's JSON result.
-                version = secured.version()
+                # Protocol and cipher details are optional metadata. Failure to
+                # inspect them must not change the verified handshake result.
+                try:
+                    version = secured.version()
+                except (OSError, ValueError, TypeError, AttributeError):
+                    version = None
                 if isinstance(version, str) and version:
                     result['tls_version'] = version
-                cipher = secured.cipher()
+                try:
+                    cipher = secured.cipher()
+                except (OSError, ValueError, TypeError, AttributeError):
+                    cipher = None
                 if isinstance(cipher, tuple) and len(cipher) == 3:
                     cipher_name, _, cipher_bits = cipher
                     if isinstance(cipher_name, str) and cipher_name:
