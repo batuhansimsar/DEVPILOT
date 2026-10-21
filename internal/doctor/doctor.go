@@ -68,9 +68,13 @@ func readMarker(root, name string) ([]byte, bool, error) {
 	return readMarkerAfterStat(path, name, st)
 }
 
-// readMarkerAfterStat verifies the opened file is exactly the regular file
-// observed by Lstat. A workspace can swap a path between Lstat and Open;
-// no contents are read until the open descriptor has been validated.
+// readMarkerAfterStat verifies the opened file matches the Lstat snapshot.
+// It also detects in-place writes before opening and during reading using
+// size and modification time; no stale or inconsistent contents are returned.
+func sameMarkerSnapshot(expected, actual os.FileInfo) bool {
+	return os.SameFile(expected, actual) && expected.Size() == actual.Size() && expected.ModTime().Equal(actual.ModTime())
+}
+
 func readMarkerAfterStat(path, name string, expected os.FileInfo) ([]byte, bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -81,7 +85,7 @@ func readMarkerAfterStat(path, name string, expected os.FileInfo) ([]byte, bool,
 	if err != nil {
 		return nil, false, err
 	}
-	if !opened.Mode().IsRegular() || !os.SameFile(expected, opened) {
+	if !opened.Mode().IsRegular() || !sameMarkerSnapshot(expected, opened) {
 		return nil, false, fmt.Errorf("%s changed while opening for inspection", name)
 	}
 	if opened.Size() > 1024*1024 {
@@ -93,6 +97,13 @@ func readMarkerAfterStat(path, name string, expected os.FileInfo) ([]byte, bool,
 	}
 	if len(b) > 1024*1024 {
 		return nil, false, fmt.Errorf("%s exceeds 1 MiB inspection limit", name)
+	}
+	after, err := f.Stat()
+	if err != nil {
+		return nil, false, err
+	}
+	if !sameMarkerSnapshot(opened, after) {
+		return nil, false, fmt.Errorf("%s changed while reading for inspection", name)
 	}
 	return b, true, nil
 }
