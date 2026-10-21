@@ -38,22 +38,26 @@ def php_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         return None
     pending = [tests]
     seen = 0
+    has_tests = False
     try:
         while pending:
             for path in pending.pop().iterdir():
                 seen += 1
-                if seen > _MAX_TEST_ENTRIES:
+                if seen > _MAX_TEST_ENTRIES or path.is_symlink():
+                    # PHPUnit recursively discovers the complete test tree.
+                    # A link anywhere can escape the selected project, even
+                    # after an ordinary test has already been found.
                     return None
-                if path.is_symlink():
-                    continue
                 if path.is_file() and path.name.endswith('Test.php'):
-                    return {
-                        'ecosystem': 'PHP',
-                        'argv': ['php', 'vendor/bin/phpunit', 'tests'],
-                        'reason': 'Composer project with conventional PHPUnit tests',
-                    }
-                if path.is_dir():
+                    has_tests = True
+                elif path.is_dir():
                     pending.append(path)
     except OSError:
         return None
-    return None
+    if not has_tests:
+        return None
+    return {
+        'ecosystem': 'PHP',
+        'argv': ['php', 'vendor/bin/phpunit', 'tests'],
+        'reason': 'Composer project with conventional PHPUnit tests',
+    }
