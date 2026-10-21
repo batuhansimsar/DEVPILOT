@@ -35,6 +35,13 @@ def is_git_dirty(stdout: str, exit_code: int | None) -> bool | None:
     if type(exit_code) is not int or exit_code != 0 or not isinstance(stdout, str) or not stdout.strip():
         return None
 
+    # Only `--porcelain=v1 -z` can produce NUL record delimiters. The caller
+    # uses line-delimited porcelain v1, which cannot contain a raw NUL.
+    # Reject mismatched or corrupted output rather than treating a forged
+    # branch header as proof that the worktree is clean.
+    if '\x00' in stdout:
+        return None
+
     # Porcelain v1 separates records with LF only. str.splitlines() also treats
     # U+0085, U+2028 and U+2029 inside filenames/branch names as boundaries,
     # allowing an ignored path to masquerade as a changed-file record.
