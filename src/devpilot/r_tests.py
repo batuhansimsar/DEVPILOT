@@ -2,10 +2,31 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 from .r_manifests import is_r_manifest
+
+_MAX_DESCRIPTION_BYTES = 32768
+_PACKAGE_NAME = re.compile(rb'[A-Za-z][A-Za-z0-9.]*\Z')
+
+
+def _valid_package_description(path: Path) -> bool:
+    """Reject generic, linked and oversized DESCRIPTION files as package evidence."""
+    if path.is_symlink() or not path.is_file():
+        return False
+    try:
+        with path.open('rb') as source:
+            contents = source.read(_MAX_DESCRIPTION_BYTES + 1)
+    except OSError:
+        return False
+    return len(contents) <= _MAX_DESCRIPTION_BYTES and any(
+        _PACKAGE_NAME.fullmatch(line[len(b'Package:'):].strip())
+        for line in contents.splitlines() if line.startswith(b'Package:')
+    )
+
+
 
 
 def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
@@ -28,7 +49,7 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     tests = root / 'tests'
     entry = tests / 'testthat.R'
     suite = tests / 'testthat'
-    if (description.is_symlink() or not description.is_file()
+    if (not _valid_package_description(description)
             or tests.is_symlink() or not tests.is_dir()
             or entry.is_symlink() or not entry.is_file()
             or suite.is_symlink() or not suite.is_dir()):
