@@ -15,6 +15,7 @@ from threading import Thread
 from typing import Any
 
 from .firebase_credentials import is_firebase_service_account_key
+from .azure_functions_settings import is_azure_functions_local_settings
 from .publish_profiles import is_publish_profile, is_azure_publish_settings
 from .editor_backups import strip_editor_backups
 from .cargo_credentials import is_cargo_credential_location
@@ -174,6 +175,8 @@ def classify(path: str) -> str | None:
         return 'potential credential configuration'
     if any(parts[-len(location):] == location for location in HELM_CREDENTIAL_LOCATIONS):
         return 'potential credential configuration'
+    if is_azure_functions_local_settings(parts):
+        return 'potential Azure Functions local settings credentials'
     if is_firebase_service_account_key(name):
         return 'potential Firebase service account key'
     if any(parts[-len(location):] == location for location in AGE_IDENTITY_LOCATIONS):
