@@ -89,6 +89,8 @@ WORKSPACE_FILES = {
     'shell.nix': 'Nix',
     'default.nix': 'Nix',
     'Directory.Packages.props': '.NET',
+    'Directory.Build.props': '.NET',
+    'Directory.Build.targets': '.NET',
     'global.json': '.NET',
     'Dockerfile': 'Docker',
     'Containerfile': 'Docker',
