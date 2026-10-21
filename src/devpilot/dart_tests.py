@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any
 
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
+_MAX_TEST_ENTRIES = 10000
 # YAML mapping keys may be plain or quoted. Limit detection to conventional
 # pubspec dependency sections and package identifiers, not arbitrary YAML keys.
 _DEPENDENCY_SECTION = re.compile(
@@ -54,6 +56,29 @@ def _has_flutter_sdk_dependency(data: bytes) -> bool:
     return False
 
 
+def _safe_test_tree(tests: Path) -> bool:
+    """Reject linked or unreadable test descendants with bounded traversal.
+
+    The Dart/Flutter test runner discovers tests recursively. Linked entries
+    can unexpectedly run files outside the selected project.
+    """
+    pending = [tests]
+    inspected = 0
+    while pending:
+        folder = pending.pop()
+        try:
+            with os.scandir(folder) as entries:
+                for entry in entries:
+                    inspected += 1
+                    if inspected > _MAX_TEST_ENTRIES or entry.is_symlink():
+                        return False
+                    if entry.is_dir(follow_symlinks=False):
+                        pending.append(Path(entry.path))
+        except OSError:
+            return False
+    return True
+
+
 def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     """Return an opt-in test command only for an unlinked Dart project.
 
@@ -65,7 +90,8 @@ def dart_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
     manifest = root / 'pubspec.yaml'
     tests = root / 'test'
     if (manifest.is_symlink() or not manifest.is_file()
-            or tests.is_symlink() or not tests.is_dir()):
+            or tests.is_symlink() or not tests.is_dir()
+            or not _safe_test_tree(tests)):
         return None
     try:
         with manifest.open('rb') as stream:
