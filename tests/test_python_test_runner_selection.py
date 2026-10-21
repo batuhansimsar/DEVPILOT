@@ -1,4 +1,4 @@
-"""Python test discovery uses the chosen interpreter, not another venv's pytest."""
+"""Python test discovery uses the chosen interpreter and avoids empty unittest runs."""
 
 import sys
 import tempfile
@@ -28,6 +28,7 @@ class PythonTestRunnerSelectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'tests').mkdir()
+            (root / 'tests' / 'test_example.py').write_text('')
             with patch('devpilot.python_tests.PathFinder.find_spec', return_value=None):
                 with patch('shutil.which', return_value='/other-venv/bin/pytest') as which:
                     command = python_test_command(root)
@@ -37,6 +38,44 @@ class PythonTestRunnerSelectionTests(unittest.TestCase):
                 'reason': 'tests directory',
             })
             which.assert_not_called()
+
+    def test_empty_or_non_test_directory_is_not_discovered_without_pytest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tests = root / 'tests'
+            tests.mkdir()
+            with patch('devpilot.python_tests.PathFinder.find_spec', return_value=None):
+                self.assertIsNone(python_test_command(root))
+                (tests / 'helper.py').write_text('')
+                self.assertIsNone(python_test_command(root))
+                (tests / 'example_test.py').write_text('')
+                self.assertIsNone(python_test_command(root))
+                (tests / 'test_example.py').write_text('')
+                self.assertIsNotNone(python_test_command(root))
+
+    def test_only_nested_packages_are_discoverable_by_unittest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / 'tests' / 'sub'
+            nested.mkdir(parents=True)
+            (nested / 'test_case.py').write_text('')
+            with patch('devpilot.python_tests.PathFinder.find_spec', return_value=None):
+                self.assertIsNone(python_test_command(root))
+                (nested / '__init__.py').write_text('')
+                self.assertIsNotNone(python_test_command(root))
+
+    def test_symlinked_test_files_are_not_trusted(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as external:
+            root = Path(directory)
+            (root / 'tests').mkdir()
+            target = Path(external) / 'test_external.py'
+            target.write_text('')
+            try:
+                (root / 'tests' / 'test_external.py').symlink_to(target)
+            except (OSError, NotImplementedError):
+                self.skipTest('Symlinks unavailable')
+            with patch('devpilot.python_tests.PathFinder.find_spec', return_value=None):
+                self.assertIsNone(python_test_command(root))
 
     def test_missing_tests_directory_not_discovered(self):
         with tempfile.TemporaryDirectory() as directory:
