@@ -23,7 +23,10 @@ func isCIConfig(path string) bool {
 		".woodpecker.yml", ".woodpecker.yaml", "bitrise.yml",
 		"appveyor.yml", ".appveyor.yml",
 		".semaphore/semaphore.yml", // Semaphore 2.0 default pipeline.
-		"cloudbuild.yaml", "cloudbuild.json": // Google Cloud Build configs.
+		"cloudbuild.yaml", "cloudbuild.json", // Google Cloud Build configs.
+		"buildspec.yml", "buildspec.yaml", // AWS CodeBuild
+		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
+		".semaphore/semaphore.yaml":
 		return true
 	default:
 		return false
