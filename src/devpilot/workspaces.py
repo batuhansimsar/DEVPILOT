@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 from typing import Any
 
 from .container_manifests import is_container_manifest
 from .dotnet_manifests import DOTNET_SUFFIXES
+from .julia_manifests import is_julia_manifest
 from .core import SKIP_DIRS
 from .walk import walk_project
 from .requirements_names import is_requirements_manifest
@@ -90,11 +90,6 @@ WORKSPACE_FILES = {
     'docker-compose.yaml': 'Docker',
 }
 
-# Julia selects a version-specific lockfile for its matching minor release.
-# Match ASCII numeric versions only; backup files must not be treated as manifests.
-_JULIA_VERSIONED_MANIFEST = re.compile(r'Manifest-v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.toml\Z')
-
-
 def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5000) -> dict[str, Any]:
     """Find manifests at root and below without opening files or following symlinks.
 
@@ -143,7 +138,7 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 ecosystem = 'Python'
             if not ecosystem and is_pylock_manifest(filename):
                 ecosystem = 'Python'
-            if not ecosystem and _JULIA_VERSIONED_MANIFEST.fullmatch(filename):
+            if not ecosystem and is_julia_manifest(filename):
                 ecosystem = 'Julia'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'

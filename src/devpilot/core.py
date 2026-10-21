@@ -23,6 +23,7 @@ from .maven import maven_test_command
 from .git_state import is_git_dirty
 from .tlscheck import _tls_dial_host
 from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_json
+from .julia_manifests import is_julia_manifest
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
 from .walk import walk_project
@@ -125,6 +126,8 @@ def detect_projects(root: Path) -> list[str]:
     # A Mix lockfile also identifies an Elixir workspace without mix.exs.
     if names & {'mix.exs', 'mix.lock'}:
         types.add('Elixir')
+    if any(is_julia_manifest(name) for name in names):
+        types.add('Julia')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
     if names & {'pom.xml', 'build.gradle', 'build.gradle.kts',
@@ -183,7 +186,7 @@ def analyze_project(root: Path) -> dict[str, Any]:
             if (filename in KEY_FILES or is_requirements_manifest(filename)
                 or filename.lower().endswith('.gemspec')
                 or is_pylock_manifest(filename) or is_container_manifest(filename)
-                or is_dotnet_manifest(filename)) and (
+                or is_dotnet_manifest(filename) or is_julia_manifest(filename)) and (
                 depth == 0 or rel.startswith('.github/workflows/')
             ):
                 key_files.append(rel)
@@ -275,7 +278,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Zig': 'zig',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Julia': 'julia', 'Zig': 'zig',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
