@@ -207,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         root = (selected_root.absolute() if args.command in ('analyze', 'workspaces')
                 else selected_root.resolve())
         if not root.is_dir():
-            parser.error(f'Not a directory: {root}')
+            parser.error(f'Not a directory: {escape_terminal(str(root))}')
         if args.command == 'env':
             result, success = environment_status(root)
         elif args.command == 'doctor':
