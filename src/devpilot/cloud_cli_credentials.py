@@ -14,11 +14,17 @@ _CREDENTIAL_PATH_SUFFIXES = (
     ('doctl', 'config', 'config.yaml'),
     # Stripe CLI login persists restricted API keys in its XDG configuration.
     ('.config', 'stripe', 'config.toml'),
+    # Vercel CLI stores its auth token in this dedicated data directory.
+    ('com.vercel.cli', 'auth.json'),
+    # Netlify CLI writes an access token to OS-specific global config files.
+    ('.config', 'netlify', 'config.json'),
+    ('library', 'preferences', 'netlify', 'config.json'),
+    ('appdata', 'roaming', 'netlify', 'config', 'config.json'),
 )
 
 
 def is_cloud_cli_credential_location(parts: tuple[str, ...]) -> bool:
-    """Identify well-known doctl and Stripe CLI authentication files."""
+    """Identify well-known cloud CLI authentication files."""
     return any(
         len(parts) >= len(suffix) and parts[-len(suffix):] == suffix
         for suffix in _CREDENTIAL_PATH_SUFFIXES
