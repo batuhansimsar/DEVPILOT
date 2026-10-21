@@ -122,7 +122,7 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
             return None
         if not tests.is_dir() or not _has_unittest_tests(tests):
             tests = None
-    if tests is not None and PathFinder.find_spec('pytest') is not None:
+    if tests is not None and PathFinder.find_spec('pytest') is not None and _pytest_suites_are_safe(root):
         if not _pytest_suites_are_safe(root):
             return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
@@ -144,7 +144,7 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     if (root / 'test').is_symlink():
         return None
     has_unittest, has_pytest = _root_test_modules(root)
-    if has_pytest and PathFinder.find_spec('pytest') is not None:
+    if has_pytest and PathFinder.find_spec('pytest') is not None and _pytest_suites_are_safe(root):
         if not _pytest_suites_are_safe(root):
             return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
