@@ -7,7 +7,7 @@ import re
 # Stack, hpack and Cabal support these project-level markers. Do not treat
 # generic Haskell source files or unrelated build artifacts as project roots.
 _HASKELL_MARKERS = frozenset({
-    'stack.yaml', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
+    'stack.yaml', 'stack.yaml.lock', 'cabal.project', 'cabal.project.freeze', 'package.yaml',
 })
 _CABAL_PACKAGE_FILE = re.compile(r'[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*\.cabal\Z')
 
