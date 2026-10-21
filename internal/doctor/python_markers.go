@@ -13,6 +13,18 @@ func hasPytestConfig(root string) bool {
 		}
 	}
 
+	// tox.ini and setup.cfg may contain other tooling metadata. Choose pytest
+	// only when their actual pytest section exists in a regular, bounded file.
+	for _, spec := range []struct{ name, section string }{
+		{"tox.ini", "[pytest]"},
+		{"setup.cfg", "[tool:pytest]"},
+	} {
+		data, found, err := readMarker(root, spec.name)
+		if err == nil && found && hasPytestINISection(data, spec.section) {
+			return true
+		}
+	}
+
 	// pyproject.toml is general Python metadata, unlike the dedicated
 	// pytest configuration files. Inspect it via the bounded, symlink-safe
 	// reader, and only recognize explicit pytest table headers.
