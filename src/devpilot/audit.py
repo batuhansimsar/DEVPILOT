@@ -59,6 +59,8 @@ _SENSITIVE_LOCATIONS = frozenset({
     # Legacy pip user configuration may contain private package-index credentials.
     ('.pip', 'pip.conf'),
     ('pypoetry', 'auth.toml'), ('pip', 'pip.conf'), ('pip', 'pip.ini'),
+    # uv user configuration may embed authenticated private index URLs.
+    ('.config', 'uv', 'uv.toml'), ('uv', 'uv.toml'),
     # Build-tool settings can contain plaintext package registry credentials.
     ('.m2', 'settings.xml'), ('.gradle', 'gradle.properties'),
     ('nuget', 'nuget.config'),
