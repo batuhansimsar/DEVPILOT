@@ -28,6 +28,11 @@ _CTEST_BUILD_DIRS = (
     'out/build/x64-Release',
     'out/build/x64-RelWithDebInfo',
     'out/build/x64-MinSizeRel',
+    # Visual Studio's CMake presets on Windows ARM64 use the same layout.
+    'out/build/arm64-Debug',
+    'out/build/arm64-Release',
+    'out/build/arm64-RelWithDebInfo',
+    'out/build/arm64-MinSizeRel',
 )
 
 
