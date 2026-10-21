@@ -51,6 +51,14 @@ def format_git_status(report: dict[str, Any]) -> str:
         elif flag is not False:
             warnings.append(f'Warning: invalid Git {key} flag; output may be incomplete')
 
+    # An invalid worktree verdict must never silently look clean. Avoid
+    # truth-value coercion of unexpected runner objects (which can raise or
+    # produce side effects), and do not expose their text in diagnostics.
+    dirty_present = 'dirty' in report
+    dirty = report.get('dirty')
+    if dirty_present and dirty is not None and type(dirty) is not bool:
+        warnings.append('Git status unavailable (invalid worktree state)')
+
     if exit_code_present and not exit_succeeded:
         code = exit_code
         if code is None:
@@ -59,11 +67,11 @@ def format_git_status(report: dict[str, Any]) -> str:
             warnings.append('Git status unavailable (invalid exit code)')
         else:
             warnings.append(f'Git status failed (exit code {code})')
-    elif report.get("dirty", False) is None and "dirty" in report:
+    elif dirty_present and dirty is None:
         warnings.append("Git status unavailable (worktree state inconclusive)")
-    elif not has_stdout and report.get("dirty") is True:
+    elif not has_stdout and dirty is True:
         warnings.append("Git status reports changes but output is unavailable")
-    elif not has_stdout and not invalid_stdout and exit_succeeded and 'dirty' not in report:
+    elif not has_stdout and not invalid_stdout and exit_succeeded and not dirty_present:
         # --porcelain=v1 --branch always prints a branch header, even for a
         # clean worktree. Missing output without an explicit clean verdict is
         # incomplete, not evidence that the repository has no changes.
