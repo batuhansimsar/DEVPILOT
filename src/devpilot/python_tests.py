@@ -56,6 +56,23 @@ def _pytest_suites_are_safe(root: Path) -> bool:
     invoking pytest without explicit paths can collect either one. A bounded
     scan avoids unlimited work on untrusted project trees.
     """
+    # Bare pytest also imports root-level conftest.py/configuration and
+    # collects root test modules. A linked entry point could execute code
+    # outside the selected project even when tests/ itself is safe.
+    try:
+        for count, entry in enumerate(root.iterdir(), 1):
+            if count > _MAX_TEST_DISCOVERY_ENTRIES:
+                return False
+            name = entry.name
+            if entry.is_symlink() and (
+                name in ('conftest.py', 'pytest.ini', 'tox.ini', 'setup.cfg', 'pyproject.toml')
+                or (name.endswith('.py') and
+                    (name.startswith('test_') or name.endswith('_test.py')))
+            ):
+                return False
+    except OSError:
+        return False
+
     pending = []
     for name in ('tests', 'test'):
         suite = root / name
