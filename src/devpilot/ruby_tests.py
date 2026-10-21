@@ -12,8 +12,8 @@ _MAX_DISCOVERY_ENTRIES = 4096
 def _has_test_file(directory: Path, suffix: str, *, skip_hidden: bool = False) -> bool:
     """Bound recursive test discovery without following symbolic links.
 
-    Fail closed when the directory tree is too large or unreadable. Minitest's
-    glob ignores hidden entries, unlike RSpec's regular filesystem scan.
+    Fail closed when the directory tree is too large or unreadable. Both RSpec
+    and Minitest default globs ignore hidden path components.
     """
     pending = [directory]
     scanned = 0
@@ -64,7 +64,7 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
                    specs / 'spec_helper.rb', specs / 'rails_helper.rb')
         found_rspec = any(marker.is_file() and not marker.is_symlink() for marker in markers)
         if not found_rspec:
-            found_rspec = _has_test_file(specs, '_spec.rb')
+            found_rspec = _has_test_file(specs, '_spec.rb', skip_hidden=True)
         if found_rspec:
             return {
                 'ecosystem': 'Ruby',
