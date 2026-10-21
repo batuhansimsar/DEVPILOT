@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Result describes a single TCP dial attempt. A failed connection is a
@@ -72,12 +73,19 @@ func safeDialError(err error) string {
 // denotes an absolute name and is permitted, but empty interior labels are not.
 // IP literals are validated separately and are not subject to DNS label limits.
 func validHostnameLength(host string) bool {
-	if len(host) > 254 || (len(host) == 254 && !strings.HasSuffix(host, ".")) {
+	if !utf8.ValidString(host) || len(host) > 254 || (len(host) == 254 && !strings.HasSuffix(host, ".")) {
 		return false
 	}
 	for _, label := range strings.Split(strings.TrimSuffix(host, "."), ".") {
-		if len(label) == 0 || len(label) > 63 {
+		if len(label) == 0 || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
 			return false
+		}
+		// Permit internationalized labels, but reject punctuation and other
+		// non-hostname characters before attempting DNS resolution.
+		for _, r := range label {
+			if r != '-' && !unicode.IsLetter(r) && !unicode.IsDigit(r) && !unicode.IsMark(r) {
+				return false
+			}
 		}
 	}
 	return true
@@ -121,7 +129,7 @@ func Check(ctx context.Context, host string, port int, timeout time.Duration) (R
 	} else if _, err := netip.ParseAddr(dialHost); err != nil && !validHostnameLength(dialHost) {
 		// Bound malformed DNS names before invoking the resolver. IP literals,
 		// bracketed IPv6 and fully qualified names ending in '.' remain valid.
-		return Result{}, fmt.Errorf("host exceeds DNS name limits or contains empty labels")
+		return Result{}, fmt.Errorf("host has invalid DNS hostname labels or exceeds DNS name limits")
 	}
 	if port < 1 || port > 65535 {
 		return Result{}, fmt.Errorf("port must be between 1 and 65535")
