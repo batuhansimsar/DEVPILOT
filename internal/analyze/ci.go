@@ -21,7 +21,9 @@ func isCIConfig(path string) bool {
 		"bitbucket-pipelines.yml", ".travis.yml", ".drone.yml", ".drone.yaml",
 		".buildkite/pipeline.yml", ".buildkite/pipeline.yaml",
 		".woodpecker.yml", ".woodpecker.yaml", "bitrise.yml",
-		"appveyor.yml", ".appveyor.yml":
+		"appveyor.yml", ".appveyor.yml",
+		".semaphore/semaphore.yml", // Semaphore 2.0 default pipeline.
+		"cloudbuild.yaml", "cloudbuild.json": // Google Cloud Build configs.
 		return true
 	default:
 		return false
