@@ -38,10 +38,18 @@ def format_git_status(report: dict[str, Any]) -> str:
 
     if invalid_stdout:
         warnings.append('Git status unavailable (invalid porcelain output)')
-    if report.get('stdout_truncated'):
-        warnings.append('Warning: Git status output truncated; results may be incomplete')
-    if report.get('stderr_truncated'):
-        warnings.append('Warning: Git diagnostic output truncated; details may be incomplete')
+    # Capture flags are trusted only when they are actual booleans. Coercing
+    # malformed runner values could invoke arbitrary __bool__ methods, and
+    # silently interpreting them as false would misrepresent incomplete data.
+    for key, warning in (
+        ('stdout_truncated', 'Warning: Git status output truncated; results may be incomplete'),
+        ('stderr_truncated', 'Warning: Git diagnostic output truncated; details may be incomplete'),
+    ):
+        flag = report.get(key, False)
+        if flag is True:
+            warnings.append(warning)
+        elif flag is not False:
+            warnings.append(f'Warning: invalid Git {key} flag; output may be incomplete')
 
     if exit_code_present and not exit_succeeded:
         code = exit_code
