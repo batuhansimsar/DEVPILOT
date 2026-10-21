@@ -25,6 +25,7 @@ func isCIConfig(path string) bool {
 		".semaphore/semaphore.yml", // Semaphore 2.0 default pipeline.
 		"cloudbuild.yaml", "cloudbuild.json", // Google Cloud Build configs.
 		"buildspec.yml", "buildspec.yaml", // AWS CodeBuild
+		"amplify.yml", // AWS Amplify Hosting build specification.
 		"cloudbuild.yml", "appveyor.yaml", ".appveyor.yaml",
 		".semaphore/semaphore.yaml",
 		".teamcity/settings.kts", // TeamCity Kotlin DSL versioned settings.
