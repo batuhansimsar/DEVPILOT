@@ -66,6 +66,18 @@ def execute_test_commands(
             if not item['result'].get('error'):
                 item['result']['error'] = 'Test runner returned an invalid exit code'
             exit_code = None
+        # Treat malformed captured streams/error values as runner failures,
+        # rather than crashing human/JSON rendering or leaking object reprs.
+        invalid_stream = False
+        for stream in ('stdout', 'stderr'):
+            if stream in item['result'] and not isinstance(item['result'][stream], str):
+                del item['result'][stream]
+                invalid_stream = True
+        error = item['result'].get('error')
+        if error is not None and not isinstance(error, str):
+            item['result']['error'] = 'Test runner returned an invalid error message'
+        elif invalid_stream and not error:
+            item['result']['error'] = 'Test runner returned invalid captured output'
         # Runner-reported errors invalidate the run even when a subprocess
         # happens to return zero (e.g. a failed output-capture stage).
         if exit_code != 0 or item['result'].get('error'):
