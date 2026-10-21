@@ -26,6 +26,7 @@ from .manifest import MAX_MANIFEST_BYTES, read_package_json as _read_package_jso
 from .julia_manifests import is_julia_manifest
 from .node import LOCKFILES, package_manager
 from .ruby_tests import ruby_test_command
+from .julia_tests import julia_test_command
 from .walk import walk_project
 from .scan_root import ensure_unlinked_scan_path
 from .requirements_names import is_requirements_manifest
@@ -262,6 +263,9 @@ def test_commands(root: Path) -> list[dict[str, Any]]:
     ruby_command = ruby_test_command(root, names)
     if ruby_command is not None:
         commands.append(ruby_command)
+    julia_command = julia_test_command(root, names)
+    if julia_command is not None:
+        commands.append(julia_command)
     if 'Package.swift' in names:
         commands.append({'ecosystem': 'Swift', 'argv': ['swift', 'test'], 'reason': 'Package.swift'})
     if 'mix.exs' in names:
