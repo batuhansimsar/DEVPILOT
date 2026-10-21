@@ -66,7 +66,11 @@ def ruby_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         # Standalone RSpec suites can omit the usual helper file.
         markers = (root / '.rspec', root / '.rspec-local',
                    specs / 'spec_helper.rb', specs / 'rails_helper.rb')
-        found_rspec = any(marker.is_file() and not marker.is_symlink() for marker in markers)
+        # RSpec reads configuration independently of the discovery marker.
+        # A safe helper must not mask a linked config or another linked helper.
+        if any(marker.is_symlink() for marker in markers):
+            return None
+        found_rspec = any(marker.is_file() for marker in markers)
         if not found_rspec:
             found_rspec = _has_test_file(specs, '_spec.rb', skip_hidden=True)
         if found_rspec:
