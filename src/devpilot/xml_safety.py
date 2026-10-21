@@ -13,6 +13,12 @@ MAX_XML_DEPTH = 128
 # Wide XML documents can exhaust memory without ever reaching the depth limit.
 # Count elements as they are opened so oversized manifests fail during parsing.
 MAX_XML_ELEMENTS = 100_000
+# A single node with unusually many attributes consumes memory even when both
+# the depth and element count are small. Legitimate build manifests rarely have
+# more than a handful of attributes per element.
+MAX_XML_ATTRIBUTES_PER_ELEMENT = 1024
+# Bound the overall attribute count as well as individual wide elements.
+MAX_XML_ATTRIBUTES = 100_000
 # Protect direct callers too: even a single text node can consume excessive
 # memory without exceeding either the element-count or nesting limit.
 MAX_XML_INPUT_LENGTH = 2 * 1024 * 1024
@@ -25,6 +31,7 @@ class _NoDoctypeTreeBuilder(ET.TreeBuilder):
         super().__init__()
         self._depth = 0
         self._elements = 0
+        self._attributes = 0
 
     def doctype(self, name: str, pubid: str | None, system: str | None) -> None:
         raise ValueError('DTD and XML entities are not supported')
@@ -34,9 +41,15 @@ class _NoDoctypeTreeBuilder(ET.TreeBuilder):
             raise ValueError(f'XML nesting exceeds {MAX_XML_DEPTH} levels')
         if self._elements >= MAX_XML_ELEMENTS:
             raise ValueError(f'XML element count exceeds {MAX_XML_ELEMENTS}')
+        attribute_count = len(attrs)
+        if attribute_count > MAX_XML_ATTRIBUTES_PER_ELEMENT:
+            raise ValueError(f'XML attribute count per element exceeds {MAX_XML_ATTRIBUTES_PER_ELEMENT}')
+        if self._attributes + attribute_count > MAX_XML_ATTRIBUTES:
+            raise ValueError(f'XML total attribute count exceeds {MAX_XML_ATTRIBUTES}')
         element = super().start(tag, attrs)
         self._depth += 1
         self._elements += 1
+        self._attributes += attribute_count
         return element
 
     def end(self, tag: str) -> ET.Element:
