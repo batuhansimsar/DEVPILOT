@@ -13,10 +13,16 @@ func isGitDetachedHead(data []byte) bool {
 	if len(data) != 40 && len(data) != 64 {
 		return false
 	}
+	// All-zero object IDs are Git's null/sentinel IDs, not commits. An
+	// untrusted HEAD containing one must not be reported as detached.
+	allZero := true
 	for _, b := range data {
 		if !((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')) {
 			return false
 		}
+		if b != '0' {
+			allZero = false
+		}
 	}
-	return true
+	return !allZero
 }

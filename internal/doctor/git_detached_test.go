@@ -13,7 +13,9 @@ func TestIsGitDetachedHead(t *testing.T) {
 	}{
 		{"sha1", strings.Repeat("a1", 20) + "\n", true},
 		{"sha256", strings.Repeat("Ab02", 16) + "\r\n", true},
-		{"sha1 no newline", strings.Repeat("0", 40), true},
+		{"sha1 no newline", strings.Repeat("a", 40), true},
+		{"null sha1", strings.Repeat("0", 40), false},
+		{"null sha256", strings.Repeat("0", 64) + "\n", false},
 		{"symbolic branch", "ref: refs/heads/main\n", false},
 		{"non hex 40 chars", strings.Repeat("z", 40) + "\n", false},
 		{"non hex 64 chars", strings.Repeat("g", 64) + "\n", false},
