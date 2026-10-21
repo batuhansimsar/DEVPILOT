@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
             cmd.add_argument('--fail-on-dirty', action='store_true',
                              help='Return exit code 1 when the working tree has changes')
         if name == 'test':
-            cmd.add_argument('--ecosystem', choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
+            cmd.add_argument('--ecosystem', type=str.casefold, choices=tuple(ECOSYSTEMS), help='Only discover or execute tests for this ecosystem')
             cmd.add_argument('--yes', action='store_true', help='Execute the detected test commands (runs project code)')
             cmd.add_argument('--fail-fast', action='store_true', help='Stop executing after the first failed test command')
             cmd.add_argument('--timeout', type=int, default=120, help='Per-command timeout in seconds (1-3600)')
