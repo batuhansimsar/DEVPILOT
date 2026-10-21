@@ -80,6 +80,12 @@ func validHostnameLength(host string) bool {
 		if len(label) == 0 || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
 			return false
 		}
+		// IDNA labels cannot start with a combining character. A leading mark
+		// can appear to attach to an unrelated preceding label or terminal text.
+		first, _ := utf8.DecodeRuneInString(label)
+		if unicode.IsMark(first) {
+			return false
+		}
 		// Permit internationalized labels, but reject punctuation and other
 		// non-hostname characters before attempting DNS resolution.
 		for _, r := range label {
