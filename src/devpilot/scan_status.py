@@ -6,10 +6,15 @@ from typing import Any, Mapping
 
 
 def scan_succeeded(report: Mapping[str, Any]) -> bool:
-    """Fail closed when a scan is incomplete, even without other problems.
+    """Fail closed unless the scan explicitly completed with no problems.
 
-    A truncated inventory is not evidence that the omitted entries are safe.
-    Require an explicit boolean ``truncated=False`` in the scan report so a
-    malformed or missing field cannot silently report success to CI.
+    A truncated inventory is not evidence that omitted entries are safe.
+    Likewise, a missing or malformed ``problems`` field cannot establish
+    that the scan found no issues. Both analyze and workspace reports use
+    a list for this field; do not mistake other falsey values for an empty
+    list when deciding the CLI exit status.
     """
-    return report.get('truncated') is False and not report.get('problems')
+    if not isinstance(report, Mapping):
+        return False
+    problems = report.get('problems')
+    return report.get('truncated') is False and isinstance(problems, list) and not problems
