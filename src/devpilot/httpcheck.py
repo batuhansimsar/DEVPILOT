@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from .http_url_validation import validate_dns_hostname_labels, validate_http_url_length
-from .http_host_validation import validate_http_dns_labels
 
 import ipaddress
 import re
@@ -102,18 +101,6 @@ def http_check(url: str, timeout: float = 3.0, *, expected_statuses: frozenset[i
     # IDNA accepts punctuation and boundary hyphens that are not valid DNS host labels.
     if ':' not in parts.hostname:  # Bracketed IPv6 literals use ':' and are validated above.
         validate_dns_hostname_labels(idna_hostname)
-    # Python's IDNA codec accepts some invalid ASCII DNS labels (such as
-    # underscores). Reject them before making any network request.
-    if ':' not in parts.hostname:
-        labels = (idna_hostname[:-1] if idna_hostname.endswith(b'.') else idna_hostname).split(b'.')
-        if any(
-            re.fullmatch(rb'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', label) is None
-            for label in labels
-        ):
-            raise ValueError('URL host contains an invalid IDNA hostname')
-    # Avoid DNS/socket requests for non-hostname labels (including hyphen-edge and underscore labels).
-    if ':' not in parts.hostname:
-        validate_http_dns_labels(idna_hostname)
     if (not isinstance(timeout, (int, float)) or isinstance(timeout, bool)
             or not 0.1 <= timeout <= 30):
         raise ValueError('timeout must be between 0.1 and 30 seconds')
