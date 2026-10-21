@@ -116,7 +116,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Scala')
     if 'Package.swift' in names:
         types.add('Swift')
-    if 'mix.exs' in names:
+    # A Mix lockfile also identifies an Elixir workspace without mix.exs.
+    if names & {'mix.exs', 'mix.lock'}:
         types.add('Elixir')
     # A settings-only Gradle build is still a Java project (for example,
     # a root aggregator defining subprojects in settings.gradle[.kts]).
