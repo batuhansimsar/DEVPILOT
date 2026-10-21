@@ -37,7 +37,8 @@ class GitOutputTests(unittest.TestCase):
     def test_normal_status_and_missing_output(self):
         self.assertEqual(format_git_status({'stdout': '## main\n M README.md\n'}),
                          '## main\n M README.md\n')
-        self.assertEqual(format_git_status({}), 'No changes')
+        self.assertEqual(format_git_status({}),
+                         'Git status unavailable (missing command result)')
         self.assertEqual(format_git_status({'stdout': '## café\n'}), '## café\n')
 
 
