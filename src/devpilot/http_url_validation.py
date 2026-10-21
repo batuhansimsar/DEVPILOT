@@ -44,6 +44,16 @@ def validate_dns_hostname_labels(hostname: bytes) -> None:
     labels = hostname[:-1].split(b'.') if hostname.endswith(b'.') else hostname.split(b'.')
     if any(len(label) > 63 or _DNS_LABEL.fullmatch(label) is None for label in labels):
         raise ValueError('URL host contains an invalid DNS label')
+    # A syntactically valid LDH label may still be a malformed IDNA A-label.
+    # Validate explicit xn-- labels before DNS/TCP/TLS probes so an invalid
+    # encoded name cannot silently be treated as an ordinary ASCII hostname.
+    # Each label is bounded to 63 bytes above; the codec does no network I/O.
+    for label in labels:
+        if label.lower().startswith(b'xn--'):
+            try:
+                label.decode('idna')
+            except UnicodeError:
+                raise ValueError('URL host contains an invalid IDNA label') from None
     # Permit canonical dotted-decimal IPv4 (handled by the same HTTP probe),
     # but reject ambiguous all-numeric DNS names before an OS resolver can
     # reinterpret them as legacy IPv4 addresses. Avoid DNS/network lookups.
