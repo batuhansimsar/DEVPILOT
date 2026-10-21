@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from copy import deepcopy
+from .test_result import snapshot_runner_result
 from pathlib import Path
 from typing import Any, Callable
 
@@ -17,8 +17,8 @@ def execute_test_commands(
 
     When failing fast, retain all discovered commands for the JSON report and
     annotate those not executed rather than representing them as executed.
-    Each result is a snapshot: a runner may reuse or mutate its return value
-    while executing subsequent commands, but earlier reports must not change.
+    Each result retains only documented JSON-compatible fields, so arbitrary
+    runner metadata cannot break report serialization or expose process state.
     Pass independent argument lists so a custom runner cannot corrupt the
     discovered command plan, including when it raises an exception.
     """
@@ -50,12 +50,12 @@ def execute_test_commands(
             # Defensive boundary for custom test runners; never crash when a
             # runner accidentally returns None or a non-mapping value.
             result = {'exit_code': None, 'error': 'Test runner returned an invalid result'}
-        # Keep each command's report independent of a custom runner's mutable
-        # buffer, including nested metadata such as captured output chunks.
+        # Keep documented fields, not arbitrary runner objects or argument
+        # copies. Validation below rejects malformed exit codes and streams.
         try:
-            # Normalize dict subclasses first: overridden get()/pop() and copy
-            # hooks must not spoof a successful exit or break report handling.
-            item['result'] = deepcopy(dict(result))
+            # Normalize dict subclasses and discard unknown fields before
+            # they can reach JSON output or trigger arbitrary copy hooks.
+            item['result'] = snapshot_runner_result(dict(result))
         except Exception:
             # A custom runner may return objects whose copy hooks raise.
             # Treat the result as a failed command without exposing private data.
