@@ -57,6 +57,8 @@ devpilot doctor --path /path/to/project --json
 | `http` | Sends a bounded HTTP HEAD request without following redirects or reading the response body. Only HTTP 2xx is considered healthy; 3xx is reachable but unhealthy. Query strings are omitted from the displayed URL. |
 | `test` | Discovers test commands for supported ecosystems. Dry-run by default; `--ecosystem node|deno|python|ruby|go|rust|dotnet|java|scala|clojure|haskell|swift|elixir|zig` limits discovery and execution to one ecosystem. Only `--yes` executes code, with per-command timeouts. Ecosystem filter values are case-insensitive. Deno uses `deno test` when a root `deno.json` or `deno.jsonc` exists. |
 
+CTest configured builds are discovered when a root `CMakeLists.txt` and a regular `build/CTestTestfile.cmake` are present. Use `devpilot test --ecosystem cpp` to preview `ctest --test-dir build --output-on-failure --no-tests=error`; use `--yes` only after trusting the repository. Discovery never configures or builds project code.
+
 Elixir Mix projects are recognized from a root `mix.exs`: `analyze` counts `.ex` and `.exs` sources, `doctor` checks for `mix`, and `test --ecosystem elixir` previews `mix test` without executing it unless `--yes` is supplied.
 
 Julia discovery recognizes `Project.toml`, `JuliaProject.toml`, `Manifest.toml`, `JuliaManifest.toml`, and versioned lockfiles such as `Manifest-v1.11.toml`. It inspects only filenames and does not execute or parse Julia project code.
