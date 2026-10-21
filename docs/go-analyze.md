@@ -44,6 +44,8 @@ The analyzer recognizes the root-level AWS CodeBuild `buildspec.yml` and
 `buildspec.yaml` files, Google Cloud Build `cloudbuild.yml`,
 `cloudbuild.yaml`, and `cloudbuild.json`, plus AppVeyor `appveyor.yml`,
 `.appveyor.yml`, `appveyor.yaml`, and `.appveyor.yaml`.
+The root-level `amplify.yml` build specification for AWS Amplify Hosting is
+recognized as a CI entrypoint as well.
 Semaphore CI's default `.semaphore/semaphore.yml` and
 `.semaphore/semaphore.yaml` pipeline files are also recognized.
 
