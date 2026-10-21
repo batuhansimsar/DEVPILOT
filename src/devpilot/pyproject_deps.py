@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from .toml_input import validate_utf8_toml_size
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - Python 3.10
@@ -117,8 +119,10 @@ def parse_pyproject_dependencies(content: str) -> dict[str, list[str]]:
     Groups are kept separate for actionable reports. Poetry's python key
     is a runtime constraint, not a package. All result values are names only.
     """
-    if not isinstance(content, str) or len(content) > MAX_PYPROJECT_INPUT_CHARS:
-        raise ValueError('pyproject.toml input is invalid or exceeds safe size limit')
+    validate_utf8_toml_size(
+        content, MAX_PYPROJECT_INPUT_CHARS,
+        'pyproject.toml input is invalid or exceeds safe size limit',
+    )
     try:
         # The scanner decodes UTF-8-SIG; direct callers may supply text with
         # one leading BOM. Do not strip embedded or repeated BOMs.

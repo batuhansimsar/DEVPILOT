@@ -24,6 +24,30 @@ class PyprojectInputLimitTests(unittest.TestCase):
             parser.assert_not_called()
         self.assertNotIn(secret, str(raised.exception))
 
+    def test_multibyte_content_is_rejected_before_toml_parsing(self):
+        # Character counts understate the size of UTF-8 TOML documents.
+        content = 'note = "' + ('é' * (MAX_PYPROJECT_INPUT_CHARS // 2)) + '"'
+        self.assertLess(len(content), MAX_PYPROJECT_INPUT_CHARS)
+        with patch('devpilot.pyproject_deps.tomllib.loads') as parser:
+            with self.assertRaisesRegex(ValueError, 'safe size limit') as raised:
+                parse_pyproject_dependencies(content)
+            parser.assert_not_called()
+        self.assertNotIn('note', str(raised.exception))
+
+    def test_unencodable_surrogates_are_rejected_without_parsing(self):
+        with patch('devpilot.pyproject_deps.tomllib.loads') as parser:
+            with self.assertRaisesRegex(ValueError, 'invalid') as raised:
+                parse_pyproject_dependencies('secret = "\\ud800"'.replace('\\ud800', chr(0xD800)))
+            parser.assert_not_called()
+        self.assertIsNone(raised.exception.__cause__)
+        self.assertNotIn('secret', str(raised.exception))
+
+    def test_exact_utf8_byte_limit_is_accepted(self):
+        content = 'é' * (MAX_PYPROJECT_INPUT_CHARS // 2)
+        with patch('devpilot.pyproject_deps.tomllib.loads', return_value={}) as parser:
+            self.assertEqual(parse_pyproject_dependencies(content), {})
+        parser.assert_called_once_with(content)
+
     def test_exact_size_limit_is_accepted(self):
         content = '#' * MAX_PYPROJECT_INPUT_CHARS
         with patch('devpilot.pyproject_deps.tomllib.loads', return_value={}) as parser:
