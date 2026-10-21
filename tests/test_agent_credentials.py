@@ -12,6 +12,8 @@ class AgentCredentialPathTests(unittest.TestCase):
             ('home', 'user', '.claude', '.credentials.json'),
             ('.gemini', 'oauth_creds.json'),
             ('project', 'home', '.gemini', 'oauth_creds.json'),
+            ('.gemini', 'mcp-oauth-tokens.json'),
+            ('project', 'home', '.gemini', 'mcp-oauth-tokens.json'),
         ):
             with self.subTest(path=path):
                 self.assertTrue(is_agent_credential_location(path))
@@ -25,6 +27,10 @@ class AgentCredentialPathTests(unittest.TestCase):
             ('.gemini', 'oauth_creds.json.sample'),
             ('.gemini', 'settings.json'),
             ('gemini', 'oauth_creds.json'),
+            ('docs', 'mcp-oauth-tokens.json'),
+            ('.gemini', 'mcp-oauth-tokens.json.example'),
+            ('.gemini', 'mcp-oauth-tokens.json.sample'),
+            ('gemini', 'mcp-oauth-tokens.json'),
         ):
             with self.subTest(path=path):
                 self.assertFalse(is_agent_credential_location(path))
