@@ -73,6 +73,23 @@ def _pytest_suites_are_safe(root: Path) -> bool:
     except OSError:
         return False
 
+    # Pytest also imports root-level conftest.py and discovers root-level test
+    # modules even when a tests/ directory is present. Those links must be
+    # rejected before offering an unqualified `python -m pytest` command.
+    try:
+        for count, entry in enumerate(root.iterdir(), 1):
+            if count > _MAX_TEST_DISCOVERY_ENTRIES:
+                return False
+            name = entry.name
+            if entry.is_symlink() and (
+                name == 'conftest.py'
+                or (name.endswith('.py') and (name.startswith('test') or name.endswith('_test.py')))
+                or name.startswith('test_')
+            ):
+                return False
+    except OSError:
+        return False
+
     pending = []
     for name in ('tests', 'test'):
         suite = root / name
@@ -142,7 +159,7 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
             return None
         if not tests.is_dir() or not _has_unittest_tests(tests):
             tests = None
-    if tests is not None and PathFinder.find_spec('pytest') is not None and _pytest_suites_are_safe(root):
+    if tests is not None and PathFinder.find_spec('pytest') is not None:
         if not _pytest_suites_are_safe(root):
             return None
         # Only collect trees that were inspected above. An implicit pytest
@@ -170,7 +187,7 @@ def python_test_command(root: Path) -> dict[str, Any] | None:
     if (root / 'test').is_symlink():
         return None
     has_unittest, has_pytest = _root_test_modules(root)
-    if has_pytest and PathFinder.find_spec('pytest') is not None and _pytest_suites_are_safe(root):
+    if has_pytest and PathFinder.find_spec('pytest') is not None:
         if not _pytest_suites_are_safe(root):
             return None
         return {'ecosystem': 'Python', 'argv': [sys.executable, '-m', 'pytest'],
