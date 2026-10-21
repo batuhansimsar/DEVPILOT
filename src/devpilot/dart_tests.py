@@ -9,20 +9,20 @@ from typing import Any
 
 _MAX_PUBSPEC_BYTES = 128 * 1024
 _DEPENDENCY_SECTION = re.compile(rb'(?:dependencies|dev_dependencies|dependency_overrides):[ \t]*(?:#.*)?\Z')
-_FLUTTER_DEPENDENCY = re.compile(rb'flutter:[ \t]*(?:#.*)?\Z')
+_DEPENDENCY_ENTRY = re.compile(rb'[A-Za-z][A-Za-z0-9_]*:[ \t]*(?:#.*)?\Z')
 _FLUTTER_SDK = re.compile(rb'''sdk:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
 
 
 def _has_flutter_sdk_dependency(data: bytes) -> bool:
     """Recognize a Flutter SDK dependency, not unrelated YAML text.
 
-    Examine only top-level dependency mappings and their direct 'flutter'
-    entry. This deliberately avoids executing YAML tags or requiring a parser.
-    Unknown YAML constructs default to Dart instead of guessing Flutter.
+    Examine only top-level dependency mappings and each package's direct
+    sdk: flutter field. This deliberately avoids executing YAML tags or requiring
+    a parser. Unknown YAML constructs default to Dart instead of guessing Flutter.
     """
     in_dependencies = False
     dependency_indent: int | None = None
-    flutter_indent: int | None = None
+    package_indent: int | None = None
     sdk_indent: int | None = None
     for line in data.removeprefix(b'\xef\xbb\xbf').splitlines():
         text = line.lstrip(b' ')
@@ -31,16 +31,16 @@ def _has_flutter_sdk_dependency(data: bytes) -> bool:
         indent = len(line) - len(text)
         if indent == 0:
             in_dependencies = _DEPENDENCY_SECTION.fullmatch(text) is not None
-            dependency_indent = flutter_indent = sdk_indent = None
+            dependency_indent = package_indent = sdk_indent = None
             continue
         if not in_dependencies:
             continue
         if dependency_indent is None:
             dependency_indent = indent
         if indent == dependency_indent:
-            flutter_indent = indent if _FLUTTER_DEPENDENCY.fullmatch(text) else None
+            package_indent = indent if _DEPENDENCY_ENTRY.fullmatch(text) else None
             sdk_indent = None
-        elif flutter_indent is not None and indent > flutter_indent:
+        elif package_indent is not None and indent > package_indent:
             if sdk_indent is None:
                 sdk_indent = indent
             if indent == sdk_indent and _FLUTTER_SDK.fullmatch(text):
