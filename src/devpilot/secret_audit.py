@@ -22,6 +22,7 @@ from .bundler_credentials import is_bundler_credential_location
 from .agent_credentials import is_agent_credential_location, is_agent_mcp_config, is_agent_local_settings
 from .sentry_credentials import is_sentry_auth_config
 from .cloud_cli_credentials import is_cloud_cli_credential_location
+from .runner_credentials import is_actions_runner_credential_location
 
 MAX_OUTPUT = 8 * 1024 * 1024
 MAX_PATHS = 100_000
@@ -191,6 +192,8 @@ def classify(path: str) -> str | None:
         return 'potential Sentry authentication configuration'
     if is_cloud_cli_credential_location(parts):
         return 'potential cloud CLI credential configuration'
+    if is_actions_runner_credential_location(parts):
+        return 'potential GitHub Actions runner credentials'
     if name in EXACT_NAMES:
         return 'potential credential file'
     # Named kubeconfig exports often embed cluster certificates and bearer tokens.

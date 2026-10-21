@@ -15,6 +15,7 @@ from .bundler_credentials import is_bundler_credential_location
 from .sentry_credentials import is_sentry_auth_config
 from .agent_credentials import is_agent_credential_location, is_agent_mcp_config, is_agent_local_settings
 from .cloud_cli_credentials import is_cloud_cli_credential_location
+from .runner_credentials import is_actions_runner_credential_location
 
 _PRIVATE_NAMES = frozenset({
     'id_rsa', 'id_dsa', 'id_ed25519', 'id_ecdsa',
@@ -137,6 +138,7 @@ def _potential_secret(path: str) -> bool:
             or is_agent_mcp_config(parts)
             or is_sentry_auth_config(parts)
             or is_cloud_cli_credential_location(parts)
+            or is_actions_runner_credential_location(parts)
             or name in _PRIVATE_NAMES
             or name.endswith(('.kubeconfig', '.kubeconfig.yml', '.kubeconfig.yaml'))
             or is_firebase_service_account_key(name)
