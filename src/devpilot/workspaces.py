@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -66,6 +67,10 @@ WORKSPACE_FILES = {
     'pubspec.lock': 'Dart',
     'mix.exs': 'Elixir',
     'mix.lock': 'Elixir',
+    'Project.toml': 'Julia',
+    'JuliaProject.toml': 'Julia',
+    'Manifest.toml': 'Julia',
+    'JuliaManifest.toml': 'Julia',
     # Both flake-based and legacy Nix projects have distinctive root markers.
     # A lockfile alone is enough to identify a flake workspace.
     'flake.nix': 'Nix',
@@ -82,6 +87,9 @@ WORKSPACE_FILES = {
     'docker-compose.yaml': 'Docker',
 }
 DOTNET_SUFFIXES = {'.csproj', '.fsproj', '.vbproj', '.sln', '.slnx'}
+# Julia selects a version-specific lockfile for its matching minor release.
+# Match ASCII numeric versions only; backup files must not be treated as manifests.
+_JULIA_VERSIONED_MANIFEST = re.compile(r'Manifest-v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.toml\Z')
 
 
 def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5000) -> dict[str, Any]:
@@ -132,6 +140,8 @@ def discover_workspaces(root: Path, max_depth: int = 5, max_directories: int = 5
                 ecosystem = 'Python'
             if not ecosystem and is_pylock_manifest(filename):
                 ecosystem = 'Python'
+            if not ecosystem and _JULIA_VERSIONED_MANIFEST.fullmatch(filename):
+                ecosystem = 'Julia'
             if not ecosystem and is_container_manifest(filename):
                 ecosystem = 'Docker'
             if not ecosystem and path.suffix.lower() == '.gemspec':
