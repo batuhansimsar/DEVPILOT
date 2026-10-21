@@ -16,6 +16,10 @@ except ModuleNotFoundError:  # Python 3.10
 _PACKAGE_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?\Z")
 _SEPARATOR = re.compile(r"[-_.]+")
 _MAX_PACKAGE_NAME_LENGTH = 214
+# Bound public parser calls in addition to the dependency scanner's file limit.
+# Malformed TOML must not consume unbounded parser time or memory.
+MAX_UV_LOCK_INPUT_CHARS = 2 * 1024 * 1024
+MAX_UV_LOCK_PACKAGES = 100_000
 
 
 def parse_uv_lock(content: str) -> list[str]:
@@ -25,6 +29,8 @@ def parse_uv_lock(content: str) -> list[str]:
     make the reported dependency inventory misleading. Never reflect the
     original TOML or an untrusted package name into exception messages.
     """
+    if not isinstance(content, str) or len(content) > MAX_UV_LOCK_INPUT_CHARS:
+        raise ValueError('uv.lock input exceeds safe size limit or is invalid')
     try:
         # The scanner reads UTF-8-SIG, but direct library callers may hand us
         # decoded text that still includes a UTF-8 byte-order mark.
@@ -35,8 +41,8 @@ def parse_uv_lock(content: str) -> list[str]:
         raise ValueError("invalid uv.lock TOML") from None
 
     packages = document.get("package", [])
-    if not isinstance(packages, list):
-        raise ValueError("uv.lock package entries must be an array")
+    if not isinstance(packages, list) or len(packages) > MAX_UV_LOCK_PACKAGES:
+        raise ValueError("uv.lock package entries must be a bounded array")
 
     names: set[str] = set()
     for package in packages:
