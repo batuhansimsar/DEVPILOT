@@ -66,6 +66,7 @@ KEY_FILES = frozenset({
     'global.json', 'Directory.Packages.props',
     'Gemfile', 'Gemfile.lock', 'gems.rb', 'gems.locked',
     'Package.swift', 'Package.resolved', 'mix.exs', 'mix.lock',
+    'build.zig', 'build.zig.zon',
     'pubspec.yaml', 'pubspec.lock',
     'build.zig', 'build.zig.zon',
 })
@@ -116,6 +117,8 @@ def detect_projects(root: Path) -> list[str]:
         types.add('Rust')
     if names & {'go.mod', 'go.work'}:
         types.add('Go')
+    if names & {'build.zig', 'build.zig.zon'}:
+        types.add('Zig')
     if 'build.sbt' in names:
         types.add('Scala')
     if names & {'build.zig', 'build.zig.zon'}:
@@ -282,7 +285,7 @@ def doctor_report(root: Path) -> dict[str, Any]:
     tool_map = {
         'Node.js': 'node', 'Deno': 'deno', 'Python': 'python', 'Rust': 'cargo',
         'Go': 'go', 'Java': 'java', 'Scala': 'sbt', '.NET': 'dotnet', 'Docker': 'docker',
-        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
+        'Ruby': 'ruby', 'Swift': 'swift', 'Elixir': 'mix', 'Zig': 'zig', 'Dart': 'dart', 'Julia': 'julia', 'Zig': 'zig',
     }
     if 'Clojure' in found:
         tool_map['Clojure'] = 'lein' if 'project.clj' in _root_files(root) else 'clojure'
