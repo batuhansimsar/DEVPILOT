@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +15,28 @@ _MAX_DESCRIPTION_BYTES = 32768
 _PACKAGE_NAME = re.compile(rb'[A-Za-z][A-Za-z0-9.]*\Z')
 
 
+def _description_identity(metadata: os.stat_result) -> tuple[int, int, int, int, int]:
+    """Identify replacement or mutation of an untrusted DESCRIPTION file."""
+    return (metadata.st_dev, metadata.st_ino, metadata.st_size,
+            metadata.st_mtime_ns, metadata.st_ctime_ns)
+
+
 def _valid_package_description(path: Path) -> bool:
-    """Reject generic, linked and oversized DESCRIPTION files as package evidence."""
-    if path.is_symlink() or not path.is_file():
-        return False
+    """Read a bounded, stable regular DESCRIPTION without following swapped links."""
     try:
-        with path.open('rb') as source:
+        initial = path.lstat()
+        if not stat.S_ISREG(initial.st_mode) or initial.st_size > _MAX_DESCRIPTION_BYTES:
+            return False
+        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+        with os.fdopen(os.open(path, flags), 'rb') as source:
+            opened = os.fstat(source.fileno())
+            if (not stat.S_ISREG(opened.st_mode)
+                    or opened.st_size > _MAX_DESCRIPTION_BYTES
+                    or _description_identity(initial) != _description_identity(opened)):
+                return False
             contents = source.read(_MAX_DESCRIPTION_BYTES + 1)
+            if _description_identity(os.fstat(source.fileno())) != _description_identity(opened):
+                return False
     except OSError:
         return False
     return len(contents) <= _MAX_DESCRIPTION_BYTES and any(
