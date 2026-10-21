@@ -8,6 +8,7 @@ from typing import Any
 
 from .r_manifests import is_r_manifest
 
+_MAX_R_SUITE_ENTRIES = 4096
 _MAX_DESCRIPTION_BYTES = 32768
 _PACKAGE_NAME = re.compile(rb'[A-Za-z][A-Za-z0-9.]*\Z')
 
@@ -56,12 +57,19 @@ def r_test_command(root: Path, names: set[str]) -> dict[str, Any] | None:
         return None
 
     try:
-        # testthat can execute every matching test file, not just the first
-        # regular one. Reject a suite containing any linked test entry point.
-        candidates = list(suite.glob('test-*.R'))
-        if any(test.is_symlink() for test in candidates):
-            return None
-        if not any(test.is_file() for test in candidates):
+        # testthat also sources helper/setup R scripts. A linked helper can
+        # execute code outside the selected project even when tests are local.
+        # Scan directory entries once, with a bound against enormous suites.
+        has_test = False
+        for count, candidate in enumerate(suite.iterdir(), 1):
+            if count > _MAX_R_SUITE_ENTRIES:
+                return None
+            if candidate.name.endswith('.R') and candidate.is_symlink():
+                return None
+            if (candidate.name.startswith('test-')
+                    and candidate.name.endswith('.R') and candidate.is_file()):
+                has_test = True
+        if not has_test:
             return None
     except OSError:
         return None
