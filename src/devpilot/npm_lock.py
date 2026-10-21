@@ -11,6 +11,10 @@ import json
 from .json_numbers import parse_finite_json_float
 from .node_deps import _valid_package_name
 
+# The dependency scanner limits files to 512 KB, but direct parser callers
+# need an independent limit before json.loads allocates memory.
+MAX_NPM_LOCK_INPUT_CHARS = 2 * 1024 * 1024
+
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     result: dict[str, object] = {}
@@ -79,6 +83,8 @@ def parse_npm_lock(content: str) -> list[str]:
     private registry URLs, or integrity strings. Reject malformed structures
     without printing any untrusted package names or source text.
     """
+    if not isinstance(content, str) or len(content) > MAX_NPM_LOCK_INPUT_CHARS:
+        raise ValueError('npm lockfile input exceeds safe size limit or is invalid')
     try:
         document = json.loads(content.removeprefix('\ufeff'),
                               object_pairs_hook=_unique_keys,
