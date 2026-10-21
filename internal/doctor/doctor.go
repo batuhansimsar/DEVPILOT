@@ -113,17 +113,56 @@ func hasMarker(root, name string) bool {
 	return err == nil && st.Mode().IsRegular()
 }
 
+// namesFromEnv reads declaration names only, not their values. Multiline
+// quoted values cannot impersonate top-level KEY=value declarations.
 func namesFromEnv(data []byte) []string {
 	set := make(map[string]bool)
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "\ufeff"))
+	var quoted byte
+	escaped := false
+	scanQuote := func(value string, quote byte, pendingEscape bool) (bool, bool) {
+		for i := 0; i < len(value); i++ {
+			switch {
+			case pendingEscape:
+				pendingEscape = false
+			case value[i] == '\\':
+				pendingEscape = true
+			case value[i] == quote:
+				return true, false
+			}
+		}
+		return false, pendingEscape
+	}
+	// Only CR and LF terminate a physical dotenv line. Trimming arbitrary
+	// Unicode whitespace could turn an embedded line separator into a key.
+	content := strings.ReplaceAll(strings.ReplaceAll(string(data), "\r\n", "\n"), "\r", "\n")
+	for _, line := range strings.Split(content, "\n") {
+		if quoted != 0 {
+			closed, nextEscape := scanQuote(line, quoted, escaped)
+			escaped = nextEscape
+			if closed {
+				quoted = 0
+				escaped = false
+			}
+			continue
+		}
+		line = strings.Trim(strings.TrimPrefix(strings.Trim(line, " \t"), "\ufeff"), " \t")
 		if strings.HasPrefix(line, "export") && len(line) > len("export") &&
 			(line[len("export")] == ' ' || line[len("export")] == '\t') {
-			line = strings.TrimSpace(line[len("export"):])
+			line = strings.TrimLeft(line[len("export"):], " \t")
 		}
-		name, _, ok := strings.Cut(line, "=")
-		if ok && variableName.MatchString(strings.TrimSpace(name)) {
-			set[strings.TrimSpace(name)] = true
+		name, value, ok := strings.Cut(line, "=")
+		name = strings.Trim(name, " \t")
+		if !ok || !variableName.MatchString(name) {
+			continue
+		}
+		set[name] = true
+		value = strings.TrimLeft(value, " \t")
+		if len(value) > 0 && (value[0] == '\'' || value[0] == '"') {
+			closed, nextEscape := scanQuote(value[1:], value[0], false)
+			if !closed {
+				quoted = value[0]
+				escaped = nextEscape
+			}
 		}
 	}
 	names := make([]string, 0, len(set))
