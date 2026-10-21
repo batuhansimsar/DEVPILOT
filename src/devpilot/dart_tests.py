@@ -15,13 +15,22 @@ _MAX_TEST_ENTRIES = 10000
 _DEPENDENCY_SECTION = re.compile(
     rb'''(?:dependencies|dev_dependencies|dependency_overrides|"(?:dependencies|dev_dependencies|dependency_overrides)"|'(?:dependencies|dev_dependencies|dependency_overrides)')[ \t]*:[ \t]*(?:#.*)?\Z'''
 )
-_DEPENDENCY_ENTRY = re.compile(
-    rb'''(?:[A-Za-z][A-Za-z0-9_]*|'[A-Za-z][A-Za-z0-9_]*'|"[A-Za-z][A-Za-z0-9_]*")[ \t]*:[ \t]*(?:#.*)?\Z'''
+# Flutter runner selection requires an actual Flutter SDK package; arbitrary
+# dependencies containing "sdk: flutter" are not sufficient evidence.
+_FLUTTER_PACKAGES = (
+    rb'(?:flutter|flutter_test|flutter_localizations|flutter_driver|'
+    rb'flutter_web_plugins|flutter_tools|flutter_gpu|integration_test)'
 )
+_FLUTTER_PACKAGE_KEY = (
+    rb'(?:' + _FLUTTER_PACKAGES + rb'|"' + _FLUTTER_PACKAGES
+    + rb'"|\x27' + _FLUTTER_PACKAGES + rb'\x27)'
+)
+_DEPENDENCY_ENTRY = re.compile(_FLUTTER_PACKAGE_KEY + rb'[ \t]*:[ \t]*(?:#.*)?\Z')
 _FLUTTER_SDK = re.compile(rb'''(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|'flutter'|"flutter")[ \t]*(?:#.*)?\Z''')
 
 _INLINE_FLUTTER_SDK = re.compile(
-    rb'''(?:[A-Za-z][A-Za-z0-9_]*|'[A-Za-z][A-Za-z0-9_]*'|"[A-Za-z][A-Za-z0-9_]*")[ \t]*:[ \t]*\{[ \t]*(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*\}[ \t]*(?:#.*)?\Z'''
+    _FLUTTER_PACKAGE_KEY
+    + rb'''[ \t]*:[ \t]*\{[ \t]*(?:sdk|"sdk"|'sdk')[ \t]*:[ \t]*(?:flutter|"flutter"|'flutter')[ \t]*\}[ \t]*(?:#.*)?\Z'''
 )
 
 def _has_flutter_sdk_dependency(data: bytes) -> bool:
