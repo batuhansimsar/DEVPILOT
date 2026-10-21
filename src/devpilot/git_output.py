@@ -76,6 +76,10 @@ def format_git_status(report: dict[str, Any]) -> str:
         # clean worktree. Missing output without an explicit clean verdict is
         # incomplete, not evidence that the repository has no changes.
         warnings.append('Git status unavailable (empty porcelain output)')
+    elif not has_stdout and not invalid_stdout and not exit_code_present and not diagnostics:
+        # A missing process result is not proof of a clean worktree. Preserve
+        # diagnostic-only reports for backwards compatibility.
+        warnings.append('Git status unavailable (missing command result)')
 
     # A successful exit can still carry Git warnings (such as repository
     # configuration or filesystem diagnostics). Do not silently discard them
